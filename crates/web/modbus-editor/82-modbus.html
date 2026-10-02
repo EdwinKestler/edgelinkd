@@ -1,0 +1,90 @@
+<script type="text/html" data-template-name="modbus">
+    <div class="form-row">
+        <label for="node-input-host"><i class="fa fa-globe"></i> Host</label>
+        <input type="text" id="node-input-host" placeholder="127.0.0.1">
+    </div>
+    <div class="form-row">
+        <label for="node-input-port"><i class="fa fa-random"></i> Port</label>
+        <input type="number" id="node-input-port" min="1" max="65535" step="1" style="width: 80px">
+    </div>
+    <div class="form-row">
+        <label for="node-input-unit"><i class="fa fa-hashtag"></i> Unit</label>
+        <input type="number" id="node-input-unit" min="0" max="255" step="1" style="width: 80px">
+    </div>
+    <div class="form-row">
+        <label for="node-input-period"><i class="fa fa-clock-o"></i> Period</label>
+        <input type="number" id="node-input-period" min="0" step="1" style="width: 80px">
+        <span>ms. 0 exchanges on a message. Below 10 ms is rejected.</span>
+    </div>
+    <div class="form-row">
+        <label for="node-input-transport"><i class="fa fa-exchange"></i> Transport</label>
+        <input type="text" id="node-input-transport" placeholder="tcp">
+    </div>
+    <div class="form-row">
+        <label for="node-input-points-json"><i class="fa fa-table"></i> Points</label>
+        <textarea id="node-input-points-json" rows="12" style="width: 70%; font-family: monospace;"></textarea>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips">
+        Each point is <code>{"kind":"coil"|"discrete"|"holding"|"input","address":0,"key":"...","scope":"flow"|"global"|"node","access":"read"|"write"|"readwrite"}</code>.
+        A read writes the context key, so a forced key stays forced. A write sends the context value, including a forced one.
+        Quantity other than 1, serial RTU, and any other Modbus class are rejected.
+        <code>tcp</code> is the only transport.
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType("modbus", {
+        category: "network",
+        color: "#C0DEED",
+        defaults: {
+            name: {value: ""},
+            host: {value: "", required: true},
+            port: {
+                value: 502,
+                validate: function (v) {
+                    var n = Number(v);
+                    return Number.isInteger(n) && n >= 1 && n <= 65535;
+                }
+            },
+            unit: {
+                value: 1,
+                validate: function (v) {
+                    var n = Number(v);
+                    return Number.isInteger(n) && n >= 0 && n <= 255;
+                }
+            },
+            period: {
+                value: 0,
+                validate: function (v) {
+                    var n = Number(v);
+                    return Number.isInteger(n) && (n === 0 || n >= 10);
+                }
+            },
+            transport: {value: "tcp", required: true},
+            points: {value: [{kind: "coil", address: 0, key: "pump", scope: "flow", access: "read"}]}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "bridge.svg",
+        label: function () {
+            return this.name || "modbus";
+        },
+        labelStyle: function () {
+            return this.name ? "node_label_italic" : "";
+        },
+        oneditprepare: function () {
+            $("#node-input-points-json").val(JSON.stringify(this.points || [], null, 2));
+        },
+        oneditsave: function () {
+            var parsed = JSON.parse($("#node-input-points-json").val());
+            if (!Array.isArray(parsed)) {
+                throw new Error("points must be a JSON array");
+            }
+            this.points = parsed;
+        }
+    });
+</script>

@@ -95,9 +95,39 @@ node_message_buffer_max_length = 0
 # once the queue is full. This is Node-RED's `tcpMsgQueueSize` settings.js property.
 tcp_msg_queue_size = 1000
 
+[runtime.scan]
+# Soft real-time scan. Compiled only with the `runtime_scan` feature, which is off by default.
+# Period in milliseconds. 0 disables the task. A value below 10 is an error at start.
+# The floor is the shortest interval the runtime will schedule, not a latency guarantee.
+period_ms = 0
+
 [ui-host]
 host = "127.0.0.1"
 port = 1888
+
+# Admin login is off until a password, a user list, or an OIDC issuer is set.
+# A whitespace password does not turn it on. viewer can read. deployer can deploy.
+# An unknown role, or an incomplete OIDC section, stops the process at startup.
+# [admin]
+# password = ""
+# [[admin.users]]
+# username = "operator"
+# password = "change-me"
+# role = "deployer"
+# [[admin.users]]
+# username = "viewer"
+# password = "change-me"
+# role = "viewer"
+# [admin.oidc]
+# issuer = "https://idp.example/realms/plant"
+# client_id = "edgelinkd"
+# client_secret = "change-me"
+# role_claim = "edgelink_role"
+# redirect_url = "http://127.0.0.1:1888/auth/strategy/callback"
+
+# Fleet push is off until enabled. Devices can also live in fleet.json beside flows.json.
+# [fleet]
+# enabled = false
 "#;
 
     fs::write(&config_path, default_config)?;

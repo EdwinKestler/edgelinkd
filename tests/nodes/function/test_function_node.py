@@ -85,7 +85,7 @@ class TestFunctionNode:
         assert msgs[0]["topic"] == "bar"
         assert msgs[0]["payload"] == "foo"
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the runtime forwards an owned message handle, so send() cloning identity cannot be observed")
     @pytest.mark.asyncio
     @pytest.mark.it('should clone single message sent using send()')
     async def test_it_should_clone_single_message_sent_using_send_2(self):
@@ -93,7 +93,7 @@ class TestFunctionNode:
 
     # Not supported, yet
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: node.send(msg, false) object identity is Node.js behaviour the runtime does not offer")
     @pytest.mark.asyncio
     @pytest.mark.it('should not clone single message sent using send(,false)')
     async def test_it_should_not_clone_single_message_sent_using_send_false(self):
@@ -181,7 +181,7 @@ class TestFunctionNode:
 
     # TODO the testing frame has no way to handle time-out for now
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: nexpected=0 returns without running the flow, so a discarded input cannot be observed")
     @pytest.mark.asyncio
     @pytest.mark.it('should allow input to be discarded by returning null')
     async def test_it_should_allow_input_to_be_discarded_by_returning_null(self):
@@ -245,31 +245,31 @@ class TestFunctionNode:
         # assert msgs[0]["type"] == 'function'
         # assert msgs[0]["msg"] == 'function.error.non-message-returned'
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the pytest harness cannot read the node log entry this spec asserts")
     @pytest.mark.asyncio
     @pytest.mark.it('should drop and log non-object message types - string')
     async def test_it_should_drop_and_log_non_object_message_types_string(self):
         await self._test_non_object_message('return "foo"')
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the pytest harness cannot read the node log entry this spec asserts, and binary payloads cannot cross the bridge")
     @pytest.mark.asyncio
     @pytest.mark.it('should drop and log non-object message types - buffer')
     async def test_it_should_drop_and_log_non_object_message_types_buffer(self):
         await self._test_non_object_message('return Buffer.from("hello")')
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the pytest harness cannot read the node log entry this spec asserts")
     @pytest.mark.asyncio
     @pytest.mark.it('should drop and log non-object message types - array')
     async def test_it_should_drop_and_log_non_object_message_types_array(self):
         await self._test_non_object_message('return [[[1,2,3]]]')
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the pytest harness cannot read the node log entry this spec asserts")
     @pytest.mark.asyncio
     @pytest.mark.it('should drop and log non-object message types - boolean')
     async def test_it_should_drop_and_log_non_object_message_types_boolean(self):
         await self._test_non_object_message('return true')
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the pytest harness cannot read the node log entry this spec asserts")
     @pytest.mark.asyncio
     @pytest.mark.it('should drop and log non-object message types - number')
     async def test_it_should_drop_and_log_non_object_message_types_number(self):
@@ -332,7 +332,7 @@ class TestFunctionNode:
         assert msgs[0]["count0"] == "0"
         assert msgs[0]["count1"] == "1"
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the callback form of context.set on a persistable store is the Node.js context API")
     @pytest.mark.asyncio
     @pytest.mark.it('should set two persistable node context (single call, w/o callback)')
     async def test_it_should_set_two_persistable_node_context_single_call_w_o_callback(self):
@@ -892,7 +892,7 @@ class TestFunctionNode:
         assert msgs[0]["payload"] == "0"
 
     # Not finished, yet
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: a timer that calls node.send after the function returns is not kept alive")
     @pytest.mark.asyncio
     @pytest.mark.it('should handle setTimeout()')
     async def test_it_should_handle_settimeout(self):
@@ -909,7 +909,7 @@ class TestFunctionNode:
         assert msgs[0]["topic"] == "bar"
         assert msgs[0]["payload"] == "foo"
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: a timer that calls node.send after the function returns is not kept alive")
     @pytest.mark.asyncio
     @pytest.mark.it('should handle setInterval()')
     async def test_it_should_handle_setinterval(self):
@@ -926,7 +926,7 @@ class TestFunctionNode:
         assert msgs[0]["topic"] == "bar"
         assert msgs[0]["payload"] == "foo"
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: a timer that calls node.send after the function returns is not kept alive")
     @pytest.mark.asyncio
     @pytest.mark.it('should handle clearInterval()')
     async def test_it_should_handle_clearinterval(self):

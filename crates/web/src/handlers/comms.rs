@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::broadcast;
-use tokio::time::{Duration, interval};
+use tokio::time::{Duration, interval, sleep_until};
 
 use crate::handlers::WebState;
 
@@ -42,6 +42,75 @@ pub struct ConnectionInfo {
     pub subscriptions: Arc<RwLock<HashSet<String>>>,
     /// Last activity time
     pub last_activity: Arc<RwLock<std::time::Instant>>,
+    /// Session token this socket authenticated with. Never logged.
+    pub token: Arc<RwLock<SocketAuth>>,
+}
+
+/// WebSocket session binding. `BoundInvalid` closes the idle loop immediately.
+#[derive(Clone, Default)]
+pub enum SocketAuth {
+    #[default]
+    Unbound,
+    BoundValid {
+        token: String,
+        deadline: tokio::time::Instant,
+    },
+    BoundInvalid,
+}
+
+impl std::fmt::Debug for SocketAuth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unbound => f.write_str("Unbound"),
+            Self::BoundValid { deadline, .. } => f.debug_struct("BoundValid").field("deadline", deadline).finish(),
+            Self::BoundInvalid => f.write_str("BoundInvalid"),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum IdleWait {
+    Park,
+    Until(tokio::time::Instant),
+    CloseNow,
+}
+
+fn idle_wait(auth: &SocketAuth, now: tokio::time::Instant) -> IdleWait {
+    match auth {
+        SocketAuth::Unbound => IdleWait::Park,
+        SocketAuth::BoundValid { deadline, .. } if *deadline > now => IdleWait::Until(*deadline),
+        SocketAuth::BoundValid { .. } | SocketAuth::BoundInvalid => IdleWait::CloseNow,
+    }
+}
+
+async fn apply_revocation(
+    result: Result<String, broadcast::error::RecvError>,
+    token_slot: &RwLock<SocketAuth>,
+    auth: &crate::handlers::auth::AdminAuth,
+) -> bool {
+    match result {
+        Ok(revoked) => {
+            let mut slot = token_slot.write().await;
+            if let SocketAuth::BoundValid { token, .. } = &*slot
+                && token == &revoked
+            {
+                *slot = SocketAuth::BoundInvalid;
+                return true;
+            }
+            false
+        }
+        Err(broadcast::error::RecvError::Lagged(_)) | Err(broadcast::error::RecvError::Closed) => {
+            let mut slot = token_slot.write().await;
+            match &*slot {
+                SocketAuth::BoundValid { token, .. } if !auth.session_valid(token) => {
+                    *slot = SocketAuth::BoundInvalid;
+                    true
+                }
+                SocketAuth::BoundInvalid => true,
+                _ => false,
+            }
+        }
+    }
 }
 
 impl Default for CommsManager {
@@ -147,6 +216,7 @@ impl CommsManager {
             tx,
             subscriptions: Arc::new(RwLock::new(HashSet::new())),
             last_activity: Arc::new(RwLock::new(std::time::Instant::now())),
+            token: Arc::new(RwLock::new(SocketAuth::Unbound)),
         };
 
         let mut connections = self.connections.write().await;
@@ -197,7 +267,7 @@ impl CommsManager {
         let batch = vec![message];
         let message_str = Self::serialize_batch(&batch);
 
-        log::debug!("Sending message to topic '{topic}': {message_str}");
+        log::debug!("Sending message to topic '{topic}' bytes={}", message_str.len());
 
         let connections = self.connections.read().await;
         for connection in connections.values() {
@@ -214,7 +284,7 @@ impl CommsManager {
     pub async fn send_raw_json(&self, sub_topic: &str, rep_topic: &str, data: serde_json::Value) {
         let batch = vec![NodeRedMessage { topic: rep_topic.to_string(), data }];
         let message_str = Self::serialize_batch(&batch);
-        log::debug!("Sending raw JSON message to topic '{rep_topic}': {message_str}");
+        log::debug!("Sending raw JSON message to topic '{rep_topic}' bytes={}", message_str.len());
         let connections = self.connections.read().await;
         for connection in connections.values() {
             let subscriptions = connection.subscriptions.read().await;
@@ -240,7 +310,7 @@ impl CommsManager {
     pub async fn send_batch_to_topic(&self, topic: &str, batch: &NodeRedMessageBatch) {
         let message_str = Self::serialize_batch(batch);
 
-        log::debug!("Sending batch to topic '{topic}': {message_str}");
+        log::debug!("Sending batch to topic '{topic}' bytes={}", message_str.len());
 
         let connections = self.connections.read().await;
         for connection in connections.values() {
@@ -259,7 +329,7 @@ impl CommsManager {
         let batch = vec![message];
         let message_str = Self::serialize_batch(&batch);
 
-        log::debug!("Broadcasting message to all connections: {message_str}");
+        log::debug!("Broadcasting message to all connections bytes={}", message_str.len());
 
         let _ = self.broadcast_tx.send(message_str);
     }
@@ -468,11 +538,14 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
         guard.clone()
     };
 
+    let conn_cancel = tokio_util::sync::CancellationToken::new();
+    let conn_cancel_broadcast = conn_cancel.clone();
+
     // Handle broadcast messages in background task
     let tx_clone = tx.clone();
     let connection_id_clone = connection_id.clone();
     let broadcast_cancel_token = cancel_token.clone();
-    let broadcast_task = tokio::spawn(async move {
+    let mut broadcast_task = tokio::spawn(async move {
         loop {
             tokio::select! {
                 msg_result = rx.recv() => {
@@ -489,9 +562,16 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
                         }
                     }
                 }
+                _ = conn_cancel_broadcast.cancelled() => {
+                    log::info!("WebSocket session closed connection={connection_id_clone}");
+                    let _ = sender.send(axum::extract::ws::Message::Close(None)).await;
+                    break;
+                }
                 _ = async {
                     if let Some(ref token) = broadcast_cancel_token {
                         token.cancelled().await;
+                    } else {
+                        std::future::pending::<()>().await;
                     }
                 } => {
                     log::info!("WebSocket broadcast task cancelled for connection: {connection_id_clone}");
@@ -503,31 +583,67 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
         log::info!("WebSocket broadcast task ended for connection: {connection_id_clone}");
     });
 
-    // Handle client messages
+    // Handle client messages. When admin auth is off the socket is already authorized, which is
+    // what the editor does: it ignores the welcome "required" unless it has a token.
     let connection_id_clone = connection_id.clone();
     let comms_manager_clone = state.comms.clone();
     let message_cancel_token = cancel_token.clone();
     let state2 = Arc::clone(&state);
-    let message_task = tokio::spawn(async move {
+    let auth = Arc::clone(&state.auth);
+    let authed = Arc::new(std::sync::atomic::AtomicBool::new(!state.auth.enabled()));
+    let token_slot = {
+        let connections = state.comms.connections.read().await;
+        connections
+            .get(&connection_id)
+            .map(|info| info.token.clone())
+            .unwrap_or_else(|| Arc::new(RwLock::new(SocketAuth::Unbound)))
+    };
+    let mut revocations = state.auth.subscribe_revocations();
+    let conn_cancel_msg = conn_cancel.clone();
+    let mut message_task = tokio::spawn(async move {
         loop {
+            let wait = {
+                let mut slot = token_slot.write().await;
+                if let SocketAuth::BoundValid { token, .. } = &*slot
+                    && !auth.session_valid(token)
+                {
+                    *slot = SocketAuth::BoundInvalid;
+                }
+                idle_wait(&slot, tokio::time::Instant::now())
+            };
             tokio::select! {
                 msg_option = receiver.next() => {
                     match msg_option {
                         Some(Ok(axum::extract::ws::Message::Text(text))) => {
-                            log::debug!("Received WebSocket message: {text}");
-
-                            // Update connection activity time
+                            let bytes = text.len();
                             comms_manager_clone.update_activity(&connection_id_clone).await;
-
-                            // Parse message
-                            if let Ok(parsed) = serde_json::from_str::<Value>(&text) {
-                                // Lock engine for read, pass as Option<&Engine>
-                                let engine_guard = state2.engine.read().await;
-                                handle_websocket_message(parsed, &tx_clone, &connection_id_clone, &comms_manager_clone, engine_guard.as_deref()).await;
+                            match serde_json::from_str::<Value>(&text) {
+                                Ok(parsed) => {
+                                    let category = message_category(&parsed);
+                                    log::debug!("websocket recv connection={connection_id_clone} category={category} bytes={bytes}");
+                                    let engine_guard = state2.engine.read().await;
+                                    handle_websocket_message(
+                                        parsed,
+                                        &tx_clone,
+                                        &connection_id_clone,
+                                        &comms_manager_clone,
+                                        engine_guard.as_deref(),
+                                        &auth,
+                                        &authed,
+                                        &token_slot,
+                                    )
+                                    .await;
+                                    if matches!(*token_slot.read().await, SocketAuth::BoundInvalid) {
+                                        log::info!("WebSocket session invalid connection={connection_id_clone}");
+                                        break;
+                                    }
+                                }
+                                Err(_) => {
+                                    log::debug!("websocket recv connection={connection_id_clone} category=malformed bytes={bytes}");
+                                }
                             }
                         }
                         Some(Ok(axum::extract::ws::Message::Pong(_))) => {
-                            // Handle pong message, update activity time
                             comms_manager_clone.update_activity(&connection_id_clone).await;
                         }
                         Some(Ok(axum::extract::ws::Message::Close(_))) => {
@@ -535,7 +651,7 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
                             break;
                         }
                         Some(Err(e)) => {
-                            log::error!("WebSocket error: {e}");
+                            log::error!("WebSocket error connection={connection_id_clone}: {e}");
                             break;
                         }
                         Some(_) => {}
@@ -545,9 +661,28 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
                         }
                     }
                 }
+                revoked = revocations.recv() => {
+                    if apply_revocation(revoked, &token_slot, &auth).await {
+                        log::info!("WebSocket session revoked connection={connection_id_clone}");
+                        break;
+                    }
+                }
+                _ = async {
+                    match wait {
+                        IdleWait::Until(at) => sleep_until(at).await,
+                        IdleWait::CloseNow => {}
+                        IdleWait::Park => std::future::pending::<()>().await,
+                    }
+                } => {
+                    *token_slot.write().await = SocketAuth::BoundInvalid;
+                    log::info!("WebSocket session expired connection={connection_id_clone}");
+                    break;
+                }
                 _ = async {
                     if let Some(ref token) = message_cancel_token {
                         token.cancelled().await;
+                    } else {
+                        std::future::pending::<()>().await;
                     }
                 } => {
                     log::info!("WebSocket message task cancelled for connection: {connection_id_clone}");
@@ -555,6 +690,7 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
                 }
             }
         }
+        conn_cancel_msg.cancel();
         log::info!("WebSocket message task ended for connection: {connection_id_clone}");
     });
 
@@ -568,10 +704,15 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
         log::error!("Failed to send welcome message: {e}");
     }
 
-    // Wait for tasks to complete
     tokio::select! {
-        _ = broadcast_task => {},
-        _ = message_task => {},
+        _ = &mut broadcast_task => {
+            message_task.abort();
+        }
+        _ = &mut message_task => {
+            conn_cancel.cancel();
+            let _ = tokio::time::timeout(Duration::from_millis(500), &mut broadcast_task).await;
+            broadcast_task.abort();
+        }
     }
 
     // Remove connection
@@ -579,15 +720,68 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
     log::info!("WebSocket connection ended: {connection_id}");
 }
 
+fn message_category(message: &Value) -> &'static str {
+    if message.get("auth").is_some() {
+        "auth"
+    } else if message.get("subscribe").is_some() {
+        "subscribe"
+    } else if message.get("unsubscribe").is_some() {
+        "unsubscribe"
+    } else {
+        "other"
+    }
+}
+
 /// Handle WebSocket message
+#[allow(clippy::too_many_arguments)]
 async fn handle_websocket_message(
     message: Value,
     tx: &broadcast::Sender<String>,
     connection_id: &str,
     comms_manager: &CommsManager,
     engine: Option<&edgelink_core::runtime::engine::Engine>,
+    auth: &crate::handlers::auth::AdminAuth,
+    authed: &std::sync::atomic::AtomicBool,
+    token_slot: &RwLock<SocketAuth>,
 ) {
-    log::debug!("Handling WebSocket message: {message:?}");
+    if message.get("auth").is_some() {
+        let offered = message.get("auth").and_then(Value::as_str);
+        let accepted = if !auth.enabled() { true } else { offered.is_some_and(|token| auth.session_valid(token)) };
+        if accepted {
+            authed.store(true, std::sync::atomic::Ordering::Relaxed);
+            if let Some(token) = offered {
+                let next = if let Some(deadline) = auth.session_expires(token) {
+                    SocketAuth::BoundValid { token: token.to_string(), deadline }
+                } else {
+                    SocketAuth::BoundInvalid
+                };
+                *token_slot.write().await = next;
+            }
+            log::debug!("websocket auth connection={connection_id} result=ok");
+        } else {
+            log::debug!("websocket auth connection={connection_id} result=fail");
+        }
+        let response =
+            if accepted { serde_json::json!({ "auth": "ok" }) } else { serde_json::json!({ "auth": "fail" }) };
+        if let Err(err) = tx.send(response.to_string()) {
+            log::error!("Failed to send auth response connection={connection_id}: {err}");
+        }
+    }
+
+    let bound = token_slot.read().await;
+    if auth.enabled() {
+        let still = match &*bound {
+            SocketAuth::BoundValid { token, .. } => auth.session_valid(token),
+            SocketAuth::BoundInvalid => false,
+            SocketAuth::Unbound => false,
+        };
+        if !still {
+            return;
+        }
+    } else if !authed.load(std::sync::atomic::Ordering::Relaxed) {
+        return;
+    }
+    drop(bound);
 
     // Handle subscribe message
     if let Some(topic) = message.get("subscribe").and_then(|t| t.as_str()) {
@@ -652,18 +846,196 @@ async fn handle_websocket_message(
 
         // Node-RED doesn't send unsubscribe confirmation
     }
+}
 
-    // Handle auth message
-    if message.get("auth").is_some() {
-        log::info!("Client authentication request");
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::handlers::auth::AdminAuth;
+    use serde_json::json;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::{Mutex, Once, OnceLock};
 
-        // Send authentication success response (Node-RED auth format)
-        let response = serde_json::json!({
-            "auth": "ok"
-        });
+    static LOGS: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
 
-        if let Err(e) = tx.send(response.to_string()) {
-            log::error!("Failed to send auth response: {e}");
+    struct Capture;
+    impl log::Log for Capture {
+        fn enabled(&self, _: &log::Metadata) -> bool {
+            true
         }
+        fn log(&self, record: &log::Record) {
+            LOGS.get_or_init(|| Mutex::new(Vec::new())).lock().unwrap().push(format!("{}", record.args()));
+        }
+        fn flush(&self) {}
+    }
+
+    fn install_logger() {
+        static ONCE: Once = Once::new();
+        ONCE.call_once(|| {
+            let _ = log::set_logger(&Capture);
+            log::set_max_level(log::LevelFilter::Debug);
+        });
+    }
+
+    fn logs_contain(secret: &str) -> bool {
+        LOGS.get().is_some_and(|logs| logs.lock().unwrap().iter().any(|line| line.contains(secret)))
+    }
+
+    fn auth() -> AdminAuth {
+        AdminAuth::from_config(
+            &config::Config::builder()
+                .add_source(config::File::from_str(
+                    r#"
+            [admin]
+            password = "plant-secret"
+            "#,
+                    config::FileFormat::Toml,
+                ))
+                .build()
+                .unwrap(),
+        )
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn websocket_auth_does_not_log_the_token() {
+        install_logger();
+        let auth = auth();
+        let issued = auth.issue("admin", "*");
+        let secret = issued.token().to_string();
+        let comms = CommsManager::new();
+        let (tx, _rx) = broadcast::channel(8);
+        comms.add_connection("c1".into(), tx.clone()).await;
+        let token_slot = RwLock::new(SocketAuth::Unbound);
+        let authed = AtomicBool::new(false);
+        handle_websocket_message(json!({ "auth": secret }), &tx, "c1", &comms, None, &auth, &authed, &token_slot).await;
+        handle_websocket_message(
+            json!({ "auth": "not-a-real-token" }),
+            &tx,
+            "c1",
+            &comms,
+            None,
+            &auth,
+            &authed,
+            &token_slot,
+        )
+        .await;
+        assert!(!logs_contain(&secret));
+        assert!(authed.load(std::sync::atomic::Ordering::Relaxed));
+        handle_websocket_message(json!({ "subscribe": "debug" }), &tx, "c1", &comms, None, &auth, &authed, &token_slot)
+            .await;
+        {
+            let subs = comms.connections.read().await.get("c1").unwrap().subscriptions.read().await.clone();
+            assert!(subs.contains("debug"));
+        }
+        auth.revoke(&secret);
+        assert!(!auth.session_valid(&secret));
+        handle_websocket_message(
+            json!({ "subscribe": "status/#" }),
+            &tx,
+            "c1",
+            &comms,
+            None,
+            &auth,
+            &authed,
+            &token_slot,
+        )
+        .await;
+        let subs = comms.connections.read().await.get("c1").unwrap().subscriptions.read().await.clone();
+        assert!(!subs.contains("status/#"));
+        assert!(!logs_contain(&secret));
+    }
+
+    #[tokio::test]
+    async fn an_expired_session_is_no_longer_valid() {
+        let auth = auth();
+        let issued = auth.issue_with_ttl("admin", "*", Duration::from_millis(1));
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        assert!(!auth.session_valid(issued.token()));
+        assert!(!logs_contain(issued.token()));
+    }
+
+    #[tokio::test]
+    async fn a_different_token_is_not_revoked() {
+        let auth = auth();
+        let first = auth.issue("admin", "*");
+        let second = auth.issue("admin", "*");
+        auth.revoke(first.token());
+        assert!(!auth.session_valid(first.token()));
+        assert!(auth.session_valid(second.token()));
+    }
+
+    #[test]
+    fn bound_invalid_closes_immediately() {
+        let now = tokio::time::Instant::now();
+        assert!(matches!(idle_wait(&SocketAuth::Unbound, now), IdleWait::Park));
+        assert!(matches!(idle_wait(&SocketAuth::BoundInvalid, now), IdleWait::CloseNow));
+        let past = now.checked_sub(Duration::from_secs(1)).unwrap_or(now);
+        assert!(matches!(
+            idle_wait(&SocketAuth::BoundValid { token: "x".into(), deadline: past }, now),
+            IdleWait::CloseNow
+        ));
+    }
+
+    #[tokio::test]
+    async fn lagged_revocation_closes_an_invalid_session() {
+        let auth = auth();
+        let issued = auth.issue("admin", "*");
+        let slot = RwLock::new(SocketAuth::BoundValid {
+            token: issued.token().to_string(),
+            deadline: tokio::time::Instant::now() + Duration::from_secs(60),
+        });
+        auth.revoke(issued.token());
+        assert!(apply_revocation(Err(broadcast::error::RecvError::Lagged(8)), &slot, &auth).await);
+        assert!(matches!(*slot.read().await, SocketAuth::BoundInvalid));
+    }
+
+    async fn serve_comms(state: Arc<crate::handlers::WebState>) -> (std::net::SocketAddr, tokio::task::JoinHandle<()>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let app = crate::api::create_all_routes(&state).layer(Extension(state));
+        let task = tokio::spawn(async move {
+            axum::serve(listener, app.into_make_service()).await.unwrap();
+        });
+        (addr, task)
+    }
+
+    #[tokio::test]
+    async fn a_revoked_websocket_is_closed() {
+        let admin = auth();
+        let issued = admin.issue("admin", "*");
+        let token = issued.token().to_string();
+        let state = crate::handlers::WebState::assemble(
+            Arc::new(crate::models::RedSystemSettings::default()),
+            std::env::temp_dir(),
+            None,
+            admin,
+            crate::handlers::fleet::Fleet::disabled(),
+        );
+        let (addr, server) = serve_comms(state.clone()).await;
+        let url = format!("ws://{addr}/comms");
+        let (mut socket, _) = tokio_tungstenite::connect_async(&url).await.unwrap();
+        use futures_util::{SinkExt, StreamExt};
+        let welcome = socket.next().await.unwrap().unwrap();
+        assert!(welcome.to_string().contains("required"), "{welcome:?}");
+        socket
+            .send(tokio_tungstenite::tungstenite::Message::Text(json!({ "auth": token }).to_string().into()))
+            .await
+            .unwrap();
+        let ok = socket.next().await.unwrap().unwrap();
+        assert!(ok.to_string().contains("ok"), "{ok:?}");
+        state.auth.revoke(&token);
+        let closed = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                match socket.next().await {
+                    Some(Ok(tokio_tungstenite::tungstenite::Message::Close(_))) | None => return,
+                    Some(Ok(_)) => {}
+                    Some(Err(_)) => return,
+                }
+            }
+        })
+        .await;
+        assert!(closed.is_ok(), "revoked websocket stayed open");
+        server.abort();
     }
 }

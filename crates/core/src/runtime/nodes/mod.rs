@@ -31,6 +31,10 @@ mod storage_nodes;
 #[cfg(feature = "nodes_network")]
 mod network_nodes;
 
+#[cfg(all(feature = "nodes_modbus", not(feature = "nodes_network")))]
+#[path = "network_nodes/modbus.rs"]
+mod modbus;
+
 pub mod wellknown_names {
     pub const UNKNOWN_GLOBAL_NODE: &str = "unknown.global";
     pub const UNKNOWN_FLOW_NODE: &str = "unknown";

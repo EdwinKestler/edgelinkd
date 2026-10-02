@@ -22,9 +22,10 @@ use serde_yaml_ng as yaml;
 ///
 /// Behavior:
 /// - String input: Parse YAML to object using `yaml.load()`
-/// - Object input: Convert to YAML string using `yaml.dump()`
-/// - Buffer input: Warns and passes through unchanged
-/// - Other types: Warns and passes through unchanged
+/// - Object or array input: Convert to a YAML string using `yaml.dump()`
+/// - Boolean, number, or buffer input: leave the value unchanged and report a node error
+///   (`yaml.errors.dropped` / `yaml.errors.dropped-object`). The message is still forwarded.
+/// - A missing property: pass the message through unchanged
 #[derive(Debug)]
 #[flow_node("yaml", red_name = "YAML")]
 struct YamlNode {
@@ -79,6 +80,18 @@ fn default_outputs() -> usize {
     1
 }
 
+/// Catalog text for a payload Node-RED refuses to dump.
+///
+/// Booleans and numbers use `yaml.errors.dropped`. Buffers use `yaml.errors.dropped-object`.
+#[cfg(feature = "nodes_yaml")]
+fn unsupported_yaml_payload(value: &Variant) -> Option<&'static str> {
+    match value {
+        Variant::Bool(_) | Variant::Number(_) => Some("Ignored unsupported payload type"),
+        Variant::Bytes(_) => Some("Ignored non-object payload"),
+        _ => None,
+    }
+}
+
 #[cfg(feature = "nodes_yaml")]
 impl YamlNode {
     async fn process_yaml(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
@@ -94,25 +107,25 @@ impl YamlNode {
         let property_value = msg_guard.get(&self.config.property).cloned();
 
         if let Some(value) = property_value {
+            // Node-RED warns and does not convert booleans, numbers, or buffers. The message
+            // keeps its value and the catch node sees the catalog string. The write guard has
+            // to be released first: reporting the error reads the same message.
+            if let Some(reason) = unsupported_yaml_payload(&value) {
+                drop(msg_guard);
+                self.report_error(reason.to_string(), msg.clone(), cancel.clone()).await;
+                return self.fan_out_one(Envelope { port: 0, msg }, cancel).await;
+            }
+
             let result = match &value {
                 Variant::String(yaml_string) => {
                     // String input: parse YAML to object
                     self.parse_yaml_to_object(yaml_string).await
                 }
-                Variant::Object(_) | Variant::Array(_) | Variant::Number(_) | Variant::Bool(_) => {
+                Variant::Object(_) | Variant::Array(_) => {
                     // Object input: convert to YAML string
                     self.convert_object_to_yaml(&value).await
                 }
-                Variant::Bytes(_) => {
-                    // Buffer input: warn and pass through (like Node-RED)
-                    log::warn!("YAML node: Cannot convert buffer to YAML");
-                    Ok(value)
-                }
-                _ => {
-                    // Other types: warn and pass through
-                    log::warn!("YAML node: Cannot convert {value:?} to YAML");
-                    Ok(value)
-                }
+                _ => Ok(value),
             };
 
             match result {
@@ -148,7 +161,7 @@ impl YamlNode {
 
 #[cfg(not(feature = "nodes_yaml"))]
 impl YamlNode {
-    async fn process_yaml(&self, _msg: MsgHandle) -> crate::Result<()> {
+    async fn process_yaml(&self, _msg: MsgHandle, _cancel: CancellationToken) -> crate::Result<()> {
         log::error!("YAML node is not available. Please enable the 'nodes_yaml' feature.");
         Err(crate::EdgelinkError::InvalidOperation("YAML node requires 'nodes_yaml' feature to be enabled".to_string())
             .into())
@@ -414,5 +427,16 @@ mod tests {
             let dumped = yaml::to_string(&variant_to_yaml_value(&value)).unwrap();
             assert_eq!(indent_mapping_sequences(&dumped), expected, "for {doc}");
         }
+    }
+
+    #[test]
+    fn scalars_and_buffers_are_not_dumped() {
+        assert_eq!(unsupported_yaml_payload(&Variant::Bool(true)), Some("Ignored unsupported payload type"));
+        assert_eq!(
+            unsupported_yaml_payload(&Variant::Number(serde_json::Number::from(1))),
+            Some("Ignored unsupported payload type")
+        );
+        assert_eq!(unsupported_yaml_payload(&Variant::Bytes(b"a".to_vec())), Some("Ignored non-object payload"));
+        assert_eq!(unsupported_yaml_payload(&Variant::Array(vec![])), None);
     }
 }

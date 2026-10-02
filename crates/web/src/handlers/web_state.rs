@@ -3,11 +3,15 @@ use axum::Router;
 use edgelink_core::runtime::paths;
 
 use crate::handlers::CommsManager;
+use crate::handlers::audit::AuditLog;
+use crate::handlers::auth::AdminAuth;
+use crate::handlers::fleet::Fleet;
 use crate::models::RedSystemSettings;
 use edgelink_core::runtime::engine::Engine;
 use edgelink_core::runtime::engine_events::EngineEvent;
 use edgelink_core::runtime::registry::RegistryHandle;
 use edgelink_core::web::WebHandlerRegistry;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -32,6 +36,15 @@ pub struct WebState {
     pub cancel_token: RwLock<Option<CancellationToken>>, // Cancellation token for graceful shutdown
     pub static_dir: PathBuf,                      // Static files directory
     pub web_handlers: WebHandlerRegistry,         // Dynamic/static web handler registry
+    pub auth: Arc<AdminAuth>,
+    pub audit: AuditLog,
+    pub fleet: Arc<Fleet>,
+    /// Process start. A redeploy replaces the engine and must not reset this clock.
+    pub started_at: std::time::Instant,
+    /// Address the listener actually bound. `None` until [`crate::server::WebServer::spawn`].
+    pub listen: RwLock<Option<SocketAddr>>,
+    /// Serializes deploy and rollback so two clients cannot both pass the same revision.
+    pub deploy: tokio::sync::Mutex<()>,
 }
 
 /// Implement WebStateCore trait for WebState
@@ -58,17 +71,40 @@ impl WebStateCore for WebState {
 
 impl WebState {
     /// Construct a new WebState wrapped in Arc for use everywhere.
+    /// Auth is open and fleet is off, which is the default install.
     pub fn new() -> Arc<Self> {
+        Self::assemble(
+            Arc::new(RedSystemSettings::default()),
+            Self::default_static_dir(),
+            None,
+            AdminAuth::open(),
+            Fleet::disabled(),
+        )
+    }
+
+    pub fn assemble(
+        red_settings: Arc<RedSystemSettings>,
+        static_dir: PathBuf,
+        cancel_token: Option<CancellationToken>,
+        auth: AdminAuth,
+        fleet: Fleet,
+    ) -> Arc<Self> {
         Arc::new(Self {
-            red_settings: Arc::new(RedSystemSettings::default()),
-            registry: RwLock::new(None), // No registry by default, needs to be set later
-            comms: CommsManager::new(),  // Create WebSocket communication manager
-            flows_file_path: RwLock::new(None), // No flows file path by default
-            restart_callback: RwLock::new(None), // No restart callback by default
-            engine: RwLock::new(None),   // No engine by default
-            cancel_token: RwLock::new(None), // No cancellation token by default
-            static_dir: Self::default_static_dir(), // Set static_dir using helper
-            web_handlers: WebHandlerRegistry::new(), // Initialize web handler registry
+            red_settings,
+            registry: RwLock::new(None),
+            comms: CommsManager::new(),
+            flows_file_path: RwLock::new(None),
+            restart_callback: RwLock::new(None),
+            engine: RwLock::new(None),
+            cancel_token: RwLock::new(cancel_token),
+            static_dir,
+            web_handlers: WebHandlerRegistry::new(),
+            auth: Arc::new(auth),
+            audit: AuditLog::new(),
+            fleet: Arc::new(fleet),
+            started_at: std::time::Instant::now(),
+            listen: RwLock::new(None),
+            deploy: tokio::sync::Mutex::new(()),
         })
     }
 }
@@ -105,8 +141,22 @@ impl WebState {
         *eng = Some(engine);
     }
 
-    /// Set the flows file path
+    /// Set the flows file path. The parent directory holds the previous flows, the audit log,
+    /// the local library, and the fleet inventory.
+    /// Record the socket the server bound, including a port chosen as 0.
+    pub async fn record_listen(&self, addr: SocketAddr) {
+        *self.listen.write().await = Some(addr);
+    }
+
     pub async fn set_flows_file_path(&self, path: PathBuf) {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            self.audit.set_home(parent.to_path_buf()).await;
+            if let Err(err) = self.fleet.load_home(parent.to_path_buf()).await {
+                panic!("fleet configuration is not valid: {err}");
+            }
+        }
         let mut f = self.flows_file_path.write().await;
         *f = Some(path);
     }
@@ -224,17 +274,13 @@ impl WebState {
     }
 
     /// Deploy flows using Engine's redeploy_flows method
-    pub async fn redeploy_flows(
-        &self,
-        flows: serde_json::Value,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn redeploy_flows(&self, flows: serde_json::Value) -> Result<(), edgelink_core::EdgelinkError> {
         let engine_guard = self.engine.read().await;
         let registry_guard = self.registry.read().await;
         if let (Some(engine), Some(registry)) = (engine_guard.as_ref(), registry_guard.as_ref()) {
-            engine.redeploy_flows(flows, registry, None).await?;
-            Ok(())
+            engine.redeploy_flows(flows, registry, None).await
         } else {
-            Err("Engine or registry not available".into())
+            Err(edgelink_core::EdgelinkError::invalid_operation("engine is not available"))
         }
     }
 

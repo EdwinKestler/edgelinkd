@@ -10,6 +10,8 @@ use tower_http::services::ServeDir;
 use edgelink_core::runtime::registry::RegistryHandle;
 
 use crate::api::create_all_routes;
+use crate::handlers::auth::AdminAuth;
+use crate::handlers::fleet::Fleet;
 use crate::handlers::{FlowEngineRestartCallback, WebState};
 use crate::models::*;
 
@@ -27,17 +29,9 @@ impl WebServer {
                 Arc::new(RedSystemSettings::default())
             }
         };
-        let web_state = Arc::new(WebState {
-            red_settings: args,
-            registry: tokio::sync::RwLock::new(None),
-            comms: crate::handlers::CommsManager::new(),
-            flows_file_path: tokio::sync::RwLock::new(None),
-            restart_callback: tokio::sync::RwLock::new(None),
-            engine: tokio::sync::RwLock::new(None),
-            cancel_token: tokio::sync::RwLock::new(Some(cancel_token.clone())),
-            static_dir: static_dir.into(),
-            web_handlers: edgelink_core::web::WebHandlerRegistry::new(),
-        });
+        let auth = AdminAuth::from_config(cfg).unwrap_or_else(|err| panic!("admin configuration is not valid: {err}"));
+        let fleet = Fleet::from_config(cfg).unwrap_or_else(|err| panic!("fleet configuration is not valid: {err}"));
+        let web_state = WebState::assemble(args, static_dir.into(), Some(cancel_token.clone()), auth, fleet);
 
         // Start heartbeat task
         tokio::spawn({
@@ -60,10 +54,7 @@ impl WebServer {
     }
 
     pub async fn with_flows_file_path(self, path: PathBuf) -> Self {
-        {
-            let mut f = self.state.flows_file_path.write().await;
-            *f = Some(path);
-        }
+        self.state.set_flows_file_path(path).await;
         self
     }
 
@@ -119,8 +110,10 @@ impl WebServer {
         addr: std::net::SocketAddr,
         cancel_token: CancellationToken,
     ) -> edgelink_core::Result<tokio::task::JoinHandle<()>> {
-        let router = self.router();
         let listener = TcpListener::bind(&addr).await?;
+        let bound = listener.local_addr()?;
+        self.state.record_listen(bound).await;
+        let router = self.router();
         Ok(tokio::spawn(async move {
             let server = serve(listener, router);
             tokio::select! {

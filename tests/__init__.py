@@ -312,7 +312,8 @@ async def run_single_node_with_msgs_ntimes(node_json: object, msgs: list[object]
 
 
 async def run_flow_for_seconds(flows_obj: list[object], msgs: list[object] | None,
-                               seconds: float, injectee_node_id: str = '1') -> list[object]:
+                               seconds: float, injectee_node_id: str = '1',
+                               config: dict | None = None) -> list[object]:
     """Inject the messages and collect every output emitted during `seconds` seconds.
 
     Mirrors Node-RED's spec helper: inject a burst, sample for `runtimeInMillis`, then count
@@ -323,11 +324,12 @@ async def run_flow_for_seconds(flows_obj: list[object], msgs: list[object] | Non
     `_since_start_ms`, its offset relative to the injection point, which is how the specs that
     assert *when* a node finished a message (the `done()` contract) are written.
     """
-    return await run_flow_for_seconds_scheduled(flows_obj, msgs, seconds, injectee_node_id)
+    return await run_flow_for_seconds_scheduled(flows_obj, msgs, seconds, injectee_node_id, config)
 
 
 async def run_flow_for_seconds_scheduled(flows_obj: list[object], msgs: list[object] | None,
-                                         seconds: float, injectee_node_id: str = '1') -> list[object]:
+                                         seconds: float, injectee_node_id: str = '1',
+                                         config: dict | None = None) -> list[object]:
     """`run_flow_for_seconds`, but each message is delivered after its own delay.
 
     A message is `{"nid": ..., "msg": ..., "delay_ms": ...}` to target a specific node; the
@@ -345,7 +347,8 @@ async def run_flow_for_seconds_scheduled(flows_obj: list[object], msgs: list[obj
             injected = {key: value for key, value in msg.items() if key != 'delay_ms'}
             msg_injection = (injectee_node_id, injected, msg.get('delay_ms', 0.0))
         msgs_to_inject.append(msg_injection)
-    return await edgelink.run_flows_for_once(seconds, flows_obj, msgs_to_inject, TEST_EDGELINLKD_CONFIG)
+    return await edgelink.run_flows_for_once(
+        seconds, flows_obj, msgs_to_inject, TEST_EDGELINLKD_CONFIG if config is None else config)
 
 
 async def run_single_node_for_seconds(node_json: object, msgs: list[object] | None,

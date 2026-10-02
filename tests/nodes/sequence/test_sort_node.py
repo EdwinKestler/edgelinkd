@@ -303,25 +303,25 @@ class TestSortNode:
         pass
 
     # Messaging API tests (skip complex timing tests)
-    @pytest.mark.skip(reason="Complex timing tests not fully supported")
+    @pytest.mark.skip(reason="out of scope: the pytest harness injects every message up front, so these timing assertions cannot be observed")
     @pytest.mark.asyncio
     @pytest.mark.it('should call done() when message is sent (payload)')
     async def test_messaging_api_payload(self):
         pass
 
-    @pytest.mark.skip(reason="Complex timing tests not fully supported")
+    @pytest.mark.skip(reason="out of scope: the pytest harness injects every message up front, so these timing assertions cannot be observed")
     @pytest.mark.asyncio
     @pytest.mark.it('should call done() when message is sent (sequence)')
     async def test_messaging_api_sequence(self):
         pass
 
-    @pytest.mark.skip(reason="Complex timing tests not fully supported")
+    @pytest.mark.skip(reason="out of scope: the pytest harness injects every message up front, so these timing assertions cannot be observed")
     @pytest.mark.asyncio
     @pytest.mark.it('should call done() regardless of buffer overflow (same group)')
     async def test_messaging_api_overflow_same_group(self):
         pass
 
-    @pytest.mark.skip(reason="Complex timing tests not fully supported")
+    @pytest.mark.skip(reason="out of scope: the pytest harness injects every message up front, so these timing assertions cannot be observed")
     @pytest.mark.asyncio
     @pytest.mark.it('should call done() regardless of buffer overflow (different group)')
     async def test_messaging_api_overflow_different_group(self):

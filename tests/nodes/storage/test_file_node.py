@@ -22,7 +22,6 @@ class TestFileNodes:
             if await aiofiles.os.path.exists(self.file_to_test):
                 await aiofiles.os.remove(self.file_to_test)
 
-        @pytest.mark.skip
         @pytest.mark.asyncio
         @pytest.mark.it('should be loaded')
         async def test_should_be_loaded(self):

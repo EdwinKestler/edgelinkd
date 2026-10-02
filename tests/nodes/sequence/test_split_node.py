@@ -482,7 +482,7 @@ class TestJoinNode:
         assert msgs[0]["foo"]["bar"]["e"] == 5
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Rust gap: propertyType:'full' is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer propertyType 'full'")
     @pytest.mark.it('should merge full msg objects')
     async def test_0013(self):
         node = {"type": "join", "count": 6, "build": "merged", "mode": "custom", "propertyType": "full", "property": ""}
@@ -507,7 +507,7 @@ class TestJoinNode:
         assert msgs[0]["payload"]["foo"] == "d"
         assert msgs[0]["payload"]["topic"] == "a"
 
-    @pytest.mark.skip(reason="join node accumulate mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer accumulate mode")
     @pytest.mark.asyncio
     @pytest.mark.it('should accumulate a merged object')
     async def test_0014(self):
@@ -526,7 +526,7 @@ class TestJoinNode:
         # groups because accumulate:true).
         pass
 
-    @pytest.mark.skip(reason="join node accumulate mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer accumulate mode")
     @pytest.mark.asyncio
     @pytest.mark.it('should be able to reset an accumulation')
     async def test_0015(self):
@@ -550,7 +550,7 @@ class TestJoinNode:
         # message 4 payload {g:2,h:1,i:3} (the reset discards the earlier accumulation).
         pass
 
-    @pytest.mark.skip(reason="join node accumulate mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer accumulate mode")
     @pytest.mark.asyncio
     @pytest.mark.it('should accumulate a key/value object')
     async def test_0016(self):
@@ -569,7 +569,7 @@ class TestJoinNode:
         # after the reset.
         pass
 
-    @pytest.mark.skip(reason="join node timeout mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer timeout mode")
     @pytest.mark.asyncio
     @pytest.mark.it('should join strings with a specifed character after a timeout')
     async def test_0017(self):
@@ -583,7 +583,7 @@ class TestJoinNode:
         # Expects msg.payload == "a,b,c" once the 0.05 s timeout expires.
         pass
 
-    @pytest.mark.skip(reason="join node timeout mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer timeout mode")
     @pytest.mark.asyncio
     @pytest.mark.it('should allow the timeout to be restarted')
     async def test_0018(self):
@@ -626,7 +626,7 @@ class TestJoinNode:
         assert msgs[0]["payload"] == "Hello\nNodeRED\nWorld\n"
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Rust gap: propertyType:'full' is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer propertyType 'full'")
     @pytest.mark.it('should join complete message objects into an array after a count')
     async def test_0020(self):
         # Node-RED flow:
@@ -971,151 +971,151 @@ class TestJoinNode:
         assert msgs[0]["payload"][0] == "D"
         assert msgs[0]["payload"][1] == "C"
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages')
     async def test_0034(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages - count only in last part')
     async def test_0035(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (str)')
     async def test_0036(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (num)')
     async def test_0037(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (bool)')
     async def test_0038(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (json)')
     async def test_0039(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (bin)')
     async def test_0040(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (JSONata)')
     async def test_0041(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (env)')
     async def test_0042(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (flow.name)')
     async def test_0043(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with init types (global.name)')
     async def test_0044(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages using $I')
     async def test_0045(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with fixup')
     async def test_0046(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages (left)')
     async def test_0047(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages (right)')
     async def test_0048(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with array result')
     async def test_0049(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should handle too many pending messages for reduce mode')
     async def test_0050(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with flow context')
     async def test_0051(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with global context')
     async def test_0052(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with persistable flow context')
     async def test_0053(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should reduce messages with persistable global context')
     async def test_0054(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('''should handle invalid JSONata reduce expression - syntax error"''')
     async def test_0055(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('''should handle invalid JSONata reduce expression - runtime error"''')
     async def test_0056(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('''should handle invalid JSONata fixup expression - syntax err"''')
     async def test_0057(self):
         pass
 
-    @pytest.mark.skip(reason='join node reduce mode is not implemented')
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('''should handle invalid JSONata fixup expression - runtime err"''')
     async def test_0058(self):
@@ -1300,7 +1300,7 @@ class TestMessagingApi:
             assert "payload" in msg
         assert [msg["payload"] for msg in msgs] == ["A", "B", "dummy"]
 
-    @pytest.mark.skip(reason="join node timeout mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer timeout mode")
     @pytest.mark.asyncio
     @pytest.mark.it('should call done() when timed out')
     async def test_0010(self):
@@ -1310,7 +1310,7 @@ class TestMessagingApi:
         # ]);
         pass
 
-    @pytest.mark.skip(reason="join node reduce mode is not implemented")
+    @pytest.mark.skip(reason="out of scope: the join node does not offer reduce mode; JSONata reduce is not part of the embedded node")
     @pytest.mark.asyncio
     @pytest.mark.it('should call done() when all messages are reduced')
     async def test_0011(self):

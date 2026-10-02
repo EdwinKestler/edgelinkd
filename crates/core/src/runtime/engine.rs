@@ -16,6 +16,7 @@ use super::model::*;
 use super::nodes::FlowNodeBehavior;
 use super::red_env::*;
 use super::status_channel::StatusChannel;
+use crate::runtime::model::FlowsElement;
 use crate::runtime::model::Variant;
 use crate::runtime::nodes::{GlobalNodeBehavior, NodeFactory, StatusObject, wellknown_names};
 use crate::runtime::status_channel::StatusMessage;
@@ -37,6 +38,19 @@ impl EngineArgs {
             _ => Ok(Self::default()),
         }
     }
+}
+
+/// One MQTT or Modbus node as the status document reports it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkState {
+    pub id: String,
+    pub type_name: String,
+    pub text: Option<String>,
+    pub errors: u64,
+}
+
+fn is_link_type(type_name: &str) -> bool {
+    matches!(type_name, "mqtt-broker" | "mqtt in" | "mqtt out" | "modbus")
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +89,17 @@ struct InnerEngine {
     status_channel: StatusChannel,
     event_bus: EngineEventBus,
     flows_hash: tokio::sync::RwLock<Vec<u8>>,
+    /// JSON the live graph was built from. A failed redeploy reloads this instead of leaving a
+    /// half-built replacement. Never logged: it can hold credentials.
+    loaded_json: std::sync::RwLock<serde_json::Value>,
+    started_at: std::time::Instant,
+    error_count: std::sync::atomic::AtomicU64,
+    node_errors: DashMap<ElementId, u64>,
+    node_status: DashMap<ElementId, (String, Option<String>)>,
+
+    /// Cancelled by `stop` and replaced on the next scan spawn, so a restart arms a new task.
+    #[cfg(feature = "runtime_scan")]
+    scan_cancel: std::sync::Mutex<CancellationToken>,
 
     #[cfg(any(test, feature = "pymod"))]
     final_msgs_rx: MsgUnboundedReceiverHolder,
@@ -86,7 +111,9 @@ struct InnerEngine {
 impl Engine {
     /// Calculate hash of flows JSON (Node-RED compatible - SHA256)
     fn calculate_flows_hash(json: &serde_json::Value) -> Vec<u8> {
-        let flows_json = serde_json::to_string(json).unwrap_or_default();
+        // The editor's `rev` is the hash of the saved flow file. Secrets live in the sidecar,
+        // so a credentials object must not change the digest the next deploy is checked against.
+        let flows_json = serde_json::to_string(&super::flow_credentials::for_revision(json)).unwrap_or_default();
         let mut hasher = Sha256::new();
         hasher.update(flows_json.as_bytes());
         hasher.finalize().to_vec()
@@ -154,6 +181,14 @@ impl Engine {
                 status_channel: StatusChannel::new(1000),
                 event_bus: EngineEventBus::new(100),
                 flows_hash: tokio::sync::RwLock::new(flows_hash.clone()),
+                loaded_json: std::sync::RwLock::new(json.clone()),
+                started_at: std::time::Instant::now(),
+                error_count: std::sync::atomic::AtomicU64::new(0),
+                node_errors: DashMap::new(),
+                node_status: DashMap::new(),
+
+                #[cfg(feature = "runtime_scan")]
+                scan_cancel: std::sync::Mutex::new(CancellationToken::new()),
 
                 #[cfg(any(test, feature = "pymod"))]
                 final_msgs_rx: MsgUnboundedReceiverHolder::new(final_msgs_channel.1),
@@ -175,8 +210,8 @@ impl Engine {
         flows_json_path: &str,
         elcfg: Option<config::Config>,
     ) -> crate::Result<Engine> {
-        let json_str = tokio::fs::read_to_string(flows_json_path).await?;
-        Self::with_json_string(reg, json_str, elcfg)
+        let json = super::flow_credentials::flows_value_with_credentials(std::path::Path::new(flows_json_path)).await?;
+        Self::with_json(reg, json, elcfg)
     }
 
     pub fn with_json_string(
@@ -190,6 +225,26 @@ impl Engine {
 
     pub fn get_flow(&self, id: &ElementId) -> Option<Flow> {
         self.inner.flows.get(id).map(|x| x.value().clone())
+    }
+
+    #[cfg(feature = "runtime_scan")]
+    pub(crate) fn flows_snapshot(&self) -> Vec<Flow> {
+        self.inner.flows.iter().map(|entry| entry.value().clone()).collect()
+    }
+
+    #[cfg(feature = "runtime_scan")]
+    fn spawn_scan(&self, period_ms: u64) {
+        let cancel = {
+            let mut slot = self.inner.scan_cancel.lock().unwrap_or_else(|err| err.into_inner());
+            slot.cancel();
+            let next = CancellationToken::new();
+            *slot = next.clone();
+            next
+        };
+        let engine = self.clone();
+        tokio::spawn(async move {
+            crate::runtime::scan::run(engine, period_ms, cancel).await;
+        });
     }
 
     fn load_flows(
@@ -303,6 +358,10 @@ impl Engine {
             return Err(EdgelinkError::invalid_operation("no flows loaded in the engine."));
         }
 
+        // Reject a period the process will not schedule before any flow task starts.
+        #[cfg(feature = "runtime_scan")]
+        let scan_period = crate::runtime::scan::configured_period(self.inner.elcfg.as_ref())?;
+
         // 发布启动开始事件
         self.publish_event(EngineEvent::EngineStarted);
 
@@ -311,6 +370,11 @@ impl Engine {
 
         for f in self.inner.flows.iter() {
             f.value().start().await?;
+        }
+
+        #[cfg(feature = "runtime_scan")]
+        if scan_period > 0 {
+            self.spawn_scan(scan_period);
         }
 
         *shutdown_lock = false;
@@ -327,6 +391,8 @@ impl Engine {
         log::info!("-- Stopping engine...");
 
         self.inner.stop_token.cancel();
+        #[cfg(feature = "runtime_scan")]
+        self.inner.scan_cancel.lock().unwrap_or_else(|err| err.into_inner()).cancel();
 
         for i in self.inner.flows.iter() {
             i.value().stop().await?;
@@ -592,8 +658,53 @@ impl Engine {
     }
 
     pub fn report_node_status(&self, from: ElementId, status: StatusObject) {
+        let type_name = self.node_type_name(from);
+        self.inner.node_status.insert(from, (type_name, status.text.clone()));
         let to_send = StatusMessage { sender_id: from, status };
         self.inner.status_channel.send(to_send);
+    }
+
+    pub fn note_node_error(&self, id: ElementId) {
+        self.inner.error_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.inner.node_errors.entry(id).and_modify(|count| *count += 1).or_insert(1);
+    }
+
+    pub fn error_count(&self) -> u64 {
+        self.inner.error_count.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn uptime(&self) -> std::time::Duration {
+        self.inner.started_at.elapsed()
+    }
+
+    /// Last status of MQTT and Modbus nodes. A node that has not reported status has an empty text.
+    pub fn link_states(&self) -> Vec<LinkState> {
+        let mut links = Vec::new();
+        for entry in self.inner.node_status.iter() {
+            let (type_name, text) = entry.value();
+            if !is_link_type(type_name) {
+                continue;
+            }
+            let errors = self.inner.node_errors.get(entry.key()).map(|count| *count.value()).unwrap_or(0);
+            links.push(LinkState {
+                id: entry.key().to_string(),
+                type_name: type_name.clone(),
+                text: text.clone(),
+                errors,
+            });
+        }
+        links.sort_by(|left, right| left.id.cmp(&right.id));
+        links
+    }
+
+    fn node_type_name(&self, id: ElementId) -> String {
+        if let Some(node) = self.inner.all_flow_nodes.get(&id) {
+            return node.type_str().to_owned();
+        }
+        if let Some(node) = self.inner.global_nodes.get(&id) {
+            return node.type_str().to_owned();
+        }
+        String::new()
     }
 
     /// 检查引擎是否正在运行
@@ -648,6 +759,60 @@ impl Engine {
         Ok(())
     }
 
+    /// Build the candidate graph without touching this engine. Construction side effects are
+    /// dropped with the temporary engine; the live runtime is not stopped.
+    pub fn prepare_flows(
+        json: &serde_json::Value,
+        reg: &RegistryHandle,
+        elcfg: Option<config::Config>,
+    ) -> crate::Result<()> {
+        let _candidate = Self::with_json(reg, json.clone(), elcfg)?;
+        Ok(())
+    }
+
+    fn clear_graphs(&self) {
+        self.inner.flows.clear();
+        self.inner.all_flow_nodes.clear();
+        self.inner.global_nodes.clear();
+    }
+
+    async fn load_into(
+        &self,
+        json: serde_json::Value,
+        reg: &RegistryHandle,
+        elcfg: Option<&config::Config>,
+    ) -> crate::Result<()> {
+        self.clear_graphs();
+        let json_values = json::deser::load_flows_json_value(json.clone()).inspect_err(|_| {
+            self.clear_graphs();
+        })?;
+        let hash = Self::calculate_flows_hash(&json);
+        if let Err(err) = self.load_global_nodes(json_values.global_nodes, reg.clone(), elcfg) {
+            self.clear_graphs();
+            return Err(err);
+        }
+        if let Err(err) = self.load_flows(json_values.flows, reg, elcfg) {
+            self.clear_graphs();
+            return Err(err);
+        }
+        *self.inner.flows_hash.write().await = hash;
+        *self.inner.loaded_json.write().unwrap_or_else(|err| err.into_inner()) = json;
+        self.retain_active_observability();
+        Ok(())
+    }
+
+    fn retain_active_observability(&self) {
+        let active: std::collections::HashSet<ElementId> = self
+            .inner
+            .all_flow_nodes
+            .iter()
+            .map(|node| *node.key())
+            .chain(self.inner.global_nodes.iter().map(|node| *node.key()))
+            .collect();
+        self.inner.node_status.retain(|id, _| active.contains(id));
+        self.inner.node_errors.retain(|id, _| active.contains(id));
+    }
+
     pub async fn redeploy_flows(
         &self,
         json: serde_json::Value,
@@ -658,55 +823,67 @@ impl Engine {
 
         // A caller with no configuration of its own (the web deploy path passes `None`) must not
         // silently drop the settings the engine was built with.
-        let elcfg = elcfg.or(self.inner.elcfg.as_ref());
+        let elcfg_owned = elcfg.cloned().or(self.inner.elcfg.clone());
+        let elcfg = elcfg_owned.as_ref();
 
-        // 发布流部署开始事件
+        Self::prepare_flows(&json, reg, elcfg.cloned())?;
+
+        let previous = self.inner.loaded_json.read().unwrap_or_else(|err| err.into_inner()).clone();
+        let was_running = self.is_running();
+
         self.publish_event(EngineEvent::FlowDeploymentStarted);
 
-        // 停止当前 Engine（如果正在运行）
-        if self.is_running() {
+        if was_running {
             self.stop().await?;
         }
 
-        // 清理现有的 flows 和 nodes
-        self.inner.flows.clear();
-        self.inner.all_flow_nodes.clear();
-        self.inner.global_nodes.clear();
-
-        // 发布 debug channel 重新初始化事件
         self.publish_event(EngineEvent::DebugChannelReinitialized);
 
-        // 重新加载 flows 和 nodes
-        let json_values = json::deser::load_flows_json_value(json.clone()).map_err(|e| {
-            log::error!("Failed to load NodeRED JSON value: {e}");
-            e
-        })?;
-
-        // Recalculate flows hash
-        {
-            let mut hash = self.inner.flows_hash.write().await;
-            *hash = Self::calculate_flows_hash(&json);
+        if let Err(err) = self.load_into(json.clone(), reg, elcfg).await {
+            if let Err(restore) = self.restore_previous(previous, reg, elcfg, was_running).await {
+                return Err(EdgelinkError::invalid_operation(&format!(
+                    "{err}; previous graph was not restored: {restore}"
+                )));
+            }
+            return Err(err);
         }
 
-        self.load_global_nodes(json_values.global_nodes, reg.clone(), elcfg)?;
-        self.load_flows(json_values.flows, reg, elcfg)?;
+        if let Err(err) = self.start().await {
+            let _ = self.stop().await;
+            if let Err(restore) = self.restore_previous(previous, reg, elcfg, was_running).await {
+                return Err(EdgelinkError::invalid_operation(&format!(
+                    "{err}; previous graph was not restored: {restore}"
+                )));
+            }
+            return Err(err);
+        }
 
-        // Node-RED drops the context of everything the new configuration no longer holds, now
-        // that the replacement nodes are known. Only a redeploy does this: building an engine
-        // (see `with_json`) never cleans, so a runtime started on a partial flow file cannot
-        // delete context belonging to the flows it did not load.
+        // Start succeeded: this deploy is committed. Context cleanup is best-effort so a
+        // later store error cannot roll disk back while this runtime stays on the candidate.
         let mut active_nodes: Vec<ElementId> = self.inner.flows.iter().map(|f| *f.key()).collect();
         active_nodes.extend(self.inner.all_flow_nodes.iter().map(|n| *n.key()));
         active_nodes.extend(self.inner.global_nodes.iter().map(|n| *n.key()));
-        self.inner.context_manager.clean_all(&active_nodes).await?;
+        if let Err(err) = self.inner.context_manager.clean_all(&active_nodes).await {
+            log::error!("context cleanup after deploy failed: {err}");
+        }
 
-        // 启动 Engine
-        self.start().await?;
-
-        // 发布流部署完成事件
         self.publish_event(EngineEvent::FlowDeploymentCompleted);
 
         log::info!("-- Flows redeployed successfully.");
+        Ok(())
+    }
+
+    async fn restore_previous(
+        &self,
+        previous: serde_json::Value,
+        reg: &RegistryHandle,
+        elcfg: Option<&config::Config>,
+        was_running: bool,
+    ) -> crate::Result<()> {
+        self.load_into(previous, reg, elcfg).await?;
+        if was_running {
+            self.start().await?;
+        }
         Ok(())
     }
 }
@@ -868,6 +1045,79 @@ mod tests {
 
         let flow = engine.get_flow(&"100".parse().expect("valid flow id")).expect("The flow must be loaded");
         assert_eq!(flow.settings().node_message_buffer_max_length, 2);
+        engine.stop().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn an_invalid_redeploy_leaves_the_running_flow() {
+        let registry = crate::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let good = json!([{ "id": "100", "type": "tab", "label": "Flow 1" }]);
+        let engine = Engine::with_json(&registry, good, None).unwrap();
+        engine.start().await.unwrap();
+        let bad = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "b", "type": "mqtt-broker", "broker": "localhost", "usetls": true }
+        ]);
+        let err = engine.redeploy_flows(bad, &registry, None).await.unwrap_err();
+        assert!(err.to_string().contains("not supported"), "{err}");
+        assert!(!err.to_string().contains("password"));
+        assert!(engine.is_running());
+        assert!(engine.get_flow(&"100".parse().unwrap()).is_some());
+        engine.stop().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_start_failure_restores_the_previous_runtime() {
+        let registry = crate::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let good = json!([{ "id": "100", "type": "tab", "label": "keep" }]);
+        let engine = Engine::with_json(&registry, good, None).unwrap();
+        engine.start().await.unwrap();
+        let empty = json!([]);
+        let err = engine.redeploy_flows(empty, &registry, None).await.unwrap_err();
+        assert!(err.to_string().contains("no flows"), "{err}");
+        assert!(engine.is_running());
+        assert!(engine.get_flow(&"100".parse().unwrap()).is_some());
+        engine.stop().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_removed_mqtt_node_leaves_no_status_link() {
+        let registry = crate::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let with_mqtt = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "b1", "type": "mqtt-broker", "broker": "127.0.0.1", "autoConnect": false },
+            {
+                "id": "2",
+                "z": "100",
+                "type": "mqtt in",
+                "broker": "b1",
+                "topic": "edgelinkd/status-link",
+                "qos": 0,
+                "datatype": "utf8",
+                "wires": [[]]
+            }
+        ]);
+        let engine = Engine::with_json(&registry, with_mqtt, None).unwrap();
+        engine.start().await.unwrap();
+        let mqtt_id: ElementId = "2".parse().unwrap();
+        engine.report_node_status(
+            mqtt_id,
+            StatusObject {
+                fill: Some(crate::runtime::nodes::StatusFill::Green),
+                shape: Some(crate::runtime::nodes::StatusShape::Dot),
+                text: Some("connected".to_owned()),
+            },
+        );
+        engine.note_node_error(mqtt_id);
+        let mqtt_id_text = mqtt_id.to_string();
+        assert!(engine.link_states().iter().any(|link| link.id == mqtt_id_text), "{:?}", engine.link_states());
+        let tab_only = json!([{ "id": "100", "type": "tab" }]);
+        engine.redeploy_flows(tab_only, &registry, None).await.unwrap();
+        assert!(
+            engine.link_states().iter().all(|link| link.id != mqtt_id_text),
+            "stale mqtt link remained: {:?}",
+            engine.link_states()
+        );
         engine.stop().await.unwrap();
     }
 }

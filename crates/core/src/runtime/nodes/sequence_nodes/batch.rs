@@ -76,6 +76,8 @@ struct TopicGroups {
 pub struct BatchNode {
     base: BaseFlowNodeState,
     config: BatchNodeConfig,
+    /// Node-RED's `nodeMessageBufferMaxLength`. `0` means the buffer is not capped.
+    max_kept_msgs: usize,
     // Pending messages for count mode
     count_pending: Arc<Mutex<Vec<MsgHandle>>>,
     // Pending messages for interval mode
@@ -89,15 +91,17 @@ pub struct BatchNode {
 
 impl BatchNode {
     pub fn build(
-        _flow: &Flow,
+        flow: &Flow,
         base_node: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let config = BatchNodeConfig::deserialize(&config.rest)?;
+        let max_kept_msgs = flow.settings().node_message_buffer_max_length;
         Ok(Box::new(BatchNode {
             base: base_node,
             config,
+            max_kept_msgs,
             count_pending: Arc::new(Mutex::new(Vec::new())),
             interval_pending: Arc::new(Mutex::new(Vec::new())),
             interval_task: Mutex::new(None),
@@ -155,22 +159,74 @@ impl BatchNode {
         Ok(result)
     }
 
-    /// Count mode: batch by count or end-of-sequence
-    async fn process_count_mode(&self, msg_handle: MsgHandle) -> Result<Vec<MsgHandle>, EdgelinkError> {
-        // Handle reset
-        {
-            let msg = msg_handle.read().await;
-            if msg.contains("reset") {
-                let mut pending = self.count_pending.lock().await;
-                pending.clear();
-                return Ok(vec![]);
+    /// `batch.too-many` from the Node-RED catalog.
+    const TOO_MANY: &str = "too many pending messages in batch node";
+
+    async fn finish_ok(&self, msg: MsgHandle, cancel: CancellationToken) {
+        self.notify_uow_completed(msg, cancel).await;
+    }
+
+    async fn finish_too_many(&self, msg: MsgHandle, cancel: CancellationToken) {
+        // `done(error)` reaches the catch node and does not also notify complete.
+        self.report_error(Self::TOO_MANY.to_string(), msg, cancel).await;
+    }
+
+    /// The last message is the one that crossed the cap.
+    async fn finish_overflow(&self, mut pending: Vec<MsgHandle>, cancel: CancellationToken) {
+        if let Some(cause) = pending.pop() {
+            self.finish_too_many(cause, cancel.clone()).await;
+        }
+        for msg in pending {
+            self.finish_ok(msg, cancel.clone()).await;
+        }
+    }
+
+    /// Concat groups are not a single queue, so the causing message is matched by id.
+    async fn finish_overflow_cause(&self, pending: Vec<MsgHandle>, cause: &MsgHandle, cancel: CancellationToken) {
+        let cause_id = cause.read().await.id();
+        let mut errored = false;
+        for msg in pending {
+            let is_cause = !errored && msg.read().await.id() == cause_id;
+            if is_cause {
+                errored = true;
+                self.finish_too_many(msg, cancel.clone()).await;
+            } else {
+                self.finish_ok(msg, cancel.clone()).await;
             }
         }
+    }
 
-        let mut pending = self.count_pending.lock().await;
+    /// `reset` completes every buffered message, then the reset message itself.
+    async fn finish_reset(&self, reset_msg: MsgHandle, cancel: CancellationToken) {
+        let count_msgs: Vec<MsgHandle> = self.count_pending.lock().await.drain(..).collect();
+        let interval_msgs: Vec<MsgHandle> = self.interval_pending.lock().await.drain(..).collect();
+        let mut concat_msgs = Vec::new();
+        {
+            let mut pending = self.concat_pending.lock().await;
+            for topic_groups in pending.values() {
+                for group in topic_groups.groups.values() {
+                    concat_msgs.extend(group.messages.iter().cloned());
+                }
+            }
+            pending.clear();
+        }
+        *self.pending_count.lock().await = 0;
+        for msg in count_msgs.into_iter().chain(interval_msgs).chain(concat_msgs) {
+            self.finish_ok(msg, cancel.clone()).await;
+        }
+        self.finish_ok(reset_msg, cancel).await;
+    }
+
+    /// Count mode: batch by count or end-of-sequence.
+    ///
+    /// A buffered message is completed when it is sent, reset, or dropped by the buffer cap,
+    /// which is when Node-RED calls `done()`.
+    async fn process_count_mode(
+        &self,
+        msg_handle: MsgHandle,
+        cancel: CancellationToken,
+    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
         let mut eof = false;
-
-        // Check for end-of-sequence
         if self.config.honour_parts {
             let msg = msg_handle.read().await;
             if let Some(Variant::Object(parts)) = msg.get("parts")
@@ -179,34 +235,51 @@ impl BatchNode {
             {
                 let idx = index.as_u64().unwrap_or(0) as usize;
                 let cnt = count.as_u64().unwrap_or(0) as usize;
-                if (idx + 1) == cnt {
+                if idx + 1 == cnt {
                     eof = true;
                 }
             }
         }
 
+        let mut pending = self.count_pending.lock().await;
+        let mut pending_count = self.pending_count.lock().await;
         pending.push(msg_handle);
+        *pending_count += 1;
 
         if pending.len() >= self.config.count || eof {
             let batch_size = if eof { pending.len() } else { self.config.count };
             let overlap = self.config.overlap.min(batch_size.saturating_sub(1));
-
             let batch: Vec<MsgHandle> = pending.drain(..batch_size).collect();
 
-            // Keep overlapping messages for next batch
+            // Keep overlapping messages for the next batch. An end-of-sequence still emits the
+            // whole buffer: that is the behaviour the existing count specs assert.
             if overlap > 0 && !eof {
                 let overlap_start = batch_size.saturating_sub(overlap);
-                for i in overlap_start..batch_size {
-                    if i < batch.len() {
-                        pending.push(batch[i].clone());
-                    }
+                for handle in batch.iter().skip(overlap_start) {
+                    pending.push(handle.clone());
                 }
             }
-
+            // Upstream resets the counter even when the overlap tail stays buffered.
+            *pending_count = 0;
+            let leave = if eof || overlap == 0 { batch.len() } else { batch.len().saturating_sub(overlap) };
+            let finished: Vec<MsgHandle> = batch.iter().take(leave).cloned().collect();
+            drop(pending_count);
             drop(pending);
-            // With overlap the tail of this batch stays in the buffer for the next one, so the
-            // copies that are emitted have to be clones (upstream's is_overlap argument).
-            return self.send_batch(batch, overlap > 0).await;
+            // With overlap the tail of this batch stays in the buffer, so the copies that are
+            // emitted have to be clones (upstream's is_overlap argument).
+            let sent = self.send_batch(batch, overlap > 0).await?;
+            for msg in finished {
+                self.finish_ok(msg, cancel.clone()).await;
+            }
+            return Ok(sent);
+        }
+
+        if self.max_kept_msgs > 0 && *pending_count > self.max_kept_msgs {
+            let drained: Vec<MsgHandle> = pending.drain(..).collect();
+            *pending_count = 0;
+            drop(pending_count);
+            drop(pending);
+            self.finish_overflow(drained, cancel).await;
         }
 
         Ok(vec![])
@@ -217,14 +290,20 @@ impl BatchNode {
     async fn flush_interval(self: &Arc<Self>, cancel: CancellationToken) {
         let pending: Vec<MsgHandle> = {
             let mut pending = self.interval_pending.lock().await;
+            let mut pending_count = self.pending_count.lock().await;
+            *pending_count = 0;
             pending.drain(..).collect()
         };
 
         if !pending.is_empty() {
-            match self.send_batch(pending, false).await {
+            match self.send_batch(pending.clone(), false).await {
                 Ok(msgs) => {
                     for msg in msgs {
                         let _ = self.fan_out_one(Envelope { port: 0, msg }, cancel.child_token()).await;
+                    }
+                    // Upstream calls `done()` after the interval send, not when the message arrived.
+                    for msg in pending {
+                        self.finish_ok(msg, cancel.clone()).await;
                     }
                 }
                 Err(e) => log::error!("Failed to send an interval batch: {e}"),
@@ -261,23 +340,33 @@ impl BatchNode {
     }
 
     /// Interval mode: every message joins the sequence the timer will flush.
-    async fn process_interval_mode(&self, msg_handle: MsgHandle) -> Result<Vec<MsgHandle>, EdgelinkError> {
-        self.interval_pending.lock().await.push(msg_handle);
+    async fn process_interval_mode(
+        &self,
+        msg_handle: MsgHandle,
+        cancel: CancellationToken,
+    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
+        let mut pending = self.interval_pending.lock().await;
+        let mut pending_count = self.pending_count.lock().await;
+        pending.push(msg_handle);
+        *pending_count += 1;
+        if self.max_kept_msgs > 0 && *pending_count > self.max_kept_msgs {
+            let drained: Vec<MsgHandle> = pending.drain(..).collect();
+            *pending_count = 0;
+            drop(pending_count);
+            drop(pending);
+            self.finish_overflow(drained, cancel).await;
+        }
         Ok(vec![])
     }
 
     /// Concat mode: batch by topic and group id
-    async fn process_concat_mode(&self, msg_handle: MsgHandle) -> Result<Vec<MsgHandle>, EdgelinkError> {
+    async fn process_concat_mode(
+        &self,
+        msg_handle: MsgHandle,
+        cancel: CancellationToken,
+    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
         let (topic, group_id, has_parts) = {
             let msg = msg_handle.read().await;
-
-            // Handle reset
-            if msg.contains("reset") {
-                let mut pending = self.concat_pending.lock().await;
-                pending.clear();
-                *self.pending_count.lock().await = 0;
-                return Ok(vec![]);
-            }
 
             let topic = msg
                 .get("topic")
@@ -300,9 +389,12 @@ impl BatchNode {
             (topic, group_id, has_parts)
         };
 
-        // Check if this topic is in our list
+        // A message this mode does not buffer is finished immediately. Upstream calls
+        // `done(batch.no-parts)` when the topic matches but `parts` is missing; this node
+        // has always completed that message without an error, and the output is still empty.
         let topic_exists = self.config.topics.iter().any(|t| t.topic == topic);
         if !topic_exists || !has_parts {
+            self.finish_ok(msg_handle, cancel).await;
             return Ok(vec![]);
         }
 
@@ -334,6 +426,21 @@ impl BatchNode {
             {
                 group.count = Some(count.as_u64().unwrap_or(0) as usize);
             }
+        }
+
+        if self.max_kept_msgs > 0 && *pending_count > self.max_kept_msgs {
+            let mut drained = Vec::new();
+            for topic_groups in pending.values() {
+                for group in topic_groups.groups.values() {
+                    drained.extend(group.messages.iter().cloned());
+                }
+            }
+            pending.clear();
+            *pending_count = 0;
+            drop(pending);
+            drop(pending_count);
+            self.finish_overflow_cause(drained, &msg_handle, cancel).await;
+            return Ok(vec![]);
         }
 
         // Check if all topics have complete groups
@@ -376,15 +483,13 @@ impl BatchNode {
 
             drop(pending);
             drop(pending_count);
-            // Upstream always clones the messages a concat emits.
-            return self.send_batch(all_messages, true).await;
-        }
-
-        // Check for overflow
-        const MAX_PENDING: usize = 1000;
-        if *pending_count > MAX_PENDING {
-            pending.clear();
-            *pending_count = 0;
+            let finished = all_messages.clone();
+            // Upstream always clones the messages a concat emits, then calls `done()` on them.
+            let sent = self.send_batch(all_messages, true).await?;
+            for msg in finished {
+                self.finish_ok(msg, cancel.clone()).await;
+            }
+            return Ok(sent);
         }
 
         Ok(vec![])
@@ -408,49 +513,54 @@ impl FlowNodeBehavior for BatchNode {
 
         while !stop_token.is_cancelled() {
             let cancel = stop_token.clone();
-            let arc_self = Arc::clone(&self);
-            with_uow(self.as_ref(), cancel.child_token(), |node, msg| async move {
-                let msg_guard = msg.read().await;
-                // Handle reset
-                if msg_guard.get("reset").is_some() {
-                    node.count_pending.lock().await.clear();
-                    node.interval_pending.lock().await.clear();
-                    node.concat_pending.lock().await.clear();
-                    *node.pending_count.lock().await = 0;
-                    // Restart the interval timer, as upstream's reset does
-                    let mut task = node.interval_task.lock().await;
-                    if let Some(handle) = task.take() {
-                        handle.abort();
-                    }
-                    if is_interval_mode {
-                        *task = Some(arc_self.start_interval_timer(cancel.clone()).await);
-                    }
-                    return Ok(());
+            // Completion is deferred until the message is sent, reset, or dropped. `with_uow`
+            // would call `done()` as soon as this loop accepted the message.
+            let msg = match self.recv_msg(cancel.clone()).await {
+                Ok(msg) => msg,
+                Err(err) if err.is_cancelled() => break,
+                Err(err) => {
+                    log::warn!("[batch:{}] {err}", self.name());
+                    continue;
                 }
-                // Handle all three modes
-                let mut out = vec![];
-                match node.config.mode.as_str() {
-                    "count" => {
-                        drop(msg_guard);
-                        out = node.process_count_mode(msg.clone()).await?;
-                    }
-                    "interval" => {
-                        drop(msg_guard);
-                        out = node.process_interval_mode(msg.clone()).await?;
-                    }
-                    "concat" => {
-                        drop(msg_guard);
-                        out = node.process_concat_mode(msg.clone()).await?;
-                    }
-                    _ => {}
+            };
+
+            if msg.read().await.contains("reset") {
+                // Restart the interval timer, as upstream's reset does, then complete the
+                // messages the reset discarded.
+                let mut task = self.interval_task.lock().await;
+                if let Some(handle) = task.take() {
+                    handle.abort();
                 }
-                for m in out {
-                    let env = Envelope { port: 0, msg: m };
-                    node.fan_out_one(env, cancel.child_token()).await?;
+                if is_interval_mode {
+                    *task = Some(self.start_interval_timer(stop_token.clone()).await);
                 }
-                Ok(())
-            })
-            .await;
+                drop(task);
+                self.finish_reset(msg, cancel).await;
+                continue;
+            }
+
+            let dispatched = match self.config.mode.as_str() {
+                "count" => self.process_count_mode(msg.clone(), cancel.clone()).await,
+                "interval" => self.process_interval_mode(msg.clone(), cancel.clone()).await,
+                "concat" => self.process_concat_mode(msg.clone(), cancel.clone()).await,
+                _ => {
+                    self.finish_ok(msg.clone(), cancel.clone()).await;
+                    Ok(vec![])
+                }
+            };
+            match dispatched {
+                Ok(out) => {
+                    for m in out {
+                        if let Err(err) = self.fan_out_one(Envelope { port: 0, msg: m }, cancel.child_token()).await {
+                            log::error!("[batch:{}] {err}", self.name());
+                        }
+                    }
+                }
+                Err(err) => {
+                    self.report_error(err.to_string(), msg.clone(), cancel.clone()).await;
+                    self.finish_ok(msg, cancel).await;
+                }
+            }
         }
         log::debug!("BatchNode process() task has been terminated.");
     }

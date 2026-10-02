@@ -1,6 +1,6 @@
 [package]
 name = "edgelink-app"
-version = "0.1.99"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.88"
 readme = "README.md"
@@ -125,7 +125,7 @@ axum = { version = "0.8.4", default-features = false, features = [
     "ws",
     "query",
 ] }
-rumqttc = { version = "0.24" }
+rumqttc = { version = "0.25.1" }
 # JSONata expression evaluation. `default-features = false` drops the `simd` feature: we
 # convert through serde_json, so simd-json would only add weight to the binary.
 jsonata-core = { version = "2.2", default-features = false }
@@ -172,3 +172,7 @@ jsonata = ["edgelink-core/jsonata"]
 nodes_network = ["edgelink-core/nodes_network"]
 nodes_storage = ["edgelink-core/nodes_storage"]
 rqjs_bindgen = ["js", "edgelink-core/rqjs_bindgen"]
+# Soft real-time scan task. Off unless a build asks for it.
+runtime_scan = ["edgelink-core/runtime_scan"]
+# Modbus TCP. Off unless a build asks for it.
+nodes_modbus = ["edgelink-core/nodes_modbus"]

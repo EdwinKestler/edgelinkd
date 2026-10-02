@@ -776,6 +776,9 @@ impl Flow {
         reporting_node: Option<&dyn FlowNodeBehavior>,
         cancel: CancellationToken,
     ) -> crate::Result<bool> {
+        if let Some(engine) = self.engine() {
+            engine.note_node_error(node.id());
+        }
         let catch_nodes = self.inner.catch_nodes.read().expect("`catch_nodes` read lock").clone();
         let candidates = self.find_candidate_nodes::<CatchNode>(node, reporting_node, &catch_nodes)?;
         /*

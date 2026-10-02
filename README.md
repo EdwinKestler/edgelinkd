@@ -169,6 +169,10 @@ host = "0.0.0.0"
 port = 1888
 ```
 
+A deploy that sends `rev` is rejected with HTTP 409 `version_mismatch` when that rev is not the SHA-256 of the flows on disk. Leaving `rev` out still deploys. `POST /flows/rollback` restores the previous file. One previous copy is kept.
+
+Admin login stays off until `[admin]` in `edgelinkd.toml` sets a password, a `viewer`/`deployer` user, or a complete `[admin.oidc]` section. An unknown role or a half-filled OIDC section stops the process at startup. `GET /status` reports the flow revision, process uptime, node errors since the engine started, context-key ages, and MQTT or Modbus link text. Fleet push stays off until `[fleet] enabled = true`. The commented examples are in a newly created `edgelinkd.toml`.
+
 ## Project Status
 
 **Alpha Stage**: The project is currently in the *alpha* stage and cannot guarantee stable operation.
@@ -243,6 +247,17 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
             - [x] `global` object
             - [x] `RED.util` object
             - [x] `env` object
+        - [x] State
+            - [x] JSON table of named states. The first matching edge wins, and the output sets `msg.state`
+            - [x] Compare a message property, or a flow, global, or node context key (`eq` / `neq`)
+            - [x] `msg.tick`, or `period` in milliseconds, re-checks the current state's edges
+            - [x] Entry actions write context keys
+            - [ ] Parallel branches, history states, JSONata actions, and a chart editor
+        - [x] Scan (`runtime_scan`, off by default)
+            - [x] One task writes `flow.scan` (`seq`, `period`, `duration`, `overrun`). Nodes read it
+            - [x] `runtime.scan.period_ms` in `edgelinkd.toml` is the period in milliseconds. Absent or `0` leaves the task off. A period below 10 ms is an error at start
+            - [x] When a body exceeds the period, the next scan sets `overrun` and the `scan` node status turns red. A later body within the period clears it
+            - [x] Soft real-time on the host OS. One scan. Overrun is visible. This is not a worst-case latency bound
         - [x] :heavy_check_mark: Switch
         - [x] :heavy_check_mark: Change
         - [x] :heavy_check_mark: Range
@@ -255,6 +270,13 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
         - [x] MQTT In
         - [x] MQTT Out
         - [ ] MQTT Broker
+            - [x] In and out use this node for host, port, client id, keepalive, clean session, will, birth, and close. An empty or unknown broker id is an error at deploy
+            - [ ] Version 5 is MQTT 5.0 on TCP for the mapped connect, subscribe, and publish fields. MQTT 3.1, TLS, WebSocket, and enhanced AUTH are not supported
+            - [ ] Upstream send and receive specs were run against RabbitMQ 3.13.7 on 127.0.0.1:1883. QoS 2 comes back as QoS 1. A 2000-second message expiry is the broker's remaining time and can come back as 1999. Buffer inputs, a forced will drop, and the two JS load tests are not asserted
+        - [x] Modbus TCP (`nodes_modbus`, off by default)
+            - [x] Coils, discrete inputs, holding registers, and input registers map to one context key each. A forced key is not overwritten by a read, and a write sends the forced value
+            - [x] Function codes 1 through 6, Modbus TCP, one value at a time. A period below 10 ms is rejected
+            - [ ] Serial RTU and other Modbus classes
         - [x] HTTP In
         - [x] HTTP Out
         - [x] HTTP Request

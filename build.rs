@@ -138,6 +138,11 @@ fn build_static_files() {
                 .expect("Failed to copy node-red nodes");
         }
 
+        // The scan palette entry exists only when the runtime registers the node.
+        copy_scan_editor(&static_dir);
+        // The Modbus palette entry exists only when the runtime registers the node.
+        copy_modbus_editor(&static_dir);
+
         // Copy Node-RED core nodes lib directories to static/
         if node_red_nodes_dir.exists() {
             copy_node_lib_directories(&node_red_nodes_dir, &static_dir).expect("Failed to copy node lib directories");
@@ -154,6 +159,54 @@ fn build_static_files() {
         copy_client_page(&static_dir);
 
         println!("cargo:warning=Static files build complete!");
+    }
+}
+
+/// The scan node is registered only with the `runtime_scan` feature. Ship its editor
+/// form in that build, and drop a leftover copy so a later default build does not
+/// keep offering a node the runtime will not load.
+#[cfg(feature = "runtime_scan")]
+fn copy_scan_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/scan-editor/80-scan.html");
+    let src = PathBuf::from("crates/web/scan-editor/80-scan.html");
+    if !src.exists() {
+        return;
+    }
+    let dest_dir = static_dir.join("nodes/core/function");
+    std::fs::create_dir_all(&dest_dir).expect("Failed to create the scan editor directory");
+    std::fs::copy(&src, dest_dir.join("80-scan.html")).expect("Failed to copy the scan editor");
+}
+
+#[cfg(not(feature = "runtime_scan"))]
+fn copy_scan_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/scan-editor/80-scan.html");
+    let dest = static_dir.join("nodes/core/function/80-scan.html");
+    if dest.exists() {
+        let _ = std::fs::remove_file(dest);
+    }
+}
+
+/// The Modbus node is registered only with the `nodes_modbus` feature. Ship its editor
+/// form in that build, and drop a leftover copy so a later default build does not
+/// keep offering a node the runtime will not load.
+#[cfg(feature = "nodes_modbus")]
+fn copy_modbus_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/modbus-editor/82-modbus.html");
+    let src = PathBuf::from("crates/web/modbus-editor/82-modbus.html");
+    if !src.exists() {
+        return;
+    }
+    let dest_dir = static_dir.join("nodes/core/network");
+    std::fs::create_dir_all(&dest_dir).expect("Failed to create the modbus editor directory");
+    std::fs::copy(&src, dest_dir.join("82-modbus.html")).expect("Failed to copy the modbus editor");
+}
+
+#[cfg(not(feature = "nodes_modbus"))]
+fn copy_modbus_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/modbus-editor/82-modbus.html");
+    let dest = static_dir.join("nodes/core/network/82-modbus.html");
+    if dest.exists() {
+        let _ = std::fs::remove_file(dest);
     }
 }
 

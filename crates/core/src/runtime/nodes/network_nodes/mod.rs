@@ -31,6 +31,9 @@ mod mqtt_in;
 #[cfg(feature = "nodes_mqtt")]
 mod mqtt_broker;
 
+#[cfg(feature = "nodes_modbus")]
+mod modbus;
+
 #[cfg(feature = "nodes_websocket")]
 mod websocket_listener;
 

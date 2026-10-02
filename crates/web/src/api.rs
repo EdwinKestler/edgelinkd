@@ -1,10 +1,16 @@
+use axum::middleware::from_fn;
 use axum::{
     Router,
     routing::{get, post},
 };
 use tower_http::cors::{Any, CorsLayer};
 
+use crate::handlers::audit::get_audit;
+use crate::handlers::auth::{get_login, post_revoke, post_token, require_admin, start_strategy, strategy_callback};
+use crate::handlers::credentials::get_node_credentials;
+use crate::handlers::fleet::{delete_device, get_devices, post_device, post_promote, post_push};
 use crate::handlers::library::*;
+use crate::handlers::status::get_status;
 use crate::handlers::web_state::WebState;
 use crate::handlers::*;
 use crate::health::*;
@@ -15,6 +21,8 @@ fn create_node_red_api_routes() -> Router {
     Router::new()
         // Flows management (Node-RED compatible paths)
         .route("/flows", get(get_flows).post(post_flows))
+        .route("/credentials/{node_type}/{id}", get(get_node_credentials))
+        .route("/flows/rollback", post(post_flows_rollback))
         .route("/flows/state", get(get_flows_state).post(post_flows_state))
         // Single flow management
         .route("/flow/{id}", get(get_flow).put(put_flow).delete(delete_flow))
@@ -33,6 +41,17 @@ fn create_node_red_api_routes() -> Router {
         .route("/plugins/messages", get(get_plugin_messages))
         // System settings (Node-RED compatible)
         .route("/settings", get(get_settings))
+        .route("/status", get(get_status))
+        .route("/audit", get(get_audit))
+        .route("/auth/login", get(get_login))
+        .route("/auth/token", post(post_token))
+        .route("/auth/revoke", post(post_revoke))
+        .route("/auth/strategy", get(start_strategy))
+        .route("/auth/strategy/callback", get(strategy_callback))
+        .route("/fleet/devices", get(get_devices).post(post_device))
+        .route("/fleet/devices/{name}", axum::routing::delete(delete_device))
+        .route("/fleet/push", post(post_push))
+        .route("/fleet/pipelines/promote", post(post_promote))
         // Icons
         .route("/icons", get(get_icons))
         // Theme
@@ -44,6 +63,9 @@ fn create_node_red_api_routes() -> Router {
         .route("/context/flow/{id}/{key}", get(get_flow_context_key).delete(delete_flow_context_key))
         .route("/context/node/{id}", get(get_node_context))
         .route("/context/node/{id}/{key}", get(get_node_context_key).delete(delete_node_context_key))
+        .route("/context/global/{key}/force", post(force_global_context_key).delete(clear_global_context_force))
+        .route("/context/flow/{id}/{key}/force", post(force_flow_context_key).delete(clear_flow_context_force))
+        .route("/context/node/{id}/{key}/force", post(force_node_context_key).delete(clear_node_context_force))
 }
 
 /// Create editor routes (for frontend file service)
@@ -77,13 +99,18 @@ pub fn create_all_routes(web_state: &WebState) -> Router {
     let router = Router::new()
         .merge(create_node_red_api_routes())
         .merge(create_editor_routes())
-        .nest("/api", create_debug_routes())
-        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any));
+        .nest("/api", create_debug_routes());
 
     let wh = web_state.web_handlers.routes_handle();
     for desc in wh.lock().unwrap().iter() {
         log::info!("{}", desc.path);
     }
 
-    web_state.register_web_routes(router)
+    // Auth wraps every route, including ones registered by nodes. Public paths are skipped
+    // inside the middleware. The extension layer is added by the server outside this router,
+    // so the middleware sees it.
+    web_state
+        .register_web_routes(router)
+        .layer(from_fn(require_admin))
+        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
 }

@@ -165,8 +165,9 @@ pub struct LibraryEntry {
     pub label: String,
     pub user: Option<bool>,
     pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub types: Option<Vec<String>>,
-    #[serde(rename = "readOnly")]
+    #[serde(default, rename = "readOnly", skip_serializing_if = "Option::is_none")]
     pub read_only: Option<bool>,
 }
 
@@ -188,7 +189,30 @@ pub struct RedSystemSettings {
     pub editor_theme: EditorTheme,
     pub context: ContextConfig,
     pub logging: LoggingConfig,
+    #[serde(default = "default_libraries")]
     pub libraries: Vec<LibraryEntry>,
+    /// Present only when an admin password, user list, or OIDC issuer is configured.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "adminAuth")]
+    pub admin_auth: Option<AdminAuthSettings>,
+    /// Present only for a signed-in request. Omitted when admin auth is off so the editor
+    /// keeps the deploy button.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<SettingsUser>,
+}
+
+/// Tells the editor which login form to show. Passwords are not part of this object.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdminAuthSettings {
+    #[serde(rename = "type")]
+    pub auth_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SettingsUser {
+    pub username: String,
+    pub permissions: String,
+    #[serde(default)]
+    pub anonymous: bool,
 }
 
 /// Editor theme configuration
@@ -280,6 +304,27 @@ pub struct ApiResponse<T> {
     pub data: T,
 }
 
+fn default_libraries() -> Vec<LibraryEntry> {
+    vec![
+        LibraryEntry {
+            id: "local".to_string(),
+            label: "editor:library.types.local".to_string(),
+            user: Some(false),
+            icon: Some("font-awesome/fa-hdd-o".to_string()),
+            types: None,
+            read_only: None,
+        },
+        LibraryEntry {
+            id: "examples".to_string(),
+            label: "editor:library.types.examples".to_string(),
+            user: Some(false),
+            icon: Some("font-awesome/fa-life-ring".to_string()),
+            types: Some(vec!["flows".to_string()]),
+            read_only: Some(true),
+        },
+    ]
+}
+
 impl Default for RedSystemSettings {
     fn default() -> Self {
         Self {
@@ -292,7 +337,9 @@ impl Default for RedSystemSettings {
             editor_theme: EditorTheme::default(),
             context: ContextConfig::default(),
             logging: LoggingConfig::default(),
-            libraries: Vec::<LibraryEntry>::default(),
+            libraries: default_libraries(),
+            admin_auth: None,
+            user: None,
         }
     }
 }

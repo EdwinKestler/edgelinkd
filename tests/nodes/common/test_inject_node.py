@@ -280,7 +280,7 @@ class TestInjectNode:
         assert msgs[0]["payload"] == "0000000000001000"
 
     # Now there is no way to set the context in Python code yet
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: this port never seeds flow context before the once-inject, so payloadType 'flow' cannot be asserted")
     @pytest.mark.asyncio
     @pytest.mark.it('sets the value of flow context property')
     async def test_it_sets_the_value_of_flow_context_property(self):

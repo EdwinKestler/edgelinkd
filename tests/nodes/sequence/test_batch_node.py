@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 from tests import *
 
@@ -486,4 +488,126 @@ class TestBatchNode:
     # The `messaging API` describe has no JSONata tests upstream. The placeholders that used to
     # live here were removed: the audit compares titles against the Node-RED spec, so a test
     # with no upstream counterpart only adds noise.
+
+
+# Upstream nests this block inside describe('BATCH node'). Both the complete node and the catch
+# node are wired to the helper: an overflow calls done(error) on the message that crossed the
+# cap and done() on the others, so each injected message arrives exactly once.
+@pytest.mark.describe('BATCH node')
+@pytest.mark.describe('messaging API')
+class TestBatchMessagingApi:
+    async def _mapi_done(self, mode, count, overlap, interval, allow_empty, msg_and_timings):
+        config = copy.deepcopy(TEST_EDGELINLKD_CONFIG)
+        config["runtime"]["flow"] = {"node_message_buffer_max_length": 2}
+        flows = [
+            {"id": "0", "type": "tab"},
+            {"id": "1", "z": "0", "type": "batch", "name": "BatchNode", "mode": mode,
+             "count": count, "overlap": overlap, "interval": interval,
+             "allowEmptySequence": allow_empty, "topics": [{"topic": "TA"}], "wires": [[]]},
+            {"id": "3", "z": "0", "type": "complete", "scope": ["1"], "uncaught": False, "wires": [["2"]]},
+            {"id": "4", "z": "0", "type": "catch", "scope": ["1"], "uncaught": False, "wires": [["2"]]},
+            {"id": "2", "z": "0", "type": "test-once"},
+        ]
+        injections = [
+            {"nid": "1", "msg": item["msg"], "delay_ms": item["delay"]} for item in msg_and_timings
+        ]
+        # The sampling window starts when the first completion arrives, so it only has to
+        # cover the rest. A window measured from t=0 would sit inside the 5s pytest timeout
+        # on the 2s interval spec.
+        first_due = min(item["avr"] for item in msg_and_timings)
+        last_due = max(max(item["avr"] + item["var"], item["delay"]) for item in msg_and_timings)
+        window = max(last_due - first_due, 0) / 1000.0 + 0.5
+        msgs = await run_flow_for_seconds_scheduled(flows, injections, window, config=config)
+        assert len(msgs) == len(msg_and_timings), (
+            f"Expected one completion per message, got {[m.get('payload') for m in msgs]}"
+        )
+        for msg in msgs:
+            timing = next(item for item in msg_and_timings if item["msg"]["payload"] == msg["payload"])
+            assert abs(msg["_since_start_ms"] - timing["avr"]) <= timing["var"], (
+                f"Message {msg['payload']} completed after {msg['_since_start_ms']:.0f}ms, "
+                f"expected {timing['avr']}ms ± {timing['var']}ms"
+            )
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when message is sent (mode: count)')
+    async def test_mapi_count_sent(self):
+        await self._mapi_done("count", 2, 0, 2, False, [
+            {"msg": {"payload": 0}, "delay": 0, "avr": 0, "var": 100},
+            {"msg": {"payload": 1}, "delay": 0, "avr": 0, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when reset (mode: count)')
+    async def test_mapi_count_reset(self):
+        await self._mapi_done("count", 2, 0, 2, False, [
+            {"msg": {"payload": 0}, "delay": 0, "avr": 200, "var": 100},
+            {"msg": {"payload": 1, "reset": True}, "delay": 200, "avr": 200, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() regardless of buffer overflow (mode: count)')
+    async def test_mapi_count_overflow(self):
+        await self._mapi_done("count", 10, 0, 2, False, [
+            {"msg": {"payload": 0}, "delay": 0, "avr": 500, "var": 100},
+            {"msg": {"payload": 1}, "delay": 100, "avr": 500, "var": 100},
+            {"msg": {"payload": 2}, "delay": 500, "avr": 500, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when message is sent (mode: interval)')
+    async def test_mapi_interval_sent(self):
+        await self._mapi_done("interval", 2, 0, 2, False, [
+            {"msg": {"payload": 0}, "delay": 0, "avr": 2000, "var": 100},
+            {"msg": {"payload": 1}, "delay": 500, "avr": 2000, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when reset (mode: interval)')
+    async def test_mapi_interval_reset(self):
+        await self._mapi_done("interval", 2, 0, 2, False, [
+            {"msg": {"payload": 0}, "delay": 0, "avr": 200, "var": 100},
+            {"msg": {"payload": 1, "reset": True}, "delay": 200, "avr": 200, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() regardless of buffer overflow (mode: interval)')
+    async def test_mapi_interval_overflow(self):
+        await self._mapi_done("interval", 2, 0, 2, False, [
+            {"msg": {"payload": 0}, "delay": 0, "avr": 500, "var": 100},
+            {"msg": {"payload": 1}, "delay": 100, "avr": 500, "var": 100},
+            {"msg": {"payload": 2}, "delay": 500, "avr": 500, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when message is sent (mode: concat)')
+    async def test_mapi_concat_sent(self):
+        await self._mapi_done("concat", 2, 0, 2, False, [
+            {"msg": {"topic": "TA", "payload": 0, "parts": {"id": "TA", "index": 0, "count": 2}},
+             "delay": 0, "avr": 1000, "var": 100},
+            {"msg": {"topic": "TA", "payload": 1, "parts": {"id": "TA", "index": 1, "count": 2}},
+             "delay": 1000, "avr": 1000, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when reset (mode: concat)')
+    async def test_mapi_concat_reset(self):
+        await self._mapi_done("concat", 2, 0, 2, False, [
+            {"msg": {"topic": "TA", "payload": 0, "parts": {"id": "TA", "index": 0, "count": 2}},
+             "delay": 0, "avr": 1000, "var": 100},
+            {"msg": {"payload": 1, "reset": True}, "delay": 1000, "avr": 1000, "var": 100},
+        ])
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() regardless of buffer overflow (mode: concat)')
+    async def test_mapi_concat_overflow(self):
+        # Upstream gives every message payload 0 and indexes the expected time by payload,
+        # so all three completions are checked against 1000ms ± 100ms.
+        await self._mapi_done("concat", 2, 0, 2, False, [
+            {"msg": {"topic": "TA", "payload": 0, "parts": {"id": "TA", "index": 0, "count": 3}},
+             "delay": 0, "avr": 1000, "var": 100},
+            {"msg": {"topic": "TA", "payload": 0, "parts": {"id": "TA", "index": 1, "count": 3}},
+             "delay": 500, "avr": 1000, "var": 100},
+            {"msg": {"topic": "TA", "payload": 0, "parts": {"id": "TA", "index": 2, "count": 3}},
+             "delay": 1000, "avr": 1000, "var": 100},
+        ])
 

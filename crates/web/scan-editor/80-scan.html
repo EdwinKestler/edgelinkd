@@ -1,0 +1,32 @@
+<script type="text/html" data-template-name="scan">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips">
+        Shows the process scan. The period is <code>runtime.scan.period_ms</code> in
+        <code>edgelinkd.toml</code>, in milliseconds. <code>0</code> leaves the task off.
+        A period below 10 ms is rejected when the runtime starts. The dot is green while
+        the previous body fit the period, and red when that body overran it. This is a
+        soft timer on the host OS.
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType("scan", {
+        category: "function",
+        color: "#C7E9C0",
+        defaults: {
+            name: {value: ""}
+        },
+        inputs: 0,
+        outputs: 0,
+        icon: "timer.svg",
+        label: function () {
+            return this.name || "scan";
+        },
+        labelStyle: function () {
+            return this.name ? "node_label_italic" : "";
+        }
+    });
+</script>

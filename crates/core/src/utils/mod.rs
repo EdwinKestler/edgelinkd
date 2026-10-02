@@ -1,6 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub mod async_util;
+pub mod atomic_file;
 
 pub mod graph;
 

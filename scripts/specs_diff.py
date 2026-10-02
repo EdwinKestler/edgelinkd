@@ -56,11 +56,14 @@ def extract_it_strings_js(red_dir, file_path) -> list[str]:
     original_cwd = os.getcwd()
     os.chdir(red_dir)
     try:
-        result = subprocess.run([
+        cmd = [
             'mocha',
             os.path.relpath(file_path, red_dir), "--dry-run", "--reporter=json", "--exit",
             "--reporter-options", f"output={report_file_path}"
-        ], shell=True)
+        ]
+        # Windows resolves mocha.cmd only through the shell. On POSIX, shell=True
+        # would hand the spec path to sh instead of mocha ("No test files found").
+        result = subprocess.run(cmd, shell=(os.name == "nt"))
 
         # Read the report after mocha finishes
         if os.path.exists(report_file_path):

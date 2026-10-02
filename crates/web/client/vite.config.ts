@@ -9,4 +9,10 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
   },
+  server: {
+    proxy: {
+      "/context": { target: "http://127.0.0.1:1888", changeOrigin: true },
+      "/flows": { target: "http://127.0.0.1:1888", changeOrigin: true },
+    },
+  },
 });

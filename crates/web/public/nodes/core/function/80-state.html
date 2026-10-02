@@ -1,0 +1,62 @@
+<script type="text/html" data-template-name="state">
+    <div class="form-row">
+        <label for="node-input-initial"><i class="fa fa-flag"></i> Initial</label>
+        <input type="text" id="node-input-initial" placeholder="idle">
+    </div>
+    <div class="form-row">
+        <label for="node-input-period"><i class="fa fa-clock-o"></i> Period</label>
+        <input type="number" id="node-input-period" min="0" step="1" style="width: 80px">
+        <span>ms. 0 waits for a message.</span>
+    </div>
+    <div class="form-row">
+        <label for="node-input-states-json"><i class="fa fa-table"></i> States</label>
+        <textarea id="node-input-states-json" rows="14" style="width: 70%; font-family: monospace;"></textarea>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips">
+        Each state has <code>name</code>, <code>on</code>, and <code>entry</code>.
+        An edge is <code>{"when":{"type":"msg"|"flow"|"global"|"node","property":"...","op":"eq"|"neq","value":...},"to":"..."}</code>.
+        Edges are tried in order. <code>entry</code> is <code>{"scope":"flow"|"global"|"node","key":"...","value":...}</code>.
+        <code>msg.tick</code> or the period re-checks the current state. A match sets <code>msg.state</code>.
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType("state", {
+        category: "function",
+        color: "#A6BBCF",
+        defaults: {
+            name: {value: ""},
+            initial: {value: "idle", required: true},
+            period: {
+                value: 0,
+                validate: function (v) {
+                    return v === "" || (Number.isFinite(Number(v)) && Number(v) >= 0 && Math.floor(Number(v)) === Number(v));
+                }
+            },
+            states: {value: [{name: "idle", on: [], entry: []}]}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "switch.svg",
+        label: function () {
+            return this.name || "state";
+        },
+        labelStyle: function () {
+            return this.name ? "node_label_italic" : "";
+        },
+        oneditprepare: function () {
+            $("#node-input-states-json").val(JSON.stringify(this.states || [], null, 2));
+        },
+        oneditsave: function () {
+            var parsed = JSON.parse($("#node-input-states-json").val());
+            if (!Array.isArray(parsed)) {
+                throw new Error("states must be a JSON array");
+            }
+            this.states = parsed;
+        }
+    });
+</script>

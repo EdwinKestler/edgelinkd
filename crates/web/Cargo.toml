@@ -1,6 +1,6 @@
 [package]
 name = "edgelink-web"
-version = "0.1.99"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
@@ -21,5 +21,14 @@ anyhow = { workspace = true }
 sha2 = { workspace = true }
 tokio-tungstenite = { workspace = true, optional = true, features = ["rustls-tls-native-roots"] }
 config = { workspace = true }
+reqwest = { workspace = true }
 
 edgelink-core = { path = "../core" }
+
+[features]
+default = []
+nodes_modbus = ["edgelink-core/nodes_modbus"]
+runtime_scan = ["edgelink-core/runtime_scan"]
+
+[dev-dependencies]
+tokio-tungstenite = { workspace = true }

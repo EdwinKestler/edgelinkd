@@ -8,13 +8,11 @@ from tests import *
 @pytest.mark.describe('link Node')
 class TestInjectNode:
 
-    @pytest.mark.skip
     @pytest.mark.asyncio
     @pytest.mark.it('should be loaded (link in)')
     async def test_it_should_be_loaded_link_in(self):
         pass
 
-    @pytest.mark.skip
     @pytest.mark.asyncio
     @pytest.mark.it('should be loaded (link out)')
     async def test_it_should_be_loaded_link_out(self):

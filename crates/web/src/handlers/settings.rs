@@ -1,5 +1,5 @@
 use crate::handlers::WebState;
-use crate::models::RedSystemSettings;
+use crate::models::{AdminAuthSettings, RedSystemSettings, SettingsUser};
 use axum::extract::{Path, Query};
 use axum::{
     Extension,
@@ -29,10 +29,35 @@ pub async fn update_user_settings(
     // In actual implementation, this should save the settings
     Ok(Json(payload))
 }
-/// Get system settings
-pub async fn get_settings(Extension(state): Extension<Arc<WebState>>) -> Result<Json<RedSystemSettings>, StatusCode> {
-    let settings = state.red_settings.as_ref();
-    Ok(Json(settings.clone()))
+/// Get system settings.
+///
+/// The context block names the stores the running engine actually has. The editor sidebar uses
+/// that list; a static `"default"` would not match the memory store the runtime creates.
+pub async fn get_settings(
+    Extension(state): Extension<Arc<WebState>>,
+    headers: HeaderMap,
+) -> Result<Json<RedSystemSettings>, StatusCode> {
+    let mut settings = state.red_settings.as_ref().clone();
+    if let Some(addr) = *state.listen.read().await {
+        settings.ui_host = addr.ip().to_string();
+        settings.ui_port = addr.port();
+    }
+    if let Some(engine) = state.engine.read().await.as_ref() {
+        let manager = engine.get_context_manager();
+        settings.context.default = manager.default_store_name();
+        settings.context.stores = manager.store_names();
+    }
+    if state.auth.enabled() {
+        let actor = state.auth.actor_from_headers(&headers);
+        if actor.permissions.is_empty() {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+        settings.user =
+            Some(SettingsUser { username: actor.username, permissions: actor.permissions, anonymous: false });
+        settings.admin_auth = Some(AdminAuthSettings { auth_type: state.auth.login_kind().to_string() });
+        settings.editor_theme.user_menu = true;
+    }
+    Ok(Json(settings))
 }
 
 /// Get icon list
@@ -169,4 +194,39 @@ pub async fn get_plugin_messages(Query(params): Query<HashMap<String, String>>) 
     };
 
     Ok(Json(messages))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::create_all_routes;
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn settings_report_the_bound_address_and_the_libraries() {
+        let state = WebState::new();
+        let router = create_all_routes(&state).layer(Extension(state.clone()));
+        let response =
+            router.clone().oneshot(Request::builder().uri("/settings").body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["uiHost"], "0.0.0.0");
+        assert_eq!(body["uiPort"], 1880);
+        let libraries = body["libraries"].as_array().expect("libraries");
+        assert_eq!(libraries[0]["id"], "local");
+        assert!(libraries[0].get("readOnly").is_none());
+        assert_eq!(libraries[1]["id"], "examples");
+        assert_eq!(libraries[1]["readOnly"], true);
+        assert_eq!(libraries[1]["types"], serde_json::json!(["flows"]));
+
+        state.record_listen("127.0.0.1:1888".parse().unwrap()).await;
+        let response = router.oneshot(Request::builder().uri("/settings").body(Body::empty()).unwrap()).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["uiHost"], "127.0.0.1");
+        assert_eq!(body["uiPort"], 1888);
+    }
 }

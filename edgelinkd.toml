@@ -11,3 +11,9 @@ memory = { provider = "memory" }
 
 [runtime.flow]
 node_msg_queue_capacity = 16
+
+[runtime.scan]
+# Soft real-time scan. Compiled only with the `runtime_scan` feature, which is off by default.
+# Period in milliseconds. 0 disables the task. A value below 10 is an error at start.
+# The floor is the shortest interval the runtime will schedule, not a latency guarantee.
+period_ms = 0

@@ -78,13 +78,37 @@ impl<'de> serde::Deserialize<'de> for CsvHeaderMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum CsvSpecMode {
-    #[serde(rename = "legacy")]
     #[default]
-    Legacy, // Legacy mode (more permissive)
-    #[serde(rename = "rfc")]
+    Legacy, // Legacy mode (more permissive). The editor writes `spec: ""`.
     Rfc, // RFC 4180 mode (strict)
+}
+
+impl<'de> Deserialize<'de> for CsvSpecMode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        match s {
+            "" | "legacy" => Ok(CsvSpecMode::Legacy),
+            "rfc" => Ok(CsvSpecMode::Rfc),
+            _ => Err(de::Error::unknown_variant(s, &["", "legacy", "rfc"])),
+        }
+    }
+}
+
+/// `csv.errors.csv_js` from the Node-RED catalog.
+const CSV_JS: &str = "This node only handles CSV strings or js objects.";
+
+/// Whether the input message is a completed unit of work.
+///
+/// RFC rejection and a conversion error match `done(err)`: catch sees them and complete does not.
+/// Success and a legacy rejection match `done()`.
+enum CsvCompletion {
+    Complete,
+    Reported,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -482,17 +506,10 @@ impl CsvNode {
             .collect::<Vec<_>>()
             .join(",");
 
-        // Return result based on multi mode
-        let result = match self.config.multi {
-            CsvOutputMode::One => {
-                if objects.len() == 1 {
-                    objects.into_iter().next().unwrap()
-                } else {
-                    Variant::Array(objects)
-                }
-            }
-            CsvOutputMode::Mult => Variant::Array(objects),
-        };
+        // Both modes return the row list. "one" sends one message per row and
+        // attaches parts; a single row stays a one-element list so that still happens.
+        // "mult" sends the list as the payload.
+        let result = Variant::Array(objects);
 
         Ok((result, if columns_str.is_empty() { None } else { Some(columns_str) }))
     }
@@ -595,7 +612,38 @@ impl CsvNode {
         Variant::String(trimmed.to_string())
     }
 
-    async fn process_csv(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
+    fn bad_type_status() -> StatusObject {
+        StatusObject { fill: Some(StatusFill::Red), shape: Some(StatusShape::Dot), text: Some(CSV_JS.to_string()) }
+    }
+
+    /// A payload that is not a string, object, or array.
+    ///
+    /// RFC reports it (`done(err)`) and sets the red status. Legacy completes the original
+    /// message (`done()`) and sets the same status: there is no `node.warn` channel, and
+    /// upstream's warning does not go to a catch node.
+    async fn reject_bad_payload(&self, msg: MsgHandle, cancel: CancellationToken) -> CsvCompletion {
+        self.report_status(Self::bad_type_status(), cancel.clone()).await;
+        if self.config.spec == CsvSpecMode::Rfc {
+            self.report_error(CSV_JS.to_string(), msg, cancel).await;
+            CsvCompletion::Reported
+        } else {
+            log::warn!("[csv:{}] {CSV_JS}", self.name());
+            CsvCompletion::Complete
+        }
+    }
+
+    async fn report_conversion_failure(
+        &self,
+        err: crate::EdgelinkError,
+        msg: MsgHandle,
+        cancel: CancellationToken,
+    ) -> CsvCompletion {
+        // `done(e)`: catch sees the message, complete does not, and nothing is sent.
+        self.report_error(err.to_string(), msg, cancel).await;
+        CsvCompletion::Reported
+    }
+
+    async fn process_csv(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<CsvCompletion> {
         let msg_guard = msg.read().await;
 
         // Handle reset message
@@ -605,7 +653,7 @@ impl CsvNode {
             state.store.clear();
             drop(msg_guard);
             self.fan_out_one(Envelope { port: 0, msg: msg.clone() }, cancel.clone()).await?;
-            return Ok(());
+            return Ok(CsvCompletion::Complete);
         }
 
         if let Some(payload) = msg_guard.get("payload") {
@@ -653,7 +701,7 @@ impl CsvNode {
                                             )
                                             .await?;
                                         }
-                                        return Ok(());
+                                        return Ok(CsvCompletion::Complete);
                                     }
                                 }
 
@@ -668,7 +716,8 @@ impl CsvNode {
                             }
                         }
                         Err(e) => {
-                            log::warn!("CSV parsing error: {e}");
+                            drop(msg_guard);
+                            return Ok(self.report_conversion_failure(e, msg, cancel).await);
                         }
                     }
                 }
@@ -684,12 +733,14 @@ impl CsvNode {
                             self.fan_out_one(Envelope { port: 0, msg: response_handle }, cancel.clone()).await?;
                         }
                         Err(e) => {
-                            log::warn!("CSV generation error: {e}");
+                            drop(msg_guard);
+                            return Ok(self.report_conversion_failure(e, msg, cancel).await);
                         }
                     }
                 }
                 _ => {
-                    log::warn!("CSV node: payload must be string, object, or array");
+                    drop(msg_guard);
+                    return Ok(self.reject_bad_payload(msg, cancel).await);
                 }
             }
         } else {
@@ -698,7 +749,7 @@ impl CsvNode {
             self.fan_out_one(Envelope { port: 0, msg: msg.clone() }, cancel.clone()).await?;
         }
 
-        Ok(())
+        Ok(CsvCompletion::Complete)
     }
 }
 
@@ -710,11 +761,25 @@ impl FlowNodeBehavior for CsvNode {
 
     async fn run(self: Arc<Self>, stop_token: tokio_util::sync::CancellationToken) {
         while !stop_token.is_cancelled() {
-            let node = self.clone();
-
             let cancel = stop_token.clone();
-            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move { node.process_csv(msg, cancel).await })
-                .await;
+            // `with_uow` always notifies complete, including after `handle_error`. RFC `done(err)`
+            // must reach catch only.
+            let msg = match self.recv_msg(cancel.clone()).await {
+                Ok(msg) => msg,
+                Err(err) if err.is_cancelled() => break,
+                Err(err) => {
+                    log::warn!("[csv:{}] {err}", self.name());
+                    continue;
+                }
+            };
+
+            match self.process_csv(msg.clone(), cancel.clone()).await {
+                Ok(CsvCompletion::Complete) => self.notify_uow_completed(msg, cancel).await,
+                Ok(CsvCompletion::Reported) => {}
+                Err(err) => {
+                    self.report_error(err.to_string(), msg, cancel).await;
+                }
+            }
         }
 
         log::debug!("CsvNode terminated.");

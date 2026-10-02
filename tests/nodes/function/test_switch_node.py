@@ -226,7 +226,7 @@ class TestSwitchNode:
         await _generic_switch_test("istype", "number", True, False, float('nan'))
 
     # It doesn't work because we only got a JSON object not JS object
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: JSON has no Infinity, so the pytest bridge cannot deliver that payload")
     @pytest.mark.asyncio
     @pytest.mark.it("should check if payload if of type number Infinity")
     async def test_it_should_check_if_payload_if_of_type_number_infinity(self):
@@ -248,7 +248,7 @@ class TestSwitchNode:
         await _generic_switch_test("istype", "array", True, True, [1, 2, 3, "a", "b"])
 
     # It doesn't work because we only got a JSON object not JS object
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: binary payloads cannot cross the pytest bridge")
     @pytest.mark.asyncio
     @pytest.mark.it("should check if payload if of type buffer")
     async def test_it_should_check_if_payload_if_of_type_buffer(self):
@@ -275,7 +275,7 @@ class TestSwitchNode:
         await _generic_switch_test("istype", "null", True, True, None)
 
     # there is no `undefined` in Python neither Rust
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: JSON has no undefined, so the pytest bridge cannot deliver that payload")
     @pytest.mark.asyncio
     @pytest.mark.it("should check if payload if of type undefined")
     async def test_it_should_check_if_payload_if_of_type_undefined(self):
@@ -478,7 +478,7 @@ class TestSwitchNode:
     async def test_it_should_check_if_payload_is_empty_array(self):
         await _singular_switch_test("empty", True, True, [])
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: binary payloads cannot cross the pytest bridge")
     @pytest.mark.asyncio
     @pytest.mark.it("should check if payload is empty (buffer)")
     async def test_it_should_check_if_payload_is_empty_buffer(self):
@@ -795,7 +795,7 @@ class TestSwitchNode:
         assert len(msgs) == 1
         assert msgs[0]["payload"] == "pass"
 
-    @pytest.mark.skip(reason="the head/tail/index switch rules are not implemented: sequence repair is out of scope")
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should take head of message sequence (w. JSONata)")
     async def test_it_should_take_head_of_message_sequence_w_jsonata(self):
@@ -839,7 +839,7 @@ class TestSwitchNode:
         await _custom_flow_switch_test(flow, True, "OK")
 
     # Sequence handling tests (these require sequence/parts support)
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should take head of message sequence (no repair)")
     async def test_it_should_take_head_of_message_sequence_no_repair(self):
@@ -867,7 +867,7 @@ class TestSwitchNode:
         for i, msg in enumerate(msgs):
             assert msg["payload"] == i
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should take head of message sequence (repair)")
     async def test_it_should_take_head_of_message_sequence_repair(self):
@@ -896,7 +896,7 @@ class TestSwitchNode:
             # When repair=True, parts should be updated
             assert msg["parts"]["count"] == 3
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should take tail of message sequence (no repair)")
     async def test_it_should_take_tail_of_message_sequence_no_repair(self):
@@ -924,7 +924,7 @@ class TestSwitchNode:
         for i, msg in enumerate(msgs):
             assert msg["payload"] == expected_values[i]
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should take slice of message sequence (no repair)")
     async def test_it_should_take_slice_of_message_sequence_no_repair(self):
@@ -1056,7 +1056,7 @@ class TestSwitchNode:
         msgs = await run_flow_with_msgs_ntimes(flows_obj=flow, msgs=injections, nexpected=0, timeout=0.5)
         assert len(msgs) == 0
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should not repair message sequence for each port")
     async def test_it_should_not_repair_message_sequence_for_each_port(self):
@@ -1086,7 +1086,7 @@ class TestSwitchNode:
         msgs = await run_flow_with_msgs_ntimes(flows_obj=flow, msgs=injections, nexpected=5, timeout=0.5)
         assert len(msgs) == 5
 
-    @pytest.mark.skip
+    @pytest.mark.skip(reason="out of scope: the switch node does not offer head, tail, or index sequence repair")
     @pytest.mark.asyncio
     @pytest.mark.it("should repair message sequence for each port")
     async def test_it_should_repair_message_sequence_for_each_port(self):

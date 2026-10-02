@@ -286,7 +286,7 @@ class TestTriggerNode:
         msgs = await run_single_node_with_msgs_ntimes(node, [{"payload": None, "delay": 300}], 2)
         elapsed = time.time() - start
         assert len(msgs) == 2
-        # `msg.delay` is in seconds and replaces the configured duration.
+        # `msg.delay` is in milliseconds and replaces the configured duration.
         assert 0.27 <= elapsed <= 0.38
 
     @pytest.mark.asyncio
@@ -741,3 +741,35 @@ class TestTriggerNode:
         assert len(msgs) >= 2
         for msg in msgs:
             assert msg['payload'] == 'foo'
+
+
+# Upstream nests this block inside describe('trigger node'), so the full title is
+# "trigger node messaging API <it>". done() is what the complete node observes; the
+# trigger's own wires stay empty, and the 1s second edge is not part of the assertion.
+@pytest.mark.describe('trigger node')
+@pytest.mark.describe('messaging API')
+class TestTriggerMessagingApi:
+    async def _mapi_done(self, msg):
+        flows = [
+            {"id": "0", "type": "tab"},
+            {"id": "1", "z": "0", "type": "trigger", "units": "s", "duration": "1", "wires": [[]]},
+            {"id": "3", "z": "0", "type": "complete", "scope": ["1"], "uncaught": False, "wires": [["2"]]},
+            {"id": "4", "z": "0", "type": "catch", "scope": ["1"], "uncaught": False, "wires": [["2"]]},
+            {"id": "2", "z": "0", "type": "test-once"},
+        ]
+        msgs = await run_flow_for_seconds(flows, [{"nid": "1", "msg": msg}], 0.3)
+        assert len(msgs) == 1, f"Expected one completion, got {msgs}"
+        assert msgs[0]["payload"] == "A"
+        assert abs(msgs[0]["_since_start_ms"] - 0) <= 100, (
+            f"Completed after {msgs[0]['_since_start_ms']:.0f}ms, expected 0ms ± 100ms"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when first message has been processed')
+    async def test_0037(self):
+        await self._mapi_done({"seq": 0, "payload": "A"})
+
+    @pytest.mark.asyncio
+    @pytest.mark.it('should call done() when it receives reset message')
+    async def test_0038(self):
+        await self._mapi_done({"seq": 0, "payload": "A", "reset": True})

@@ -1,0 +1,83 @@
+<script type="text/html" data-template-name="validate">
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-ellipsis-h"></i> Property</label>
+        <input type="text" id="node-input-property" placeholder="payload">
+    </div>
+    <div class="form-row">
+        <label for="node-input-check"><i class="fa fa-check"></i> Check</label>
+        <select id="node-input-check" style="width: 70%">
+            <option value="type">type</option>
+            <option value="range">range</option>
+            <option value="age">age</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-expect"><i class="fa fa-tag"></i> Type</label>
+        <select id="node-input-expect" style="width: 70%">
+            <option value="string">string</option>
+            <option value="number">number</option>
+            <option value="boolean">boolean</option>
+            <option value="object">object</option>
+            <option value="array">array</option>
+            <option value="buffer">buffer</option>
+            <option value="null">null</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-min"><i class="fa fa-arrows-h"></i> Min</label>
+        <input type="text" id="node-input-min" placeholder="" style="width: 40%">
+    </div>
+    <div class="form-row">
+        <label for="node-input-max"><i class="fa fa-arrows-h"></i> Max</label>
+        <input type="text" id="node-input-max" placeholder="" style="width: 40%">
+    </div>
+    <div class="form-row">
+        <label for="node-input-maxAgeMs"><i class="fa fa-clock-o"></i> Max age</label>
+        <input type="text" id="node-input-maxAgeMs" placeholder="" style="width: 40%">
+        <span>ms</span>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips">
+        One check. <code>type</code> uses Type. <code>range</code> is inclusive and needs Min, Max, or both.
+        <code>age</code> reads the property as Unix milliseconds and needs Max age.
+        A failure is a node error. The message is not forwarded.
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType("validate", {
+        category: "function",
+        color: "#A6BBCF",
+        defaults: {
+            name: {value: ""},
+            property: {value: "payload", required: true},
+            check: {value: "type", required: true},
+            expect: {value: "number"},
+            min: {value: ""},
+            max: {value: ""},
+            maxAgeMs: {value: ""}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "switch.svg",
+        label: function () {
+            return this.name || "validate";
+        },
+        labelStyle: function () {
+            return this.name ? "node_label_italic" : "";
+        },
+        oneditsave: function () {
+            ["min", "max", "maxAgeMs"].forEach(function (name) {
+                var raw = $("#node-input-" + name).val();
+                if (raw === "") {
+                    delete this[name];
+                } else {
+                    this[name] = Number(raw);
+                }
+            }, this);
+        }
+    });
+</script>

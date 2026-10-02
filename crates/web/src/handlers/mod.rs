@@ -1,11 +1,18 @@
+pub mod audit;
+pub mod auth;
 pub mod comms;
 pub mod context;
+pub mod credentials;
+pub mod deploy;
+pub mod fleet;
 pub mod flows;
 pub mod library;
 pub mod locales;
 pub mod nodes;
+pub mod reply;
 pub mod settings;
 pub mod static_resources;
+pub mod status;
 pub mod web_state;
 
 pub use comms::*;
