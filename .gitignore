@@ -17,3 +17,7 @@ __pycache__
 .palimnex/
 *.pmem
 *.key
+
+# Client-only page toolchain (Vite). The lockfile stays.
+/crates/web/client/node_modules
+/crates/web/client/dist

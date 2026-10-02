@@ -89,7 +89,7 @@ pub struct NodeInfo {
 /*
 {
     "httpNodeRoot": "/",
-    "version": "4.0.9",
+    "version": "5.0.7",
     "context": {
         "default": "memory0",
         "stores": [
@@ -202,7 +202,9 @@ pub struct EditorTheme {
     #[serde(rename = "userMenu")]
     pub user_menu: bool,
     pub login: ThemeLogin,
-    pub languages: HashMap<String, String>,
+    /// Locale codes the editor can select. Node-RED sends an array here;
+    /// the settings tray calls `.map` on it and throws if this is an object.
+    pub languages: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -281,7 +283,7 @@ pub struct ApiResponse<T> {
 impl Default for RedSystemSettings {
     fn default() -> Self {
         Self {
-            version: "3.1.0".to_string(),
+            version: "5.0.7".to_string(),
             http_node_root: "/".to_string(),
             http_admin_root: "/".to_string(),
             http_static: None,
@@ -297,11 +299,6 @@ impl Default for RedSystemSettings {
 
 impl Default for EditorTheme {
     fn default() -> Self {
-        let mut languages = HashMap::new();
-        languages.insert("en-US".to_string(), "English".to_string());
-        languages.insert("zh-CN".to_string(), "简体中文".to_string());
-        languages.insert("ja".to_string(), "日本語".to_string());
-
         Self {
             page: ThemePage { title: "EdgeLinkd".to_string(), favicon: None, css: None, scripts: None },
             header: ThemeHeader { title: "EdgeLinkd".to_string(), url: None, image: None },
@@ -314,7 +311,10 @@ impl Default for EditorTheme {
             },
             user_menu: false,
             login: ThemeLogin { image: None },
-            languages,
+            languages: ["de", "en-US", "es-ES", "fr", "ja", "ko", "pt-BR", "ru", "zh-CN", "zh-TW"]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
         }
     }
 }
@@ -339,5 +339,18 @@ impl RedSystemSettings {
             Err(config::ConfigError::NotFound(_)) => Ok(Self::default()),
             Err(e) => Err(e.into()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn editor_languages_serialize_as_locale_codes() {
+        let json = serde_json::to_value(RedSystemSettings::default()).expect("settings json");
+        let languages = json["editorTheme"]["languages"].as_array().expect("languages array");
+        assert!(languages.iter().all(|code| code.as_str().is_some()));
+        assert!(languages.iter().any(|code| code == "en-US"));
     }
 }

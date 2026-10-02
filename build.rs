@@ -79,6 +79,11 @@ fn build_static_files() {
     use std::path::PathBuf;
 
     println!("cargo:rerun-if-changed=crates/web/public");
+    println!("cargo:rerun-if-changed=crates/web/client/src");
+    println!("cargo:rerun-if-changed=crates/web/client/index.html");
+    println!("cargo:rerun-if-changed=crates/web/client/package.json");
+    println!("cargo:rerun-if-changed=crates/web/client/package-lock.json");
+    println!("cargo:rerun-if-changed=crates/web/client/vite.config.ts");
     println!("cargo:rerun-if-changed=3rd-party/node-red/packages");
     println!("cargo:rerun-if-changed=3rd-party/node-red/package.json");
     println!("cargo:rerun-if-changed=3rd-party/node-red/package-lock.json");
@@ -95,9 +100,16 @@ fn build_static_files() {
         let package_json = node_red_root.join("package.json");
         let node_modules = node_red_root.join("node_modules");
 
-        if package_json.exists() && (!node_modules.exists() || !node_red_dir.exists()) {
+        let want_version = package_version(&package_json);
+        let built_version = fs::read_to_string(static_dir.join(".editor-version")).ok().map(|v| v.trim().to_string());
+        let version_changed = want_version.is_some() && want_version != built_version;
+        if package_json.exists() && (!node_modules.exists() || !node_red_dir.exists() || version_changed) {
             println!("cargo:warning=Building Node-RED editor...");
             build_node_red(&node_red_root);
+            if let Some(version) = &want_version {
+                let _ = fs::create_dir_all(&static_dir);
+                let _ = fs::write(static_dir.join(".editor-version"), version);
+            }
         }
     }
 
@@ -139,7 +151,48 @@ fn build_static_files() {
         // Copy Node-RED locales for i18n support
         copy_node_red_locales(&static_dir).expect("Failed to copy node-red locales");
 
+        copy_client_page(&static_dir);
+
         println!("cargo:warning=Static files build complete!");
+    }
+}
+
+fn package_version(package_json: &Path) -> Option<String> {
+    let text = fs::read_to_string(package_json).ok()?;
+    for line in text.lines() {
+        let line = line.trim();
+        let Some(rest) = line.strip_prefix("\"version\"") else {
+            continue;
+        };
+        let rest = rest.trim().trim_start_matches(':').trim();
+        let value = rest.trim_matches(|c| c == '"' || c == ',');
+        if !value.is_empty() {
+            return Some(value.to_string());
+        }
+    }
+    None
+}
+
+/// Build the client-only page and copy it under `ui_static/client`, leaving the editor
+/// `index.html` at the static root untouched.
+fn copy_client_page(static_dir: &Path) {
+    let client_root = PathBuf::from("crates/web/client");
+    if !client_root.join("package.json").exists() {
+        return;
+    }
+    let dist_index = client_root.join("dist/index.html");
+    if !dist_index.exists() {
+        if node_version().is_none() {
+            println!("cargo:warning=Node.js not found, skipping client page build");
+            return;
+        }
+        println!("cargo:warning=Building client page...");
+        build_npm_project(&client_root, "client page");
+    }
+    if dist_index.exists() {
+        let dest = static_dir.join("client");
+        std::fs::create_dir_all(&dest).expect("Failed to create client static directory");
+        copy_dir_contents_incremental(&client_root.join("dist"), &dest).expect("Failed to copy client page");
     }
 }
 
@@ -190,43 +243,60 @@ fn copy_dir_contents_incremental(src: &Path, dst: &Path) -> std::io::Result<()> 
 }
 
 fn build_node_red(node_red_root: &Path) {
+    match node_version() {
+        None => {
+            println!("cargo:warning=Node.js not found, skipping Node-RED editor build");
+            return;
+        }
+        Some((major, minor, version)) if major < 22 || (major == 22 && minor < 9) => {
+            panic!("Node-RED 5.0.7 needs Node.js >= 22.9 (found {version})");
+        }
+        Some(_) => {}
+    }
+    let modules = node_red_root.join("node_modules");
+    if modules.exists() {
+        fs::remove_dir_all(&modules).expect("Failed to remove stale Node-RED node_modules");
+    }
+    build_npm_project(node_red_root, "Node-RED editor");
+}
+
+fn node_version() -> Option<(u32, u32, String)> {
+    let node_cmd = if cfg!(target_os = "windows") { "node.exe" } else { "node" };
+    let output = std::process::Command::new(node_cmd).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).trim().trim_start_matches('v').to_string();
+    let mut parts = text.split('.');
+    let major = parts.next().unwrap_or("0").parse().unwrap_or(0);
+    let minor = parts.next().unwrap_or("0").parse().unwrap_or(0);
+    Some((major, minor, text))
+}
+
+fn build_npm_project(root: &Path, label: &str) {
     use std::process::Command;
 
-    // Check if npm is available
     let npm_cmd = if cfg!(target_os = "windows") { "npm.cmd" } else { "npm" };
-
-    let npm_check = Command::new(npm_cmd).arg("--version").output();
-
-    if npm_check.is_err() {
-        println!("cargo:warning=npm not found, skipping Node-RED build");
-        return;
+    if Command::new(npm_cmd).arg("--version").output().is_err() {
+        panic!("npm is required to build the {label}");
     }
 
-    // Install dependencies
-    println!("cargo:warning=Installing Node-RED dependencies...");
-    let install_result = Command::new(npm_cmd).arg("install").current_dir(node_red_root).status();
-
-    if let Err(e) = install_result {
-        panic!("Failed to install Node-RED dependencies: {e}");
+    let install_arg = if root.join("package-lock.json").exists() { "ci" } else { "install" };
+    println!("cargo:warning=Installing {label} dependencies...");
+    let install_result = Command::new(npm_cmd).arg(install_arg).current_dir(root).status();
+    match install_result {
+        Ok(status) if status.success() => {}
+        Ok(status) => panic!("npm {install_arg} failed for {label} (exit {status})"),
+        Err(e) => panic!("Failed to install {label} dependencies: {e}"),
     }
 
-    if !install_result.unwrap().success() {
-        panic!("npm ci failed for Node-RED");
+    println!("cargo:warning=Building {label}...");
+    let build_result = Command::new(npm_cmd).args(["run", "build"]).current_dir(root).status();
+    match build_result {
+        Ok(status) if status.success() => {}
+        Ok(status) => panic!("npm run build failed for {label} (exit {status})"),
+        Err(e) => panic!("Failed to build {label}: {e}"),
     }
-
-    // Build Node-RED
-    println!("cargo:warning=Building Node-RED...");
-    let build_result = Command::new(npm_cmd).arg("run").arg("build").current_dir(node_red_root).status();
-
-    if let Err(e) = build_result {
-        panic!("Failed to build Node-RED: {e}");
-    }
-
-    if !build_result.unwrap().success() {
-        panic!("npm run build failed for Node-RED");
-    }
-
-    println!("cargo:warning=Node-RED build complete!");
 }
 
 /// Copy Node-RED icon files to static/icons directory for proper icon serving

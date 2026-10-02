@@ -18,7 +18,7 @@ editor built in. Rust workspace layout:
 | `node-plugins/` | statically linked node plug-ins |
 | `tests/` | pytest port of Node-RED's mocha spec suite |
 | `scripts/` | build/packaging helpers + the spec coverage audit |
-| `3rd-party/node-red/` | pinned Node-RED checkout (git submodule, v4.0.9) — the behavioural reference |
+| `3rd-party/node-red/` | pinned Node-RED checkout (git submodule, v5.0.7) — the editor we build and serve |
 
 ## Design philosophy: embedded-first, compatible where supported
 
@@ -29,9 +29,11 @@ Node-RED feature one-to-one is **not** a goal.
 The compatibility contract is therefore conditional, and it cuts both ways:
 
 - **What we ship does behave like Node-RED.** For every node, option and property type we
-  offer, the observable behaviour must match the pinned upstream v4.0.9 — message semantics,
-  error and status behaviour, editor contract — and that is what the ported spec tests in
-  `tests/` assert.
+  offer, the observable behaviour must match the ported spec tests in `tests/`. Those tests
+  were written against upstream v4.0.9. The editor checkout is v5.0.7: `build.rs` builds it
+  with `npm run build` (`node scripts/build`) and serves that editor. A regenerated
+  `tests/REDNODES-SPECS-DIFF.md` compares titles against the v5.0.7 checkout, so do not
+  treat new `:x:` rows from that bump as a runtime regression by themselves.
 - **What does not fit the budget, we do not offer.** A feature whose memory or binary-size
   cost is too high for the target hardware, or that depends on the Node.js ecosystem, is out
   of scope and may stay unimplemented indefinitely. That is a design decision, not a bug and
@@ -140,8 +142,9 @@ and `inventory`, so there is no central node list — only the `mod` declaration
 
 ## Environment gotchas
 
-- Node-RED is a git submodule: `git submodule update --init --recursive`. The audit script
-  also needs `node_modules` inside it (mocha).
+- Node-RED is a git submodule: `git submodule update --init --recursive`. The editor build
+  (`npm run build` in that checkout) needs Node.js >= 22.9; CI uses Node 24. The audit
+  script also needs `node_modules` inside it (mocha).
 - The pytest suite loads `target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/edgelink_pymod.*`,
   so those two env vars must match how you built (`EDGELINK_BUILD_PROFILE` is `debug` by
   default, `ci` in CI). On Windows the loader copies the `.dll` to `.pyd`, so **rebuild

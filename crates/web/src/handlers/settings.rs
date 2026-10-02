@@ -14,15 +14,9 @@ use std::sync::Arc;
 // settings/user_settings/locale/icons related handlers
 // ...existing code...
 
-/// Get user settings
+/// Editor view preferences. Node-RED returns an empty object until the editor saves some.
 pub async fn get_user_settings(Extension(_state): Extension<Arc<WebState>>) -> Result<Json<Value>, StatusCode> {
-    let settings = serde_json::json!({
-        "user": "default",
-        "theme": "default",
-        "language": "en-US"
-    });
-
-    Ok(Json(settings))
+    Ok(Json(serde_json::json!({})))
 }
 
 /// Update user settings
