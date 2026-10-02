@@ -3,6 +3,7 @@
 /log
 __pycache__
 /.pytest_cache
+/.venv
 
 # Static files - generated from build script
 /static
@@ -11,3 +12,8 @@ __pycache__
 
 # Scratch directory the context-storage specs create and remove
 /tests/resources/context
+
+# Palimnex runtime state, memory packs and key files
+.palimnex/
+*.pmem
+*.key
