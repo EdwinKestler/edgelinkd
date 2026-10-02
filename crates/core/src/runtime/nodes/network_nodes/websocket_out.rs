@@ -159,7 +159,7 @@ impl WebSocketOutNode {
             }
         }
 
-        Err(crate::EdgelinkError::InvalidOperation("Failed to send WebSocket message".to_string()).into())
+        Err(crate::EdgelinkError::InvalidOperation("Failed to send WebSocket message".to_string()))
     }
 
     async fn handle_input_message(&self, msg: MsgHandle, _stop_token: CancellationToken) -> crate::Result<()> {

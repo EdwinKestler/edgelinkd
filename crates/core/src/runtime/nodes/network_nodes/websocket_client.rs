@@ -239,7 +239,7 @@ impl WebSocketClientNode {
                                 log::debug!("WebSocket client: Received raw frame");
                             }
                             Some(Err(e)) => {
-                                return Err(crate::EdgelinkError::InvalidOperation(format!("WebSocket error: {e}")).into());
+                                return Err(crate::EdgelinkError::InvalidOperation(format!("WebSocket error: {e}")));
                             }
                             None => {
                                 log::info!("WebSocket client: Connection stream ended");
@@ -285,7 +285,7 @@ impl WebSocketClientNode {
             }
         }
 
-        Err(crate::EdgelinkError::InvalidOperation("WebSocket client not connected".to_string()).into())
+        Err(crate::EdgelinkError::InvalidOperation("WebSocket client not connected".to_string()))
     }
 
     pub async fn is_connected(&self) -> bool {

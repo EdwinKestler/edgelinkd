@@ -90,7 +90,7 @@ struct UdpOutNodeConfig {
 }
 
 impl UdpOutNode {
-    async fn uow(&self, msg: MsgHandle, socket: &UdpSocket) -> crate::Result<()> {
+    async fn uow(&self, msg: MsgHandle, socket: &UdpSocket, cancel: CancellationToken) -> crate::Result<()> {
         let msg_guard = msg.read().await;
 
         if !msg_guard.contains("payload") {
@@ -117,7 +117,7 @@ impl UdpOutNode {
             .ok_or_else(|| crate::EdgelinkError::InvalidOperation("No target port specified".to_string()))?;
 
         if target_port == 0 {
-            return Err(crate::EdgelinkError::InvalidOperation("Invalid port number".to_string()).into());
+            return Err(crate::EdgelinkError::InvalidOperation("Invalid port number".to_string()));
         }
 
         let remote_addr = std::net::SocketAddr::new(target_ip, target_port);
@@ -129,9 +129,7 @@ impl UdpOutNode {
                 base64::Engine::decode(&base64::engine::general_purpose::STANDARD, payload_str)
                     .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Invalid base64 payload: {e}")))?
             } else {
-                return Err(
-                    crate::EdgelinkError::InvalidOperation("Base64 mode requires string payload".to_string()).into()
-                );
+                return Err(crate::EdgelinkError::InvalidOperation("Base64 mode requires string payload".to_string()));
             }
         } else {
             // Normal mode - send raw bytes
@@ -148,9 +146,8 @@ impl UdpOutNode {
         match socket.send_to(&data_to_send, remote_addr).await {
             Ok(_) => Ok(()),
             Err(e) => {
-                self.report_error(format!("Failed to send UDP packet: {e}"), msg.clone(), CancellationToken::new())
-                    .await;
-                Err(crate::EdgelinkError::InvalidOperation(format!("Failed to send UDP packet: {e}")).into())
+                self.report_error(format!("Failed to send UDP packet: {e}"), msg.clone(), cancel).await;
+                Err(crate::EdgelinkError::InvalidOperation(format!("Failed to send UDP packet: {e}")))
             }
         }
     }
@@ -204,8 +201,9 @@ impl FlowNodeBehavior for UdpOutNode {
                     let cloned_socket = socket.clone();
                     let node = self.clone();
 
-                    with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move {
-                        node.uow(msg, &cloned_socket).await
+                    let cancel = stop_token.clone();
+                    with_uow(node.as_ref(), cancel.clone(), |node, msg| async move {
+                        node.uow(msg, &cloned_socket, cancel).await
                     })
                     .await;
                 }

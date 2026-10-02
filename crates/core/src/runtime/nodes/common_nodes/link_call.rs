@@ -83,7 +83,7 @@ impl LinkCallNode {
                     linked_nodes.push(Arc::downgrade(&link_in));
                 } else {
                     log::error!("LinkCallNode: Cannot found the required `link in` node(id={link_in_id})!");
-                    return Err(EdgelinkError::BadFlowsJson("Cannot found the required `link in`".to_owned()).into());
+                    return Err(EdgelinkError::BadFlowsJson("Cannot found the required `link in`".to_owned()));
                 }
             }
         }
@@ -126,7 +126,7 @@ impl LinkCallNode {
                     } else {
                         let err_msg =
                             format!("The required `link in` was unavailable in `link out` node(id={})!", self.id());
-                        return Err(EdgelinkError::InvalidOperation(err_msg).into());
+                        return Err(EdgelinkError::InvalidOperation(err_msg));
                     }
                 }
             }
@@ -141,7 +141,7 @@ impl LinkCallNode {
                     target_node.inject_msg(msg.clone(), cancel.clone()).await?;
                 } else {
                     let err_msg = "Cannot found node by msg.target";
-                    return Err(EdgelinkError::InvalidOperation(err_msg.to_owned()).into());
+                    return Err(EdgelinkError::InvalidOperation(err_msg.to_owned()));
                 }
             }
         }
@@ -171,7 +171,7 @@ impl LinkCallNode {
             }
             _ => {
                 let err_msg = format!("Unsupported dynamic target in `msg.target`: {target_field:?}");
-                return Err(EdgelinkError::InvalidOperation(err_msg).into());
+                return Err(EdgelinkError::InvalidOperation(err_msg));
             }
         };
         if let Some(node) = &result {
@@ -183,8 +183,7 @@ impl LinkCallNode {
             if flow.is_subflow() {
                 return Err(EdgelinkError::InvalidOperation(
                     "A `link call` cannot call a `link in` node inside a subflow".to_owned(),
-                )
-                .into());
+                ));
             }
         }
         Ok(result)
@@ -243,8 +242,7 @@ impl LinkCallNodeBehavior for LinkCallNode {
             drop(event);
             Ok(())
         } else {
-            Err(EdgelinkError::InvalidOperation(format!("Cannot find and(or) remove the event id: '{stack_id}'"))
-                .into())
+            Err(EdgelinkError::InvalidOperation(format!("Cannot find and(or) remove the event id: '{stack_id}'")))
         }
     }
 }

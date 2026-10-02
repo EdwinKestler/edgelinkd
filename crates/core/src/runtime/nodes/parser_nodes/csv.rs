@@ -595,7 +595,7 @@ impl CsvNode {
         Variant::String(trimmed.to_string())
     }
 
-    async fn process_csv(&self, msg: MsgHandle) -> crate::Result<()> {
+    async fn process_csv(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         let msg_guard = msg.read().await;
 
         // Handle reset message
@@ -604,8 +604,7 @@ impl CsvNode {
             state.hdr_sent = false;
             state.store.clear();
             drop(msg_guard);
-            self.fan_out_one(Envelope { port: 0, msg: msg.clone() }, tokio_util::sync::CancellationToken::new())
-                .await?;
+            self.fan_out_one(Envelope { port: 0, msg: msg.clone() }, cancel.clone()).await?;
             return Ok(());
         }
 
@@ -650,7 +649,7 @@ impl CsvNode {
                                             let individual_handle = MsgHandle::new(individual_msg);
                                             self.fan_out_one(
                                                 Envelope { port: 0, msg: individual_handle },
-                                                tokio_util::sync::CancellationToken::new(),
+                                                cancel.clone(),
                                             )
                                             .await?;
                                         }
@@ -665,11 +664,7 @@ impl CsvNode {
                                 }
 
                                 let response_handle = MsgHandle::new(response_msg);
-                                self.fan_out_one(
-                                    Envelope { port: 0, msg: response_handle },
-                                    tokio_util::sync::CancellationToken::new(),
-                                )
-                                .await?;
+                                self.fan_out_one(Envelope { port: 0, msg: response_handle }, cancel.clone()).await?;
                             }
                         }
                         Err(e) => {
@@ -686,11 +681,7 @@ impl CsvNode {
                             response_msg.set("payload".to_string(), csv_result);
 
                             let response_handle = MsgHandle::new(response_msg);
-                            self.fan_out_one(
-                                Envelope { port: 0, msg: response_handle },
-                                tokio_util::sync::CancellationToken::new(),
-                            )
-                            .await?;
+                            self.fan_out_one(Envelope { port: 0, msg: response_handle }, cancel.clone()).await?;
                         }
                         Err(e) => {
                             log::warn!("CSV generation error: {e}");
@@ -704,8 +695,7 @@ impl CsvNode {
         } else {
             // No payload - pass through if not a reset message
             drop(msg_guard);
-            self.fan_out_one(Envelope { port: 0, msg: msg.clone() }, tokio_util::sync::CancellationToken::new())
-                .await?;
+            self.fan_out_one(Envelope { port: 0, msg: msg.clone() }, cancel.clone()).await?;
         }
 
         Ok(())
@@ -722,7 +712,9 @@ impl FlowNodeBehavior for CsvNode {
         while !stop_token.is_cancelled() {
             let node = self.clone();
 
-            with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move { node.process_csv(msg).await }).await;
+            let cancel = stop_token.clone();
+            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move { node.process_csv(msg, cancel).await })
+                .await;
         }
 
         log::debug!("CsvNode terminated.");

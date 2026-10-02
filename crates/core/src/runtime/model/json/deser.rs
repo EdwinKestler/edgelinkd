@@ -1,4 +1,3 @@
-use core::f64;
 use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -70,9 +69,7 @@ pub fn load_flows_json_value(root_jv: JsonValue) -> crate::Result<ResolvedFlows>
                             groups.insert(ele_id, g);
                         }
                         None => {
-                            return Err(
-                                EdgelinkError::BadFlowsJson("The group must have a 'z' property".to_owned()).into()
-                            );
+                            return Err(EdgelinkError::BadFlowsJson("The group must have a 'z' property".to_owned()));
                         }
                     },
 
@@ -94,7 +91,7 @@ pub fn load_flows_json_value(root_jv: JsonValue) -> crate::Result<ResolvedFlows>
                 }
             }
         } else {
-            return Err(EdgelinkError::BadFlowsJson("The entry in `flows.json` must be an object".to_owned()).into());
+            return Err(EdgelinkError::BadFlowsJson("The entry in `flows.json` must be an object".to_owned()));
         }
     }
 
@@ -126,7 +123,7 @@ pub fn load_flows_json_value(root_jv: JsonValue) -> crate::Result<ResolvedFlows>
             );
             sorted_flow_nodes.push(node);
         } else {
-            return Err(EdgelinkError::BadFlowsJson(format!("Cannot find the node id '{node_id}'")).into());
+            return Err(EdgelinkError::BadFlowsJson(format!("Cannot find the node id '{node_id}'")));
         }
     }
 
@@ -573,7 +570,7 @@ impl RedPropertyType {
             "bool" => Ok(RedPropertyType::Bool),
             "jsonata" => Ok(RedPropertyType::Jsonata),
             "env" => Ok(RedPropertyType::Env),
-            _ => Err(EdgelinkError::BadFlowsJson(format!("Unsupported property type: '{ptype}'")).into()),
+            _ => Err(EdgelinkError::BadFlowsJson(format!("Unsupported property type: '{ptype}'"))),
         }
     }
 }

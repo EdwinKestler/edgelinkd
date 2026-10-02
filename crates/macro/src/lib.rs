@@ -113,27 +113,27 @@ pub fn flow_node(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         impl FlowsElement for #struct_name {
             fn id(&self) -> ElementId {
-                self.get_base().id
+                self.get_base().id()
             }
 
             fn name(&self) -> &str {
-                &self.get_base().name
+                self.get_base().name()
             }
 
             fn type_str(&self) -> &'static str {
-                self.get_base().type_str
+                self.get_base().type_str()
             }
 
             fn ordering(&self) -> usize {
-                self.get_base().ordering
+                self.get_base().ordering()
             }
 
             fn is_disabled(&self) -> bool {
-                self.get_base().disabled
+                self.get_base().disabled()
             }
 
             fn parent_element(&self) -> Option<ElementId> {
-                self.get_base().flow.upgrade().map(|arc| arc.id())
+                self.get_base().flow().upgrade().map(|arc| arc.id())
             }
 
             fn as_any(&self) -> &dyn ::std::any::Any {
@@ -141,29 +141,29 @@ pub fn flow_node(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             fn get_path(&self) -> String {
-                format!("{}/{}", self.get_base().flow.upgrade().unwrap().get_path(), self.id())
+                format!("{}/{}", self.get_base().flow().upgrade().unwrap().get_path(), self.id())
             }
 
         }
 
         impl ContextHolder for #struct_name {
             fn context(&self) -> &Context {
-                &self.get_base().context
+                self.get_base().context()
             }
         }
 
         ::inventory::submit! {
-            MetaNode {
-                kind: NodeKind::Flow,
-                type_: #node_type,
-                factory: NodeFactory::Flow(#struct_name::build),
-                red_id: concat!("node-red/", #red_name),
-                red_name: #red_name,
-                module: #module,
-                version: #version,
-                local: #local,
-                user: #user,
-            }
+            MetaNode::new(
+                NodeKind::Flow,
+                #node_type,
+                NodeFactory::Flow(#struct_name::build),
+                concat!("node-red/", #red_name),
+                #red_name,
+                #module,
+                #version,
+                #local,
+                #user,
+            )
         }
     }; // quote!
 
@@ -199,23 +199,23 @@ pub fn global_node(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         impl FlowsElement for #struct_name {
             fn id(&self) -> ElementId {
-                self.get_base().id
+                self.get_base().id()
             }
 
             fn name(&self) -> &str {
-                &self.get_base().name
+                self.get_base().name()
             }
 
             fn type_str(&self) -> &'static str {
-                self.get_base().type_str
+                self.get_base().type_str()
             }
 
             fn ordering(&self) -> usize {
-                self.get_base().ordering
+                self.get_base().ordering()
             }
 
             fn is_disabled(&self) -> bool {
-                self.get_base().disabled
+                self.get_base().disabled()
             }
 
             fn parent_element(&self) -> Option<ElementId> {
@@ -235,22 +235,22 @@ pub fn global_node(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         impl ContextHolder for #struct_name {
             fn context(&self) -> &Context {
-                &self.get_base().context
+                self.get_base().context()
             }
         }
 
         ::inventory::submit! {
-            MetaNode {
-                kind: NodeKind::Global,
-                type_: #node_type,
-                factory: NodeFactory::Global(#struct_name::build),
-                red_id: concat!(#node_type, "/", #red_name),
-                red_name: #red_name,
-                module: #module,
-                version: #version,
-                local: #local,
-                user: #user,
-            }
+            MetaNode::new(
+                NodeKind::Global,
+                #node_type,
+                NodeFactory::Global(#struct_name::build),
+                concat!(#node_type, "/", #red_name),
+                #red_name,
+                #module,
+                #version,
+                #local,
+                #user,
+            )
         }
 
     }; // quote!

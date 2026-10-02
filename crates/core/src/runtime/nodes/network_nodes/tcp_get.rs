@@ -212,20 +212,17 @@ impl TcpGetNode {
                             } else {
                                 return Err(crate::EdgelinkError::InvalidOperation(
                                     "Array contains numbers > 255".to_string(),
-                                )
-                                .into());
+                                ));
                             }
                         } else {
                             return Err(crate::EdgelinkError::InvalidOperation(
                                 "Array contains non-integer numbers".to_string(),
-                            )
-                            .into());
+                            ));
                         }
                     } else {
                         return Err(crate::EdgelinkError::InvalidOperation(
                             "Array contains non-numeric items".to_string(),
-                        )
-                        .into());
+                        ));
                     }
                 }
                 Ok(bytes)
@@ -367,9 +364,9 @@ impl TcpGetNode {
         match timeout(timeout_duration, stream.read_exact(&mut buffer)).await {
             Ok(Ok(_)) => {}
             Ok(Err(e)) => {
-                return Err(crate::EdgelinkError::InvalidOperation(format!("Read error: {e}")).into());
+                return Err(crate::EdgelinkError::InvalidOperation(format!("Read error: {e}")));
             }
-            Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string()).into()),
+            Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string())),
         }
         Ok(buffer)
     }
@@ -389,7 +386,7 @@ impl TcpGetNode {
                     }
                 }
                 Ok(Err(_)) => break, // Read error
-                Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string()).into()),
+                Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string())),
             }
             // If splitc == 0, break after reading one byte
             if split_char == 0 {
@@ -413,9 +410,9 @@ impl TcpGetNode {
                     }
                 }
                 Ok(Err(e)) => {
-                    return Err(crate::EdgelinkError::InvalidOperation(format!("Read error: {e}")).into());
+                    return Err(crate::EdgelinkError::InvalidOperation(format!("Read error: {e}")));
                 }
-                Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string()).into()),
+                Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string())),
             }
         }
         Ok(buffer)
@@ -456,7 +453,7 @@ impl TcpGetNode {
             .unwrap_or(0);
 
         if port == 0 {
-            return Err(crate::EdgelinkError::InvalidOperation("Port must be specified".to_string()).into());
+            return Err(crate::EdgelinkError::InvalidOperation("Port must be specified".to_string()));
         }
 
         let connection_key = format!("{host}:{port}");
@@ -664,8 +661,7 @@ impl TcpGetNode {
                     self.report_error(format!("Failed to connect: {e}"), stop_token.clone()).await;
                     return Err(crate::EdgelinkError::InvalidOperation(format!(
                         "Failed to connect to {connection_key}: {e}"
-                    ))
-                    .into());
+                    )));
                 }
             }
         };

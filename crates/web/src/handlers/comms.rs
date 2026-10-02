@@ -65,8 +65,13 @@ impl CommsManager {
                     result = status_rx.recv() => {
                         match result {
                             Ok(status_msg) => {
-                                let jv = serde_json::to_value(status_msg.status).unwrap(); // FIXME
-                                comms_manager.send_node_status_json(format!("{}", status_msg.sender_id).as_ref(), jv).await;
+                                let sender_id = format!("{}", status_msg.sender_id);
+                                match serde_json::to_value(status_msg.status) {
+                                    Ok(jv) => comms_manager.send_node_status_json(&sender_id, jv).await,
+                                    Err(err) => {
+                                        log::warn!("Failed to serialize status from {sender_id}: {err}");
+                                    }
+                                }
                             }
                             Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
                                 log::warn!("Status message receiver lagged, skipped {skipped} messages");
@@ -90,8 +95,13 @@ impl CommsManager {
                                 match result {
                                     Ok(status_msg) => {
                                         log::debug!("Received final status message: {status_msg:?}");
-                                        let jv = serde_json::to_value(status_msg.status).unwrap(); // FIXME
-                                        comms_manager.send_node_status_json(format!("{}", status_msg.sender_id).as_ref(), jv).await;
+                                        let sender_id = format!("{}", status_msg.sender_id);
+                                        match serde_json::to_value(status_msg.status) {
+                                            Ok(jv) => comms_manager.send_node_status_json(&sender_id, jv).await,
+                                            Err(err) => {
+                                                log::warn!("Failed to serialize final status from {sender_id}: {err}");
+                                            }
+                                        }
                                     }
                                     Err(_) => {
                                         log::debug!("Status channel closed during shutdown");
@@ -551,7 +561,7 @@ async fn handle_websocket(socket: WebSocket, state: Arc<WebState>) {
     // Send initial connection confirmation (Node-RED auth format)
     let welcome_msg = serde_json::json!({
         "auth": "required",
-        "version": "4.0.9"
+        "version": "5.0.7"
     });
 
     if let Err(e) = tx.send(welcome_msg.to_string()) {

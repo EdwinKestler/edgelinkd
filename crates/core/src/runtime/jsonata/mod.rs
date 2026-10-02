@@ -44,14 +44,14 @@ fn parse_expression(source: &str) -> crate::Result<Arc<AstNode>> {
     if let Some(cached) = cache.get(source) {
         return match cached {
             Ok(ast) => Ok(ast.clone()),
-            Err(msg) => Err(EdgelinkError::InvalidOperation(msg.clone()).into()),
+            Err(msg) => Err(EdgelinkError::InvalidOperation(msg.clone())),
         };
     }
 
     let parsed = parser::parse(source).map(Arc::new).map_err(|e| format!("Invalid JSONata expression: {e}"));
     let result = match &parsed {
         Ok(ast) => Ok(ast.clone()),
-        Err(msg) => Err(EdgelinkError::InvalidOperation(msg.clone()).into()),
+        Err(msg) => Err(EdgelinkError::InvalidOperation(msg.clone())),
     };
     cache.insert(source.to_owned(), parsed);
     result

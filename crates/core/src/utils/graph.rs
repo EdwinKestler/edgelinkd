@@ -14,11 +14,11 @@ impl<N: Eq + Ord + Clone, E: Default + Clone> Graph<N, E> {
     }
 
     pub fn add(&mut self, node: N) {
-        self.nodes.entry(node).or_insert_with(BTreeMap::new);
+        self.nodes.entry(node).or_default();
     }
 
     pub fn link(&mut self, node: N, child: N) -> &mut E {
-        self.nodes.entry(node).or_insert_with(BTreeMap::new).entry(child).or_insert_with(Default::default)
+        self.nodes.entry(node).or_default().entry(child).or_default()
     }
 
     /// Returns the graph obtained by reversing all edges.
@@ -35,10 +35,9 @@ impl<N: Eq + Ord + Clone, E: Default + Clone> Graph<N, E> {
         ret
     }
 
-    pub fn contains<Q: ?Sized>(&self, k: &Q) -> bool
+    pub fn contains<Q: ?Sized + Ord + Eq>(&self, k: &Q) -> bool
     where
         N: Borrow<Q>,
-        Q: Ord + Eq,
     {
         self.nodes.contains_key(k)
     }
@@ -81,6 +80,10 @@ impl<N: Eq + Ord + Clone, E: Default + Clone> Graph<N, E> {
 
     pub fn len(&self) -> usize {
         self.nodes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
     }
 
     /// Checks if there is a path from `from` to `to`.
@@ -145,7 +148,7 @@ impl<'s, N: Eq + Ord + Clone + 's, E: Default + Clone + 's> Graph<N, E> {
         while let Some(p) = queue.pop_front() {
             last = p;
             let mut out_edges = true;
-            for (child, edge) in fn_edge(&self, p) {
+            for (child, edge) in fn_edge(self, p) {
                 out_edges = false;
                 back_link.entry(child).or_insert_with(|| {
                     queue.push_back(child);
@@ -175,7 +178,7 @@ impl<'s, N: Eq + Ord + Clone + 's, E: Default + Clone + 's> Graph<N, E> {
             }
             let last = result.last().unwrap().0;
             let set: Vec<_> = result.iter().map(|(k, _)| k).collect();
-            if !fn_edge(&self, last).filter(|(e, _)| !set.contains(&e)).next().is_none() {
+            if fn_edge(self, last).find(|(e, _)| !set.contains(&e)).is_some() {
                 self.print_for_test();
                 unreachable!("The last element in the path should not have outgoing edges");
             }

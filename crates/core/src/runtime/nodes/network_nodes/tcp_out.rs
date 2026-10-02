@@ -70,9 +70,8 @@ impl TcpOutNode {
         match payload {
             Variant::String(s) => {
                 if self.config.base64 {
-                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, s).map_err(|e| {
-                        crate::EdgelinkError::InvalidOperation(format!("Invalid base64 payload: {e}")).into()
-                    })
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, s)
+                        .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Invalid base64 payload: {e}")))
                 } else {
                     Ok(s.as_bytes().to_vec())
                 }
@@ -88,20 +87,17 @@ impl TcpOutNode {
                             } else {
                                 return Err(crate::EdgelinkError::InvalidOperation(
                                     "Array contains numbers > 255".to_string(),
-                                )
-                                .into());
+                                ));
                             }
                         } else {
                             return Err(crate::EdgelinkError::InvalidOperation(
                                 "Array contains non-integer numbers".to_string(),
-                            )
-                            .into());
+                            ));
                         }
                     } else {
                         return Err(crate::EdgelinkError::InvalidOperation(
                             "Array contains non-numeric items".to_string(),
-                        )
-                        .into());
+                        ));
                     }
                 }
                 Ok(bytes)
@@ -129,9 +125,7 @@ impl TcpOutNode {
         let port = self.config.port.unwrap_or(0);
 
         if port == 0 {
-            return Err(
-                crate::EdgelinkError::InvalidOperation("Port must be specified for client mode".to_string()).into()
-            );
+            return Err(crate::EdgelinkError::InvalidOperation("Port must be specified for client mode".to_string()));
         }
 
         let remote_addr = format!("{host}:{port}");
@@ -153,8 +147,7 @@ impl TcpOutNode {
                     Err(e) => {
                         return Err(crate::EdgelinkError::InvalidOperation(format!(
                             "Failed to connect to {remote_addr}: {e}"
-                        ))
-                        .into());
+                        )));
                     }
                 }
             }
@@ -167,7 +160,7 @@ impl TcpOutNode {
                 // Remove failed connection
                 let mut connections = self.connections.lock().await;
                 connections.remove(&connection_key);
-                return Err(crate::EdgelinkError::InvalidOperation(format!("Failed to send data: {e}")).into());
+                return Err(crate::EdgelinkError::InvalidOperation(format!("Failed to send data: {e}")));
             }
 
             if let Err(e) = stream.flush().await {

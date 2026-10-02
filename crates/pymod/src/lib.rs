@@ -1,5 +1,3 @@
-#![allow(unsafe_op_in_unsafe_fn)] // TODO FIXME
-
 use edgelink_core::runtime::model::{ElementId, Msg};
 use pyo3::types::PyModule;
 use pyo3::{prelude::*, wrap_pyfunction};
@@ -24,9 +22,12 @@ fn edgelink_pymod(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let config = log4rs::Config::builder()
         .appender(log4rs::config::Appender::builder().build("stderr", Box::new(stderr)))
         .build(log4rs::config::Root::builder().appender("stderr").build(log::LevelFilter::Warn))
-        .unwrap(); // TODO FIXME
+        .map_err(|err| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to build logger: {err}")))?;
 
-    let _ = log4rs::init_config(config).unwrap();
+    // A second import in the same process finds a logger already installed.
+    if let Err(err) = log4rs::init_config(config) {
+        log::debug!("Logger already initialized: {err}");
+    }
 
     Ok(())
 }

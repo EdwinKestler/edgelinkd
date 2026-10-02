@@ -20,8 +20,8 @@ use crate::json;
 /// The stores signal "no such value" with [`EdgelinkError::OutOfRange`] — the same thing
 /// Node-RED reports as `undefined` — which is a `KeyError` here. Anything else is a real
 /// failure, such as a corrupt context file, and surfaces as a `RuntimeError`.
-fn to_py_err(err: anyhow::Error) -> PyErr {
-    if matches!(err.downcast_ref::<EdgelinkError>(), Some(EdgelinkError::OutOfRange)) {
+fn to_py_err(err: EdgelinkError) -> PyErr {
+    if err.is_out_of_range() {
         PyKeyError::new_err("The context key is not set")
     } else {
         PyRuntimeError::new_err(err.to_string())

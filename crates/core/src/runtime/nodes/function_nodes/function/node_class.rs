@@ -1,7 +1,6 @@
 use std::sync::{Arc, Weak};
 
 use rquickjs::{Ctx, FromJs, IntoJs, Value, class::Trace, prelude::Opt};
-use tokio_util::sync::CancellationToken;
 
 use crate::runtime::js::util;
 
@@ -70,7 +69,9 @@ impl<'js> NodeClass {
 
     #[qjs(skip)]
     fn send_msgs_internal(&self, ctx: Ctx<'js>, msgs: rquickjs::Value<'js>, cloning: bool) -> crate::Result<()> {
-        let node = self.node.upgrade().clone().ok_or(rquickjs::Error::UnrelatedRuntime)? as Arc<dyn FlowNodeBehavior>;
+        let function_node = self.node.upgrade().ok_or(rquickjs::Error::UnrelatedRuntime)?;
+        let cancel = function_node.stop_token();
+        let node = function_node as Arc<dyn FlowNodeBehavior>;
 
         match msgs.type_of() {
             rquickjs::Type::Array => {
@@ -107,8 +108,8 @@ impl<'js> NodeClass {
                     }
                 }
 
-                let cancel = CancellationToken::new();
                 let async_node = node.clone();
+                let cancel = cancel.clone();
                 ctx.spawn(async move {
                     match async_node.fan_out_many(msgs_to_send, cancel).await {
                         Ok(_) => {}
@@ -120,9 +121,8 @@ impl<'js> NodeClass {
             rquickjs::Type::Object => {
                 let msg_to_send = MsgHandle::new(Msg::from_js(&ctx, msgs)?);
                 let envelope = Envelope { port: 0, msg: msg_to_send };
-                // FIXME
-                let cancel = CancellationToken::new();
                 let async_node = node.clone();
+                let cancel = cancel.clone();
                 ctx.spawn(async move {
                     match async_node.fan_out_one(envelope, cancel).await {
                         Ok(_) => {}
@@ -132,7 +132,7 @@ impl<'js> NodeClass {
             }
 
             _ => {
-                return Err(EdgelinkError::InvalidOperation(format!("Unsupported: {:?}", msgs.type_of())).into());
+                return Err(EdgelinkError::InvalidOperation(format!("Unsupported: {:?}", msgs.type_of())));
             }
         }
         Ok(())

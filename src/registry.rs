@@ -15,7 +15,7 @@ pub fn create_registry() -> edgelink_core::Result<RegistryHandle> {
     RegistryBuilder::default().build()
 }
 
-pub async fn list_available_nodes() -> anyhow::Result<()> {
+pub async fn list_available_nodes() -> edgelink_core::Result<()> {
     // Create a registry to discover all nodes
     let registry = RegistryBuilder::default().build()?;
     let all_nodes = registry.all();
@@ -28,9 +28,9 @@ pub async fn list_available_nodes() -> anyhow::Result<()> {
 
     for (type_name, meta_node) in all_nodes.iter() {
         modules
-            .entry(meta_node.module)
+            .entry(meta_node.module())
             .or_default()
-            .entry(meta_node.red_name)
+            .entry(meta_node.red_name())
             .or_default()
             .push((type_name, meta_node));
     }
@@ -48,17 +48,21 @@ pub async fn list_available_nodes() -> anyhow::Result<()> {
             for (_, meta_node) in sorted_nodes {
                 // Build flags string
                 let mut flags = Vec::new();
-                if meta_node.local {
+                if meta_node.local() {
                     flags.push("local");
                 }
-                if meta_node.user {
+                if meta_node.user() {
                     flags.push("user");
                 }
                 let flags_str = if flags.is_empty() { String::new() } else { format!("[{}]", flags.join(", ")) };
 
                 println!(
                     "\t{:<26} {}/{}\t\t{} {}",
-                    meta_node.red_name, meta_node.module, meta_node.type_, meta_node.version, flags_str
+                    meta_node.red_name(),
+                    meta_node.module(),
+                    meta_node.type_(),
+                    meta_node.version(),
+                    flags_str
                 );
             }
         }

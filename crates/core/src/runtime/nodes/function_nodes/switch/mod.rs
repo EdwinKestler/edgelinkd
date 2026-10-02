@@ -1,5 +1,4 @@
 use std::fmt;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use runtime::eval;
@@ -144,6 +143,31 @@ where
     deserializer.deserialize_any(OperatorVisitor)
 }
 
+/// JavaScript `ToString` for the values `JSON.parse` coerces before parsing.
+fn json_parse_text(value: &Variant) -> String {
+    match value {
+        Variant::Null => "null".to_string(),
+        Variant::Bool(true) => "true".to_string(),
+        Variant::Bool(false) => "false".to_string(),
+        Variant::Number(number) => number.to_string(),
+        Variant::String(text) => text.clone(),
+        Variant::Bytes(bytes) => String::from_utf8_lossy(bytes).into_owned(),
+        Variant::Array(items) => items.iter().map(json_parse_array_element).collect::<Vec<_>>().join(","),
+        // Date and regexp objects stringify to text that is not JSON. An ordinary object
+        // stringifies to "[object Object]". Either way `JSON.parse` rejects them.
+        Variant::Object(_) | Variant::Date(_) | Variant::Regexp(_) => "[object Object]".to_string(),
+    }
+}
+
+/// `Array.prototype.toString` turns null and undefined elements into empty strings.
+fn json_parse_array_element(value: &Variant) -> String {
+    if value.is_null() { String::new() } else { json_parse_text(value) }
+}
+
+fn is_json_parsed(value: &Variant) -> bool {
+    serde_json::from_str::<serde_json::Value>(&json_parse_text(value)).is_ok()
+}
+
 impl SwitchRuleOperator {
     fn apply(&self, a: &Variant, b: &Variant, c: &Variant, case: bool, _parts: &[Variant]) -> crate::Result<bool> {
         match self {
@@ -187,7 +211,9 @@ impl SwitchRuleOperator {
             Self::IsType => match b.as_str() {
                 Some("array") => Ok(a.is_array()),
                 Some("buffer") => Ok(a.is_bytes()),
-                Some("json") => Ok(serde_json::Value::from_str(a.as_str().unwrap_or_default()).is_ok()), // TODO FIXME
+                // Node-RED: `try { JSON.parse(a); return true; } catch { return false; }`.
+                // `JSON.parse` stringifies a non-string first, so a number, boolean, or null can pass.
+                Some("json") => Ok(is_json_parsed(a)),
                 Some("null") => Ok(a.is_null()),
                 Some("number") => Ok(a.is_number()),
                 Some("boolean") => Ok(a.is_bool()),
@@ -204,7 +230,7 @@ impl SwitchRuleOperator {
             // Node-RED: `'jsonata_exp': function(a, b) { return (b === true); }`
             Self::JsonataExp => Ok(b.as_bool() == Some(true)),
 
-            _ => Err(EdgelinkError::NotSupported("Unsupported operator".to_owned()).into()),
+            _ => Err(EdgelinkError::NotSupported("Unsupported operator".to_owned())),
         }
     }
 }

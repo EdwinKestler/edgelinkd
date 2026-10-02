@@ -47,6 +47,8 @@ struct FunctionNode {
 
     output_count: usize,
     user_script: Vec<u8>,
+    /// Replaced with the runtime stop token at the start of `run`, so `node.send()` can abort.
+    stop_token: std::sync::Mutex<CancellationToken>,
 }
 
 const JS_PRELUDE_SCRIPT: &str = include_str!("./function.prelude.js");
@@ -58,6 +60,8 @@ impl FlowNodeBehavior for FunctionNode {
     }
 
     async fn run(self: Arc<Self>, stop_token: CancellationToken) {
+        *self.stop_token.lock().unwrap_or_else(|err| err.into_inner()) = stop_token.clone();
+
         // This is a workaround; ideally, all function nodes should share a runtime. However,
         // for some reason, if the runtime of rquickjs is used as a global variable,
         // the members of node and env will disappear upon the second load.
@@ -188,8 +192,13 @@ impl FunctionNode {
             base: base_node,
             output_count: function_config.output_count,
             user_script: user_script.as_bytes().to_vec(),
+            stop_token: std::sync::Mutex::new(CancellationToken::new()),
         };
         Ok(Box::new(node))
+    }
+
+    fn stop_token(&self) -> CancellationToken {
+        self.stop_token.lock().unwrap_or_else(|err| err.into_inner()).clone()
     }
 
     /*
@@ -222,7 +231,7 @@ impl FunctionNode {
 
         match eval_result {
             Ok(msgs) => Ok(msgs),
-            Err(e) => Err(EdgelinkError::InvalidOperation(e.to_string()).into()),
+            Err(e) => Err(EdgelinkError::InvalidOperation(e.to_string())),
         }
     }
 
@@ -304,7 +313,7 @@ impl FunctionNode {
             Ok(()) => (),
             Err(e) => {
                 log::error!("Failed to invoke the initialization script code: {e}");
-                return Err(EdgelinkError::InvalidOperation(e.to_string()).into());
+                return Err(EdgelinkError::InvalidOperation(e.to_string()));
             }
         }
         while ctx.execute_pending_job() {}
@@ -318,7 +327,7 @@ impl FunctionNode {
             Ok(()) => Ok(()),
             Err(e) => {
                 log::error!("[function:{}] Failed to invoke the `finialize` script code: {e}", self.name());
-                Err(EdgelinkError::InvalidOperation(e.to_string()).into())
+                Err(EdgelinkError::InvalidOperation(e.to_string()))
             }
         }
     }
@@ -356,7 +365,7 @@ impl FunctionNode {
         if let Some(flow_context) = self.flow().map(|x| x.context().clone()) {
             ctx.globals().set("__edgelinkFlowContext", context_class::ContextClass::new(flow_context.clone()))?;
         } else {
-            return Err(EdgelinkError::InvalidOperation("Failed to get flow context".into()).into());
+            return Err(EdgelinkError::InvalidOperation("Failed to get flow context".into()));
         }
 
         // Register the node-scoped context
@@ -374,7 +383,7 @@ impl FunctionNode {
             Ok(()) => (),
             Err(e) => {
                 log::error!("[function:{}] Failed to evaluate the user function definition code: {}", self.name(), e);
-                anyhow::bail!("We are so over!");
+                return Err(anyhow::anyhow!("We are so over!").into());
             }
         }
 

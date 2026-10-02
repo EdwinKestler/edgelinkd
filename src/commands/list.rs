@@ -19,6 +19,7 @@ impl Command for ListCommand {
     }
 
     async fn execute(&self, _args: Arc<CliArgs>) -> Result<()> {
-        list_available_nodes().await
+        list_available_nodes().await?;
+        Ok(())
     }
 }

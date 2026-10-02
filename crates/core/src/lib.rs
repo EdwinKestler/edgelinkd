@@ -20,60 +20,201 @@ pub trait Plugin {
     fn callback2(&self, i: i32) -> i32;
 }
 
+/// The crate's error type.
+///
+/// Display text is lowercase. [`Self::Other`] keeps an [`anyhow::Error`] so `.context()` can
+/// attach what the caller was doing without dropping the original variant: [`Self::is_cancelled`]
+/// and [`Self::is_out_of_range`] still match through that wrapper.
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
 pub enum EdgelinkError {
-    #[error("Permission Denied")]
+    #[error("permission denied")]
     PermissionDenied,
 
-    #[error("Invalid 'flows.json': {0}")]
+    #[error("invalid flows.json: {0}")]
     BadFlowsJson(String),
 
-    #[error("Unsupported 'flows.json' format: {0}")]
+    #[error("unsupported flows.json format: {0}")]
     UnsupportedFlowsJsonFormat(String),
 
-    #[error("Not supported: {0}")]
+    #[error("not supported: {0}")]
     NotSupported(String),
 
-    #[error("Invalid arguments: {0}")]
+    #[error("invalid argument: {0}")]
     BadArgument(&'static str),
 
-    #[error("Task cancelled")]
+    #[error("task cancelled")]
     TaskCancelled,
 
     #[error("{0}")]
     InvalidOperation(String),
 
-    #[error("Out of range")]
+    #[error("out of range")]
     OutOfRange,
 
-    #[error("Invalid configuration")]
+    #[error("invalid configuration")]
     Configuration,
 
-    #[error("Timed out")]
+    #[error("timed out")]
     Timeout,
 
-    #[error("IO error")]
+    #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
+    /// An error from outside this enum. Its `Display` is the anyhow chain, context included.
     #[error(transparent)]
-    Other(#[from] crate::Error), // source and Display delegate to anyhow::Error
+    Other(#[from] anyhow::Error),
 }
 
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type Result<T, E = EdgelinkError> = std::result::Result<T, E>;
 
-pub type Result<T, E = anyhow::Error> = anyhow::Result<T, E>;
+/// Attach context to a failure and return [`EdgelinkError`].
+///
+/// Same shape as `anyhow::Context`, but the result is this crate's error. A typed
+/// [`EdgelinkError`] stays recoverable through [`EdgelinkError::is_cancelled`] and
+/// [`EdgelinkError::is_out_of_range`].
+pub trait ErrorContext<T> {
+    fn context<C>(self, context: C) -> Result<T>
+    where
+        C: std::fmt::Display + Send + Sync + 'static;
 
-pub use anyhow::Context as ErrorContext;
+    fn with_context<C, F>(self, f: F) -> Result<T>
+    where
+        C: std::fmt::Display + Send + Sync + 'static,
+        F: FnOnce() -> C;
+}
+
+impl<T, E> ErrorContext<T> for std::result::Result<T, E>
+where
+    E: Into<anyhow::Error>,
+{
+    fn context<C>(self, context: C) -> Result<T>
+    where
+        C: std::fmt::Display + Send + Sync + 'static,
+    {
+        self.map_err(|err| {
+            let err: anyhow::Error = err.into();
+            EdgelinkError::Other(err.context(context))
+        })
+    }
+
+    fn with_context<C, F>(self, f: F) -> Result<T>
+    where
+        C: std::fmt::Display + Send + Sync + 'static,
+        F: FnOnce() -> C,
+    {
+        self.map_err(|err| {
+            let err: anyhow::Error = err.into();
+            EdgelinkError::Other(err.context(f()))
+        })
+    }
+}
+
+impl<T> ErrorContext<T> for Option<T> {
+    fn context<C>(self, context: C) -> Result<T>
+    where
+        C: std::fmt::Display + Send + Sync + 'static,
+    {
+        self.with_context(|| context)
+    }
+
+    fn with_context<C, F>(self, f: F) -> Result<T>
+    where
+        C: std::fmt::Display + Send + Sync + 'static,
+        F: FnOnce() -> C,
+    {
+        self.ok_or_else(|| EdgelinkError::Other(anyhow::anyhow!("{}", f())))
+    }
+}
 
 impl EdgelinkError {
-    pub fn invalid_operation(msg: &str) -> anyhow::Error {
-        EdgelinkError::InvalidOperation(msg.into()).into()
+    pub fn invalid_operation(msg: &str) -> Self {
+        EdgelinkError::InvalidOperation(msg.to_owned())
+    }
+
+    /// `TaskCancelled`, including when `.context()` wrapped it in [`Self::Other`].
+    pub fn is_cancelled(&self) -> bool {
+        match self {
+            EdgelinkError::TaskCancelled => true,
+            EdgelinkError::Other(err) => err.downcast_ref::<EdgelinkError>().is_some_and(Self::is_cancelled),
+            _ => false,
+        }
+    }
+
+    /// `OutOfRange`, including when `.context()` wrapped it in [`Self::Other`].
+    pub fn is_out_of_range(&self) -> bool {
+        match self {
+            EdgelinkError::OutOfRange => true,
+            EdgelinkError::Other(err) => err.downcast_ref::<EdgelinkError>().is_some_and(Self::is_out_of_range),
+            _ => false,
+        }
+    }
+}
+
+macro_rules! from_other {
+    ($($ty:ty),+ $(,)?) => {$(
+        impl From<$ty> for EdgelinkError {
+            fn from(err: $ty) -> Self {
+                EdgelinkError::Other(anyhow::Error::from(err))
+            }
+        }
+    )+};
+}
+
+// `?` on these keeps working now that `Result` defaults to `EdgelinkError` rather than
+// `anyhow::Error`. `SendError` is converted by hand because the value it holds does not have to
+// be `Send`, and `anyhow` only accepts `'static + Send + Sync` errors.
+from_other!(
+    serde_json::Error,
+    config::ConfigError,
+    tokio::sync::TryLockError,
+    tokio::time::error::Elapsed,
+    regex::Error,
+    std::str::ParseBoolError,
+    std::num::ParseFloatError,
+    std::num::ParseIntError,
+    tokio_cron_scheduler::JobSchedulerError
+);
+
+#[cfg(feature = "js")]
+from_other!(rquickjs::Error);
+
+#[cfg(feature = "nodes_storage_watch")]
+from_other!(notify::Error);
+
+#[cfg(feature = "jsonata")]
+from_other!(jsonata_core::evaluator::EvaluatorError);
+
+impl<T> From<tokio::sync::mpsc::error::SendError<T>> for EdgelinkError {
+    fn from(err: tokio::sync::mpsc::error::SendError<T>) -> Self {
+        EdgelinkError::Other(anyhow::Error::msg(err.to_string()))
+    }
+}
+
+impl<T> From<tokio::sync::broadcast::error::SendError<T>> for EdgelinkError {
+    fn from(err: tokio::sync::broadcast::error::SendError<T>) -> Self {
+        EdgelinkError::Other(anyhow::Error::msg(err.to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::{EdgelinkError, ErrorContext};
+
+    #[test]
+    fn error_display_is_lowercase_and_keeps_context() {
+        assert_eq!(EdgelinkError::PermissionDenied.to_string(), "permission denied");
+        assert_eq!(EdgelinkError::TaskCancelled.to_string(), "task cancelled");
+        assert_eq!(EdgelinkError::OutOfRange.to_string(), "out of range");
+        let io = EdgelinkError::from(std::io::Error::new(std::io::ErrorKind::NotFound, "missing"));
+        assert_eq!(io.to_string(), "io error: missing");
+
+        let wrapped = Err::<(), _>(EdgelinkError::OutOfRange).context("reading key").unwrap_err();
+        assert!(wrapped.is_out_of_range(), "{wrapped}");
+        assert!(wrapped.to_string().contains("reading key"), "{wrapped}");
+        assert!(EdgelinkError::TaskCancelled.is_cancelled());
+        assert!(!EdgelinkError::OutOfRange.is_cancelled());
+    }
 
     #[ctor::ctor]
     fn initialize_test_logger() {

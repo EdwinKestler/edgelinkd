@@ -263,7 +263,8 @@ impl FlowNodeBehavior for FileInNode {
     async fn run(self: Arc<Self>, stop_token: CancellationToken) {
         while !stop_token.is_cancelled() {
             let node = self.clone();
-            with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move {
+            let cancel = stop_token.clone();
+            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move {
                 let filename = {
                     let msg_guard = msg.read().await;
                     node.get_filename(&msg_guard)
@@ -283,7 +284,7 @@ impl FlowNodeBehavior for FileInNode {
                         shape: Some(crate::runtime::nodes::StatusShape::Dot),
                         text: Some(filename.clone()),
                     },
-                    CancellationToken::new(),
+                    cancel.clone(),
                 )
                 .await;
 
@@ -309,14 +310,10 @@ impl FlowNodeBehavior for FileInNode {
 
                 match result {
                     Ok(messages) => {
-                        node.report_status(
-                            StatusObject { fill: None, shape: None, text: None },
-                            CancellationToken::new(),
-                        )
-                        .await;
+                        node.report_status(StatusObject { fill: None, shape: None, text: None }, cancel.clone()).await;
                         for output_msg in messages {
                             let envelope = Envelope { port: 0, msg: MsgHandle::new(output_msg) };
-                            node.fan_out_one(envelope, CancellationToken::new()).await?;
+                            node.fan_out_one(envelope, cancel.clone()).await?;
                         }
                     }
                     Err(e) => {
@@ -328,7 +325,7 @@ impl FlowNodeBehavior for FileInNode {
                                 shape: Some(crate::runtime::nodes::StatusShape::Dot),
                                 text: Some(format!("{e}")),
                             },
-                            CancellationToken::new(),
+                            cancel.clone(),
                         )
                         .await;
 
@@ -342,7 +339,7 @@ impl FlowNodeBehavior for FileInNode {
                             error_msg["filename"] = Variant::String(filename);
 
                             let envelope = Envelope { port: 0, msg: MsgHandle::new(error_msg) };
-                            node.fan_out_one(envelope, CancellationToken::new()).await?;
+                            node.fan_out_one(envelope, cancel.clone()).await?;
                         }
                     }
                 }

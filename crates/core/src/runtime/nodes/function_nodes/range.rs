@@ -1,4 +1,3 @@
-use core::f64;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -84,7 +83,7 @@ impl RangeNode {
                 match self.config.action {
                     RangeAction::Drop => {
                         if n < self.config.minin || n > self.config.maxin {
-                            return Err(EdgelinkError::OutOfRange.into());
+                            return Err(EdgelinkError::OutOfRange);
                         }
                     }
 

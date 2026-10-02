@@ -137,17 +137,17 @@ impl Variant {
                 for e in array.iter() {
                     if let Some(byte) = e.as_i64() {
                         if !(0..=0xFF).contains(&byte) {
-                            return Err(EdgelinkError::NotSupported("Invalid byte value".to_owned()).into());
+                            return Err(EdgelinkError::NotSupported("Invalid byte value".to_owned()));
                         }
                         bytes.push(byte as u8)
                     } else {
-                        return Err(EdgelinkError::NotSupported("Invalid byte JSON value type".to_owned()).into());
+                        return Err(EdgelinkError::NotSupported("Invalid byte JSON value type".to_owned()));
                     }
                 }
                 Ok(Variant::Bytes(bytes))
             }
             serde_json::Value::String(string) => Ok(Variant::from(string.as_bytes())),
-            _ => Err(EdgelinkError::NotSupported("Invalid byte JSON Value".to_owned()).into()),
+            _ => Err(EdgelinkError::NotSupported("Invalid byte JSON Value".to_owned())),
         }
     }
 
@@ -159,25 +159,25 @@ impl Variant {
                     if (0..=255).contains(&i) {
                         bytes.push(i as u8);
                     } else {
-                        return Err(EdgelinkError::OutOfRange.into());
+                        return Err(EdgelinkError::OutOfRange);
                     }
                 } else if let Some(u) = n.as_u64() {
                     if u <= 255 {
                         bytes.push(u as u8);
                     } else {
-                        return Err(EdgelinkError::OutOfRange.into());
+                        return Err(EdgelinkError::OutOfRange);
                     }
                 } else if let Some(f) = n.as_f64() {
                     if (0.0..=255.0).contains(&f) {
                         bytes.push(f as u8);
                     } else {
-                        return Err(EdgelinkError::OutOfRange.into());
+                        return Err(EdgelinkError::OutOfRange);
                     }
                 } else {
                     unreachable!();
                 }
             } else {
-                return Err(EdgelinkError::InvalidOperation("Invalid Variant type".into()).into());
+                return Err(EdgelinkError::InvalidOperation("Invalid Variant type".into()));
             }
         }
         Ok(Variant::Bytes(bytes))
@@ -292,7 +292,10 @@ impl Variant {
 
     pub fn as_u8(&self) -> Option<u8> {
         match self {
-            Variant::Number(number) => number.as_u64().map(|x| x as u8), // FIXME
+            Variant::Number(number) => {
+                let value = number.as_u64()?;
+                u8::try_from(value).ok()
+            }
             _ => None,
         }
     }
@@ -320,7 +323,7 @@ impl Variant {
             Variant::String(s) => Ok(s.clone()),
             Variant::Number(f) => Ok(f.to_string()),
             Variant::Bool(b) => Ok(b.to_string()),
-            _ => Err(EdgelinkError::InvalidOperation("Bad type".into()).into()),
+            _ => Err(EdgelinkError::InvalidOperation("Bad type".into())),
         }
     }
 
@@ -498,7 +501,7 @@ impl Variant {
                     this_arr.push(value);
                     Ok(())
                 } else {
-                    Err(EdgelinkError::InvalidOperation("Bad array".into()).into())
+                    Err(EdgelinkError::InvalidOperation("Bad array".into()))
                 }
             }
             Variant::Bytes(this_bytes) => {
@@ -511,10 +514,10 @@ impl Variant {
                     this_bytes.push(buf);
                     Ok(())
                 } else {
-                    Err(EdgelinkError::OutOfRange.into())
+                    Err(EdgelinkError::OutOfRange)
                 }
             }
-            _ => Err(EdgelinkError::InvalidOperation("Bad type".into()).into()),
+            _ => Err(EdgelinkError::InvalidOperation("Bad type".into())),
         }
     }
 
@@ -538,7 +541,7 @@ impl Variant {
         create_missing: bool,
     ) -> crate::Result<()> {
         if segs.is_empty() {
-            return Err(EdgelinkError::BadArgument("path").into());
+            return Err(EdgelinkError::BadArgument("path"));
         }
 
         if segs.len() == 1 {
@@ -548,7 +551,7 @@ impl Variant {
 
         let first_prop_name = match segs.first() {
             Some(PropexSegment::Property(name)) => name,
-            _ => return Err(EdgelinkError::BadArgument("path").into()),
+            _ => return Err(EdgelinkError::BadArgument("path")),
         };
 
         // If create_missing is true and first_prop doesn't exist, we should create it here.
@@ -595,8 +598,7 @@ impl Variant {
             None if create_missing => first_prop.set_segs_property(&segs[1..], value, true),
             None => Err(crate::EdgelinkError::InvalidOperation(
                 "Unable to set property: missing intermediate segments".into(),
-            )
-            .into()),
+            )),
         }
     }
 
@@ -622,7 +624,7 @@ impl Variant {
                 let nested_var = match nested_segs.first() {
                     Some(PropexSegment::Property(s)) => eval_env.find(s, self),
                     // We do not support recursion here
-                    _ => return Err(EdgelinkError::OutOfRange.into()),
+                    _ => return Err(EdgelinkError::OutOfRange),
                 };
                 if let Some(nested_var) = nested_var {
                     *seg = match nested_var.get_segs(&nested_segs[1..]).ok_or(EdgelinkError::OutOfRange)? {
@@ -632,10 +634,10 @@ impl Variant {
                         {
                             PropexSegment::Index(num_index.as_u64().unwrap() as usize)
                         }
-                        _ => return Err(EdgelinkError::OutOfRange.into()), // We cannot found the nested property
+                        _ => return Err(EdgelinkError::OutOfRange), // We cannot found the nested property
                     };
                 } else {
-                    return Err(EdgelinkError::OutOfRange.into());
+                    return Err(EdgelinkError::OutOfRange);
                 }
             }
         }
@@ -737,7 +739,7 @@ pub fn expand_propex_segments(segs: &mut [PropexSegment], eval_env: &[PropexEnv]
             let nested_var = match nested_segs.first() {
                 Some(PropexSegment::Property(s)) => eval_env.find_ext(s),
                 // We do not support recursion here
-                _ => return Err(EdgelinkError::OutOfRange.into()),
+                _ => return Err(EdgelinkError::OutOfRange),
             };
             if let Some(nested_var) = nested_var {
                 *seg = match nested_var.get_segs(&nested_segs[1..]).ok_or(EdgelinkError::OutOfRange)? {
@@ -747,10 +749,10 @@ pub fn expand_propex_segments(segs: &mut [PropexSegment], eval_env: &[PropexEnv]
                     {
                         PropexSegment::Index(num_index.as_u64().unwrap() as usize)
                     }
-                    _ => return Err(EdgelinkError::OutOfRange.into()), // We cannot found the nested property
+                    _ => return Err(EdgelinkError::OutOfRange), // We cannot found the nested property
                 };
             } else {
-                return Err(EdgelinkError::OutOfRange.into());
+                return Err(EdgelinkError::OutOfRange);
             }
         }
     }

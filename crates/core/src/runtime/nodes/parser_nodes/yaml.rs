@@ -81,14 +81,14 @@ fn default_outputs() -> usize {
 
 #[cfg(feature = "nodes_yaml")]
 impl YamlNode {
-    async fn process_yaml(&self, msg: MsgHandle) -> crate::Result<()> {
+    async fn process_yaml(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         let mut msg_guard = msg.write().await;
 
         // Get the value from the specified property
         if !msg_guard.contains(&self.config.property) {
             // If property doesn't exist, just pass through
             drop(msg_guard);
-            return self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await;
+            return self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await;
         }
 
         let property_value = msg_guard.get(&self.config.property).cloned();
@@ -127,13 +127,13 @@ impl YamlNode {
         }
 
         drop(msg_guard);
-        self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await
+        self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await
     }
 
     async fn parse_yaml_to_object(&self, yaml_string: &str) -> crate::Result<Variant> {
         match yaml::from_str::<yaml::Value>(yaml_string) {
             Ok(yaml_value) => Ok(yaml_value_to_variant(yaml_value)),
-            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("YAML parse error: {e}")).into()),
+            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("YAML parse error: {e}"))),
         }
     }
 
@@ -141,7 +141,7 @@ impl YamlNode {
         let yaml_value = variant_to_yaml_value(value);
         match yaml::to_string(&yaml_value) {
             Ok(yaml_string) => Ok(Variant::String(indent_mapping_sequences(&yaml_string))),
-            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("YAML stringify error: {e}")).into()),
+            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("YAML stringify error: {e}"))),
         }
     }
 }
@@ -268,7 +268,9 @@ impl FlowNodeBehavior for YamlNode {
         while !stop_token.is_cancelled() {
             let node = self.clone();
 
-            with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move { node.process_yaml(msg).await }).await;
+            let cancel = stop_token.clone();
+            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move { node.process_yaml(msg, cancel).await })
+                .await;
         }
     }
 }

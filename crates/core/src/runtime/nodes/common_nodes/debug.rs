@@ -336,15 +336,14 @@ impl FlowNodeBehavior for DebugNode {
                             }
                         }
                     }
-                    Err(ref err) => match err.downcast_ref::<crate::EdgelinkError>() {
-                        Some(crate::EdgelinkError::TaskCancelled) => {
+                    Err(ref err) => {
+                        if err.is_cancelled() {
                             log::info!("[debug:{}] Task cancelled", self.name());
-                            break;
-                        }
-                        _ => {
+                        } else {
                             log::error!("[debug:{}] {:#?}", self.name(), err);
                         }
-                    },
+                        break;
+                    }
                 }
             } else {
                 stop_token.cancelled().await;

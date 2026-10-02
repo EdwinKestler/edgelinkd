@@ -53,9 +53,7 @@ impl LinkOutNode {
                     linked_nodes.push(Arc::downgrade(&link_in));
                 } else {
                     log::error!("LinkOutNode: Cannot found the required `link in` node(id={link_in_id})!");
-                    return Err(
-                        EdgelinkError::BadFlowsJson("Cannot found the required `link in` node".to_owned()).into()
-                    );
+                    return Err(EdgelinkError::BadFlowsJson("Cannot found the required `link in` node".to_owned()));
                 }
             }
         }
@@ -76,7 +74,7 @@ impl LinkOutNode {
                     } else {
                         let err_msg =
                             format!("The required `link in` was unavailable in `link out` node(id={})!", self.id());
-                        return Err(EdgelinkError::InvalidOperation(err_msg).into());
+                        return Err(EdgelinkError::InvalidOperation(err_msg));
                     }
                 }
             }
@@ -97,21 +95,18 @@ impl LinkOutNode {
                             return Err(EdgelinkError::InvalidOperation(format!(
                                 "The node(id='{}') is not a `link call` node!",
                                 source_link.link_call_node_id
-                            ))
-                            .into());
+                            )));
                         }
                     } else {
                         return Err(EdgelinkError::InvalidOperation(format!(
                             "Cannot found the `link call` node by id='{}'",
                             source_link.link_call_node_id
-                        ))
-                        .into());
+                        )));
                     }
                 } else {
                     return Err(EdgelinkError::InvalidOperation(format!(
                         "The `link call stack` is empty for msg: {msg:?}"
-                    ))
-                    .into());
+                    )));
                 }
             }
         }

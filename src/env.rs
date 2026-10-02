@@ -50,13 +50,11 @@ impl EdgelinkEnv {
         let is_default = self.config.get_bool("flows_path_is_default").unwrap_or(false);
         if is_default {
             // If using the default flows_path, create it automatically if missing
-            ensure_flows_file_exists(&flows_path).map_err(|e| EdgelinkError::Other(e.into()))?;
+            ensure_flows_file_exists(&flows_path)?;
         } else {
             // If user specified flows_path, it must exist
             if !Path::new(&flows_path).exists() {
-                return Err(EdgelinkError::Other(
-                    anyhow::anyhow!("The specified flows file does not exist: `{}`", flows_path).into(),
-                ));
+                return Err(anyhow::anyhow!("The specified flows file does not exist: `{flows_path}`").into());
             }
         }
         Ok(())

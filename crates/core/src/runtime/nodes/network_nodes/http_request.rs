@@ -199,7 +199,7 @@ impl Default for HttpRequestNodeConfig {
 }
 
 impl HttpRequestNode {
-    async fn handle_request(&self, msg: MsgHandle) -> crate::Result<()> {
+    async fn handle_request(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         let msg_guard = msg.read().await;
 
         // Determine URL
@@ -216,11 +216,11 @@ impl HttpRequestNode {
                 url_str.to_string()
             } else {
                 log::error!("HTTP request: Invalid URL in message");
-                return Err(crate::EdgelinkError::BadArgument("url").into());
+                return Err(crate::EdgelinkError::BadArgument("url"));
             }
         } else {
             log::error!("HTTP request: No URL provided");
-            return Err(crate::EdgelinkError::BadArgument("url").into());
+            return Err(crate::EdgelinkError::BadArgument("url"));
         };
 
         // Validate URL
@@ -329,10 +329,10 @@ impl HttpRequestNode {
 
         match self.make_http_request(method, &final_url, headers, body, timeout).await {
             Ok(response) => {
-                self.send_response(msg, response).await?;
+                self.send_response(msg, response, cancel).await?;
             }
             Err(e) => {
-                self.handle_error(msg, e).await?;
+                self.handle_error(msg, e, cancel).await?;
             }
         }
 
@@ -409,7 +409,7 @@ impl HttpRequestNode {
 
         // Validate protocol
         if !url.starts_with("http://") && !url.starts_with("https://") {
-            return Err(crate::EdgelinkError::BadArgument("invalid protocol").into());
+            return Err(crate::EdgelinkError::BadArgument("invalid protocol"));
         }
 
         // Basic URL encoding fixes for query parameters
@@ -549,7 +549,7 @@ impl HttpRequestNode {
                 }
                 Ok(params.join("&"))
             }
-            _ => Err(crate::EdgelinkError::BadArgument("payload must be object for query string").into()),
+            _ => Err(crate::EdgelinkError::BadArgument("payload must be object for query string")),
         }
     }
 
@@ -656,7 +656,12 @@ impl HttpRequestNode {
         Ok(HttpRequestResponse { status_code, headers: response_headers, url: response_url, body: body_bytes.to_vec() })
     }
 
-    async fn send_response(&self, msg: MsgHandle, response: HttpRequestResponse) -> crate::Result<()> {
+    async fn send_response(
+        &self,
+        msg: MsgHandle,
+        response: HttpRequestResponse,
+        cancel: CancellationToken,
+    ) -> crate::Result<()> {
         let mut msg_guard = msg.write().await;
 
         // Set response data
@@ -721,12 +726,17 @@ impl HttpRequestNode {
         drop(msg_guard);
 
         // Send message
-        self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await?;
+        self.fan_out_one(Envelope { port: 0, msg }, cancel).await?;
 
         Ok(())
     }
 
-    async fn handle_error(&self, msg: MsgHandle, error: Box<dyn std::error::Error + Send + Sync>) -> crate::Result<()> {
+    async fn handle_error(
+        &self,
+        msg: MsgHandle,
+        error: Box<dyn std::error::Error + Send + Sync>,
+        cancel: CancellationToken,
+    ) -> crate::Result<()> {
         log::error!("HTTP request error: {error}");
 
         let mut msg_guard = msg.write().await;
@@ -745,7 +755,7 @@ impl HttpRequestNode {
 
         if !self.config.senderr {
             // Send error message normally
-            self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await?;
+            self.fan_out_one(Envelope { port: 0, msg }, cancel).await?;
         }
         // If senderr is true, errors only go to catch nodes (handled by framework)
 
@@ -797,7 +807,7 @@ impl FlowNodeBehavior for HttpRequestNode {
                 msg_result = self.recv_msg(stop_token.clone()) => {
                     match msg_result {
                         Ok(msg) => {
-                            if let Err(e) = self.handle_request(msg).await {
+                            if let Err(e) = self.handle_request(msg, stop_token.clone()).await {
                                 log::error!("HTTP request: Error handling request: {e}");
                             }
                         }

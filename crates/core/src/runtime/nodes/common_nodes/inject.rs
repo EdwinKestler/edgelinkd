@@ -89,7 +89,7 @@ impl InjectNode {
 
         if self.config.crontab.is_empty() {
             log::error!("Cron expression is missing");
-            return Err(EdgelinkError::BadFlowsJson("Cron expression is missing".to_owned()).into());
+            return Err(EdgelinkError::BadFlowsJson("Cron expression is missing".to_owned()));
         }
 
         log::debug!("cron_expr='{}'", self.config.crontab);
@@ -187,12 +187,8 @@ impl FlowNodeBehavior for InjectNode {
         if let Some(repeat_interval) = self.config.repeat {
             is_executed = true;
             if let Err(e) = self.repeat_task(repeat_interval, stop_token.child_token()).await {
-                if let Some(edgelink_err) = e.downcast_ref::<EdgelinkError>() {
-                    if matches!(edgelink_err, EdgelinkError::TaskCancelled) {
-                        log::debug!("The 'repeat_task' was cancelled");
-                    } else {
-                        log::warn!("The 'repeat_task' failed: {e}");
-                    }
+                if e.is_cancelled() {
+                    log::debug!("The 'repeat_task' was cancelled");
                 } else {
                     log::warn!("The 'repeat_task' failed: {e}");
                 }

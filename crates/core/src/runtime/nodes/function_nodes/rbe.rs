@@ -1,4 +1,3 @@
-use core::f64;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -201,7 +200,7 @@ impl RbeNode {
                 };
             } else {
                 let num_value = match value {
-                    Variant::Number(v) => v.as_f64().unwrap(), // FIXME
+                    Variant::Number(v) => v.as_f64().unwrap_or(f64::NAN),
                     Variant::String(s) => parsing::parse_float_lossy::<f64>(s).unwrap_or(f64::NAN),
                     _ => f64::NAN,
                 };

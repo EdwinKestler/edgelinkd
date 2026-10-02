@@ -79,46 +79,158 @@ pub enum NodeFactory {
 #[derive(Debug)]
 pub struct MetaNode {
     /// The tag of the element
-    pub kind: NodeKind,
-    pub type_: &'static str,
-    pub factory: NodeFactory,
+    pub(crate) kind: NodeKind,
+    pub(crate) type_: &'static str,
+    pub(crate) factory: NodeFactory,
     // Node-RED related metadata
-    pub red_id: &'static str,   // Like "node-red/inject"
-    pub red_name: &'static str, // Like "inject"
-    pub module: &'static str,   // Like "node-red"
-    pub version: &'static str,  // Like"4.0.9"
-    pub local: bool,            // Default: false
-    pub user: bool,             // Default: false
+    pub(crate) red_id: &'static str,   // Like "node-red/inject"
+    pub(crate) red_name: &'static str, // Like "inject"
+    pub(crate) module: &'static str,   // Like "node-red"
+    pub(crate) version: &'static str,  // Like"4.0.9"
+    pub(crate) local: bool,            // Default: false
+    pub(crate) user: bool,             // Default: false
+}
+
+impl MetaNode {
+    #[allow(clippy::too_many_arguments)]
+    pub const fn new(
+        kind: NodeKind,
+        type_: &'static str,
+        factory: NodeFactory,
+        red_id: &'static str,
+        red_name: &'static str,
+        module: &'static str,
+        version: &'static str,
+        local: bool,
+        user: bool,
+    ) -> Self {
+        Self { kind, type_, factory, red_id, red_name, module, version, local, user }
+    }
+
+    pub const fn kind(&self) -> NodeKind {
+        self.kind
+    }
+
+    pub const fn type_(&self) -> &'static str {
+        self.type_
+    }
+
+    pub const fn factory(&self) -> NodeFactory {
+        self.factory
+    }
+
+    pub const fn red_id(&self) -> &'static str {
+        self.red_id
+    }
+
+    pub const fn red_name(&self) -> &'static str {
+        self.red_name
+    }
+
+    pub const fn module(&self) -> &'static str {
+        self.module
+    }
+
+    pub const fn version(&self) -> &'static str {
+        self.version
+    }
+
+    pub const fn local(&self) -> bool {
+        self.local
+    }
+
+    pub const fn user(&self) -> bool {
+        self.user
+    }
 }
 
 #[derive(Debug)]
 pub struct BaseFlowNodeState {
-    pub id: ElementId,
-    pub name: String,
-    pub type_str: &'static str,
-    pub ordering: usize,
-    pub disabled: bool,
-    pub flow: WeakFlow,
-    pub msg_tx: MsgSender,
-    pub msg_rx: MsgReceiverHolder,
-    pub ports: Vec<Port>,
-    pub group: Option<WeakGroup>,
-    pub envs: RedEnvs,
-    pub context: Context,
+    pub(crate) id: ElementId,
+    pub(crate) name: String,
+    pub(crate) type_str: &'static str,
+    pub(crate) ordering: usize,
+    pub(crate) disabled: bool,
+    pub(crate) flow: WeakFlow,
+    pub(crate) msg_tx: MsgSender,
+    pub(crate) msg_rx: MsgReceiverHolder,
+    pub(crate) ports: Vec<Port>,
+    pub(crate) group: Option<WeakGroup>,
+    pub(crate) envs: RedEnvs,
+    pub(crate) context: Context,
 
-    pub on_received: MsgEventSender,
-    pub on_completed: MsgEventSender,
-    pub on_error: MsgEventSender,
+    pub(crate) on_received: MsgEventSender,
+    // Constructed with every node. Nothing subscribes yet; `on_received` is the one the runtime reads.
+    #[allow(dead_code)]
+    pub(crate) on_completed: MsgEventSender,
+    #[allow(dead_code)]
+    pub(crate) on_error: MsgEventSender,
+}
+
+impl BaseFlowNodeState {
+    pub const fn id(&self) -> ElementId {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub const fn type_str(&self) -> &'static str {
+        self.type_str
+    }
+
+    pub const fn ordering(&self) -> usize {
+        self.ordering
+    }
+
+    pub const fn disabled(&self) -> bool {
+        self.disabled
+    }
+
+    pub const fn flow(&self) -> &WeakFlow {
+        &self.flow
+    }
+
+    pub const fn context(&self) -> &Context {
+        &self.context
+    }
 }
 
 #[derive(Debug)]
 pub struct BaseGlobalNodeState {
-    pub id: ElementId,
-    pub name: String,
-    pub type_str: &'static str,
-    pub ordering: usize,
-    pub context: Context,
-    pub disabled: bool,
+    pub(crate) id: ElementId,
+    pub(crate) name: String,
+    pub(crate) type_str: &'static str,
+    pub(crate) ordering: usize,
+    pub(crate) context: Context,
+    pub(crate) disabled: bool,
+}
+
+impl BaseGlobalNodeState {
+    pub const fn id(&self) -> ElementId {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub const fn type_str(&self) -> &'static str {
+        self.type_str
+    }
+
+    pub const fn ordering(&self) -> usize {
+        self.ordering
+    }
+
+    pub const fn disabled(&self) -> bool {
+        self.disabled
+    }
+
+    pub const fn context(&self) -> &Context {
+        &self.context
+    }
 }
 
 pub trait ScopedNodeBehavior {
@@ -159,7 +271,7 @@ pub trait FlowNodeBehavior: Send + Sync + FlowsElement {
     async fn inject_msg(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         select! {
             result = self.get_base().msg_tx.send(msg) => result.map_err(|e| e.into()),
-            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled.into()),
+            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
         }
     }
 
@@ -352,7 +464,7 @@ where
             node.notify_uow_completed(msg, cancel.clone()).await;
         }
         Err(ref err) => {
-            if let Some(EdgelinkError::TaskCancelled) = err.downcast_ref::<EdgelinkError>() {
+            if err.is_cancelled() {
                 return;
             }
 

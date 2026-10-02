@@ -67,7 +67,7 @@ impl FlowSettings {
         // `mpsc::channel(0)` panics, so a zero queue capacity cannot be honoured: reject the
         // configuration here instead of aborting a node task later.
         if flow_settings.node_msg_queue_capacity == 0 {
-            use anyhow::Context;
+            use crate::ErrorContext as _;
             return Err(EdgelinkError::Configuration)
                 .with_context(|| "`runtime.flow.node_msg_queue_capacity` must be greater than zero");
         }
@@ -266,9 +266,7 @@ impl Flow {
             ]),
             FlowKind::Subflow => {
                 if subflow_instance.is_none() {
-                    return Err(
-                        EdgelinkError::BadFlowsJson("The ID of Sub-flow instance node is None".to_owned()).into()
-                    );
+                    return Err(EdgelinkError::BadFlowsJson("The ID of Sub-flow instance node is None".to_owned()));
                 }
                 let subflow_instance = subflow_instance.as_ref().unwrap().clone();
                 envs_builder.extends([
@@ -402,8 +400,7 @@ impl Flow {
                                     return Err(EdgelinkError::BadFlowsJson(format!(
                                         "Invalid port '{}' for subflow: {:?}",
                                         red_wire.port, subflow_state
-                                    ))
-                                    .into());
+                                    )));
                                 }
                             }
                         }
@@ -428,8 +425,7 @@ impl Flow {
                     return Err(EdgelinkError::NotSupported(format!(
                         "Must be a flow node: Node(id={0}, type='{1}')",
                         flow_config.id, flow_config.type_name
-                    ))
-                    .into());
+                    )));
                 }
             };
 
@@ -518,8 +514,7 @@ impl Flow {
                         } else {
                             return Err(EdgelinkError::InvalidOperation(format!(
                                 "The connection of the {node} to the `complete` node already existed!"
-                            ))
-                            .into());
+                            )));
                         }
                     } else {
                         self.inner.complete_nodes_map.insert(src_id, Vec::from([node.clone()]));
@@ -528,7 +523,7 @@ impl Flow {
             }
             Ok(())
         } else {
-            Err(EdgelinkError::BadFlowsJson(format!("CompleteNode has no 'scope' property: {node}")).into())
+            Err(EdgelinkError::BadFlowsJson(format!("CompleteNode has no 'scope' property: {node}")))
         }
     }
 
@@ -552,7 +547,7 @@ impl Flow {
         } else if nfound == 0 {
             Ok(None)
         } else {
-            Err(EdgelinkError::InvalidOperation(format!("There are multiple node with name '{name}'")).into())
+            Err(EdgelinkError::InvalidOperation(format!("There are multiple node with name '{name}'")))
         }
     }
 
@@ -640,7 +635,7 @@ impl Flow {
 
             _ = cancel.cancelled() => {
                 // The token was cancelled
-                Err(EdgelinkError::TaskCancelled.into())
+                Err(EdgelinkError::TaskCancelled)
             }
         }
     }
@@ -659,7 +654,7 @@ impl Flow {
             }
             Ok(())
         } else {
-            Err(EdgelinkError::InvalidOperation("This is not a subflow!".into()).into())
+            Err(EdgelinkError::InvalidOperation("This is not a subflow!".into()))
         }
     }
 
@@ -701,8 +696,7 @@ impl Flow {
                 None => {
                     return Err(EdgelinkError::InvalidOperation(format!(
                         "Can not found the group id in groups: id='{gid}'"
-                    ))
-                    .into());
+                    )));
                 }
             },
             None => None,

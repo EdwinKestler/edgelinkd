@@ -69,7 +69,7 @@ fn default_outputs() -> usize {
 }
 
 impl JsonNode {
-    async fn process_json(&self, msg: MsgHandle) -> crate::Result<()> {
+    async fn process_json(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         let mut msg_guard = msg.write().await;
 
         // Check if there's a schema in the message for validation
@@ -80,7 +80,7 @@ impl JsonNode {
         if !msg_guard.contains_nav(&self.config.property) {
             // If property doesn't exist, just pass through
             drop(msg_guard);
-            return self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await;
+            return self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await;
         }
 
         let property_value = msg_guard.get_nav(&self.config.property).cloned();
@@ -90,7 +90,7 @@ impl JsonNode {
             if !self.should_process(&value) {
                 // Just pass through without processing
                 drop(msg_guard);
-                return self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await;
+                return self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await;
             }
 
             let result = match self.config.action {
@@ -104,8 +104,7 @@ impl JsonNode {
                                 Ok(utf8_string) => self.parse_json_string(&utf8_string),
                                 Err(_) => Err(crate::EdgelinkError::InvalidOperation(
                                     "Buffer contains invalid UTF-8".to_string(),
-                                )
-                                .into()),
+                                )),
                             }
                         }
                         // Only treat as buffer-like in Parse mode, not in Auto/Stringify
@@ -128,8 +127,7 @@ impl JsonNode {
                                 Ok(utf8_string) => self.parse_json_string(&utf8_string),
                                 Err(_) => Err(crate::EdgelinkError::InvalidOperation(
                                     "Buffer contains invalid UTF-8".to_string(),
-                                )
-                                .into()),
+                                )),
                             }
                         }
                         Variant::Array(arr) if self.is_buffer_like(arr) => {
@@ -153,10 +151,9 @@ impl JsonNode {
                                     Ok(utf8_string) => self.parse_json_string(&utf8_string),
                                     Err(_) => Err(crate::EdgelinkError::InvalidOperation(
                                         "Buffer contains invalid UTF-8".to_string(),
-                                    )
-                                    .into()),
+                                    )),
                                 },
-                                Err(e) => Err(e.into()),
+                                Err(e) => Err(e),
                             }
                         }
                         Variant::Object(_)
@@ -196,13 +193,13 @@ impl JsonNode {
         }
 
         drop(msg_guard);
-        self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await
+        self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await
     }
 
     fn parse_json_string(&self, s: &str) -> crate::Result<Variant> {
         match serde_json::from_str::<JsonValue>(s) {
             Ok(parsed_json) => Ok(json_value_to_variant(parsed_json)),
-            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("JSON parse error: {e}")).into()),
+            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("JSON parse error: {e}"))),
         }
     }
 
@@ -329,7 +326,9 @@ impl FlowNodeBehavior for JsonNode {
         while !stop_token.is_cancelled() {
             let node = self.clone();
 
-            with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move { node.process_json(msg).await }).await;
+            let cancel = stop_token.clone();
+            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move { node.process_json(msg, cancel).await })
+                .await;
         }
     }
 }

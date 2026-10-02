@@ -316,7 +316,8 @@ impl FlowNodeBehavior for FileNode {
     async fn run(self: Arc<Self>, stop_token: CancellationToken) {
         while !stop_token.is_cancelled() {
             let node = self.clone();
-            with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move {
+            let cancel = stop_token.clone();
+            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move {
                 // Node-RED: queue/serialize file operations using Mutex
                 let _guard = node.state.lock().await;
 
@@ -374,7 +375,7 @@ impl FlowNodeBehavior for FileNode {
                 }
 
                 // Always forward the message (Node-RED always calls nodeSend)
-                node.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await
+                node.fan_out_one(Envelope { port: 0, msg }, cancel).await
             })
             .await;
         }

@@ -1045,7 +1045,7 @@ impl FlowNodeBehavior for DelayNode {
             let msg = match self.recv_msg(cancel.clone()).await {
                 Ok(msg) => msg,
                 Err(ref err) => {
-                    if let Some(EdgelinkError::TaskCancelled) = err.downcast_ref::<EdgelinkError>() {
+                    if err.is_cancelled() {
                         return;
                     }
                     log::warn!("[{}:{}] {}", self.type_str(), self.name(), err);

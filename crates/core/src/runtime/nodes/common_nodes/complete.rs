@@ -57,7 +57,7 @@ impl FlowNodeBehavior for CompleteNode {
                     }
                 },
                 Err(ref err) => {
-                    if let Some(crate::EdgelinkError::TaskCancelled) = err.downcast_ref::<crate::EdgelinkError>() {
+                    if err.is_cancelled() {
                         break;
                     } else {
                         log::error!("Failed to receive msg: {err:#?}");

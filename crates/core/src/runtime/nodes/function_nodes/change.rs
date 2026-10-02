@@ -112,7 +112,7 @@ impl ChangeNode {
         if let (Some(tot), Some(to)) = (rule.tot, rule.to.as_ref()) {
             eval::evaluate_raw_node_property(to, tot, Some(self), None, Some(msg)).await
         } else {
-            Err(EdgelinkError::BadFlowsJson("The `tot` and `to` in the rule cannot be None".into()).into())
+            Err(EdgelinkError::BadFlowsJson("The `tot` and `to` in the rule cannot be None".into()))
         }
     }
 
@@ -120,7 +120,7 @@ impl ChangeNode {
         if let (Some(fromt), Some(from)) = (rule.fromt, rule.from.as_ref()) {
             eval::evaluate_raw_node_property(from, fromt, Some(self), None, Some(msg)).await
         } else {
-            Err(EdgelinkError::BadFlowsJson("The `fromt` and `from` in the rule cannot be None".into()).into())
+            Err(EdgelinkError::BadFlowsJson("The `fromt` and `from` in the rule cannot be None".into()))
         }
     }
 
@@ -131,7 +131,7 @@ impl ChangeNode {
             (Variant::Number(_), Some(_)) => ReducedType::Num,
             (_, Some(RedPropertyType::Re)) => ReducedType::Regex,
             _ => {
-                return Err(EdgelinkError::InvalidOperation(format!("Invalid `from_value`: {from_value:?}")).into());
+                return Err(EdgelinkError::InvalidOperation(format!("Invalid `from_value`: {from_value:?}")));
             }
         };
         Ok(result)
@@ -170,17 +170,26 @@ impl ChangeNode {
 
         let from_value = match self.get_from_value(rule, msg).await {
             Ok(v) => v,
-            Err(_) => return Ok(()),
+            Err(err) => {
+                log::warn!("Change rule {:?} on '{}': {err}", rule.t, rule.p);
+                return Ok(());
+            }
         };
 
         let current = match eval::evaluate_raw_node_property(&rule.p, rule.pt, Some(self), None, Some(msg)).await {
             Ok(v) => v,
-            Err(_) => return Ok(()),
+            Err(err) => {
+                log::warn!("Change rule {:?} on '{}': {err}", rule.t, rule.p);
+                return Ok(());
+            }
         };
 
         let reduced_from_type = match self.reduce_from_value(rule, &from_value) {
             Ok(v) => v,
-            Err(_) => return Ok(()),
+            Err(err) => {
+                log::warn!("Change rule {:?} on '{}': {err}", rule.t, rule.p);
+                return Ok(());
+            }
         };
 
         /*
@@ -322,8 +331,7 @@ impl ChangeNode {
                 return Err(EdgelinkError::InvalidOperation(
                     "`change` node only supports modifying the message, global, and workflow context properties."
                         .into(),
-                )
-                .into());
+                ));
             }
         }
 
@@ -355,7 +363,10 @@ impl ChangeNode {
         // let target_prop = rule.to.as_ref().unwrap().as_str();
         let current = match eval::evaluate_raw_node_property(&rule.p, rule.pt, Some(self), None, Some(msg)).await {
             Ok(v) => v,
-            Err(_) => return Ok(()),
+            Err(err) => {
+                log::warn!("Change rule {:?} on '{}': {err}", rule.t, rule.p);
+                return Ok(());
+            }
         };
         // Remove the from side
         self.set_property(&rule.p, rule.pt, None, msg).await?;
@@ -368,7 +379,7 @@ impl ChangeNode {
             RedPropertyType::Global => self.engine().map(|x| x.context().clone()),
             _ => None,
         };
-        res.ok_or(EdgelinkError::InvalidOperation("Failed to get context".to_owned()).into())
+        res.ok_or(EdgelinkError::InvalidOperation("Failed to get context".to_owned()))
     }
 
     async fn set_property(
@@ -411,8 +422,7 @@ impl ChangeNode {
 
             _ => Err(EdgelinkError::NotSupported(
                 "We only support to set message property and flow/global context variables".into(),
-            )
-            .into()),
+            )),
         }
     }
 
@@ -434,8 +444,7 @@ impl ChangeNode {
 
             _ => Err(EdgelinkError::NotSupported(
                 "the 'change' node only allows deleting the 'msg' and global/flow context propertie".into(),
-            )
-            .into()),
+            )),
         }
     } // apply_rule_delete
 }

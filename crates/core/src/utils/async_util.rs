@@ -10,7 +10,7 @@ pub async fn delay(dur: Duration, cancel: CancellationToken) -> crate::Result<()
     tokio::select! {
         _ = cancel.cancelled() => {
             // 取消 sleep_task 任务
-            Err(EdgelinkError::TaskCancelled.into())
+            Err(EdgelinkError::TaskCancelled)
         }
         _ = tokio::time::sleep(dur)=> {
             // Long work has completed

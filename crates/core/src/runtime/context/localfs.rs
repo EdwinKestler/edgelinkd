@@ -300,8 +300,7 @@ impl InnerStore {
         if !root.is_object() {
             return Err(EdgelinkError::InvalidOperation(format!(
                 "The context file of scope '{scope}' does not hold an object"
-            ))
-            .into());
+            )));
         }
         update(&mut root)?;
         write_scope(&storage_path(&self.storage_base_dir, scope), &root).await
@@ -345,8 +344,8 @@ impl LocalFileSystemContextStore {
 /// The stores report a missing value the same way the memory store does, with
 /// [`EdgelinkError::OutOfRange`]; this is how the multi-key read tells that apart from a real
 /// failure such as a corrupt file.
-fn is_missing(err: &anyhow::Error) -> bool {
-    matches!(err.downcast_ref::<EdgelinkError>(), Some(EdgelinkError::OutOfRange))
+fn is_missing(err: &EdgelinkError) -> bool {
+    err.is_out_of_range()
 }
 
 #[async_trait]
@@ -389,8 +388,7 @@ impl ContextStore for LocalFileSystemContextStore {
                 return Err(EdgelinkError::InvalidOperation(format!(
                     "The context file '{}' does not hold an object",
                     file.path.display()
-                ))
-                .into());
+                )));
             };
             cache.import_scope(&scope, values).await;
         }
@@ -412,9 +410,9 @@ impl ContextStore for LocalFileSystemContextStore {
             return cache.get_one(scope, path).await;
         }
         let Some(value) = load_scope(&self.inner.storage_base_dir, scope).await? else {
-            return Err(EdgelinkError::OutOfRange.into());
+            return Err(EdgelinkError::OutOfRange);
         };
-        value.get_segs(path).cloned().ok_or_else(|| EdgelinkError::OutOfRange.into())
+        value.get_segs(path).cloned().ok_or_else(|| EdgelinkError::OutOfRange)
     }
 
     async fn get_many(&self, scope: &str, keys: &[&str]) -> Result<Vec<Variant>> {

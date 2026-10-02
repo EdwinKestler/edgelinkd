@@ -67,7 +67,7 @@ impl ContextStore for MemoryContextStore {
         {
             return Ok(value.clone());
         }
-        Err(EdgelinkError::OutOfRange.into())
+        Err(EdgelinkError::OutOfRange)
     }
 
     async fn get_many(&self, scope: &str, keys: &[&str]) -> Result<Vec<Variant>> {
@@ -81,7 +81,7 @@ impl ContextStore for MemoryContextStore {
             }
             return Ok(result);
         }
-        Err(EdgelinkError::OutOfRange.into())
+        Err(EdgelinkError::OutOfRange)
     }
 
     async fn get_keys(&self, scope: &str) -> Result<Vec<String>> {
@@ -89,7 +89,7 @@ impl ContextStore for MemoryContextStore {
         if let Some(scope_map) = scopes.get(scope) {
             return Ok(scope_map.as_object().map(|m| m.keys().cloned().collect::<Vec<_>>()).unwrap_or_default());
         }
-        Err(EdgelinkError::OutOfRange.into())
+        Err(EdgelinkError::OutOfRange)
     }
 
     async fn set_one(&self, scope: &str, path: &[PropexSegment], value: Variant) -> Result<()> {
@@ -114,10 +114,10 @@ impl ContextStore for MemoryContextStore {
             if let Some(value) = scope_map.as_object_mut().and_then(|m| m.remove_segs_property(path)) {
                 return Ok(value);
             } else {
-                return Err(EdgelinkError::OutOfRange.into());
+                return Err(EdgelinkError::OutOfRange);
             }
         }
-        Err(EdgelinkError::OutOfRange.into())
+        Err(EdgelinkError::OutOfRange)
     }
 
     async fn delete(&self, scope: &str) -> Result<()> {

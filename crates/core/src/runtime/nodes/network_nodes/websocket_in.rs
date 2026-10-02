@@ -198,7 +198,7 @@ impl WebSocketInNode {
                                 log::debug!("WebSocket in: Received raw frame");
                             }
                             Some(Err(e)) => {
-                                return Err(crate::EdgelinkError::InvalidOperation(format!("WebSocket error: {e}")).into());
+                                return Err(crate::EdgelinkError::InvalidOperation(format!("WebSocket error: {e}")));
                             }
                             None => {
                                 log::info!("WebSocket in: Connection stream ended");

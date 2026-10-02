@@ -84,12 +84,12 @@ fn default_outputs() -> usize {
 
 #[cfg(feature = "nodes_xml")]
 impl XmlNode {
-    async fn process_xml(&self, msg: MsgHandle) -> crate::Result<()> {
+    async fn process_xml(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         let mut msg_guard = msg.write().await;
 
         if !msg_guard.contains(&self.config.property) {
             drop(msg_guard);
-            return self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await;
+            return self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await;
         }
 
         let property_value = msg_guard.get(&self.config.property);
@@ -142,7 +142,7 @@ impl XmlNode {
         }
 
         drop(msg_guard);
-        self.fan_out_one(Envelope { port: 0, msg }, CancellationToken::new()).await
+        self.fan_out_one(Envelope { port: 0, msg }, cancel.clone()).await
     }
 
     fn parse_xml_to_object(&self, xml_string: &str, options: &Xml2jsOptions) -> crate::Result<Variant> {
@@ -331,7 +331,9 @@ impl FlowNodeBehavior for XmlNode {
         while !stop_token.is_cancelled() {
             let node = self.clone();
 
-            with_uow(node.as_ref(), stop_token.clone(), |node, msg| async move { node.process_xml(msg).await }).await;
+            let cancel = stop_token.clone();
+            with_uow(node.as_ref(), cancel.clone(), |node, msg| async move { node.process_xml(msg, cancel).await })
+                .await;
         }
     }
 }
@@ -383,8 +385,7 @@ fn xml_to_variant(xml_string: &str, options: &Xml2jsOptions) -> crate::Result<Va
                 if open_tag != tag {
                     return Err(EdgelinkError::InvalidOperation(format!(
                         "Mismatched tag: expected </{open_tag}> got </{tag}>"
-                    ))
-                    .into());
+                    )));
                 }
 
                 if !text_buf.trim().is_empty() {
@@ -407,7 +408,7 @@ fn xml_to_variant(xml_string: &str, options: &Xml2jsOptions) -> crate::Result<Va
             }
 
             Ok(Event::Eof) => break,
-            Err(e) => return Err(EdgelinkError::InvalidOperation(format!("XML parse error: {e}")).into()),
+            Err(e) => return Err(EdgelinkError::InvalidOperation(format!("XML parse error: {e}"))),
             _ => {}
         }
     }
@@ -422,7 +423,7 @@ fn xml_to_variant(xml_string: &str, options: &Xml2jsOptions) -> crate::Result<Va
             Ok(content)
         }
     } else {
-        Err(EdgelinkError::InvalidOperation("No root element".to_string()).into())
+        Err(EdgelinkError::InvalidOperation("No root element".to_string()))
     }
 }
 

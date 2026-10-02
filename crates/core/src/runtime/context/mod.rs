@@ -81,7 +81,7 @@ impl ContextStoreOptions {
     pub fn deserialize_options<T: serde::de::DeserializeOwned>(&self) -> crate::Result<T> {
         let table: config::Map<String, config::Value> = self.options.clone().into_iter().collect();
         let value = config::Value::new(None, config::ValueKind::Table(table));
-        value.try_deserialize::<T>().map_err(|e| anyhow::anyhow!("{e}"))
+        value.try_deserialize::<T>().map_err(EdgelinkError::from)
     }
 }
 
@@ -252,7 +252,7 @@ impl ContextManagerBuilder {
     pub fn with_config(&mut self, config: &config::Config) -> crate::Result<&mut Self> {
         let mut settings: ContextStorageSettings = config.get("runtime.context")?;
         if !settings.stores.contains_key(&settings.default) {
-            use anyhow::Context;
+            use crate::ErrorContext as _;
             return Err(EdgelinkError::Configuration).with_context(|| {
                 format!(
                     "Cannot found the default context storage '{}', check your configuration file.",

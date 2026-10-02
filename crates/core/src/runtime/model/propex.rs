@@ -22,14 +22,20 @@ use nom::{
 
 #[derive(Error, Debug)]
 pub enum PropexError {
-    #[error("Invalid arguments")]
+    #[error("invalid arguments")]
     BadArguments,
 
-    #[error("Invalid Propex syntax, expr: `{0}`")]
+    #[error("invalid propex syntax, expr: `{0}`")]
     BadSyntax(String),
 
-    #[error("Invalid number digit")]
+    #[error("invalid number digit")]
     InvalidDigit,
+}
+
+impl From<PropexError> for crate::EdgelinkError {
+    fn from(err: PropexError) -> Self {
+        crate::EdgelinkError::Other(anyhow::Error::from(err))
+    }
 }
 
 #[derive(Debug, Clone)]

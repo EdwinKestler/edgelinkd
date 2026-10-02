@@ -45,15 +45,15 @@ pub async fn get_nodes(
             let mut grouped_nodes: GroupedNodes = GroupedNodes::new();
 
             for meta_node in registry.all().values() {
-                let entry = grouped_nodes.entry(meta_node.red_id.to_string()).or_insert_with(|| NodeInfo {
-                    name: meta_node.red_name.to_string(),
-                    module: meta_node.module.to_string(),
-                    version: meta_node.version.to_string(),
-                    local: meta_node.local,
-                    user: meta_node.user,
+                let entry = grouped_nodes.entry(meta_node.red_id().to_string()).or_insert_with(|| NodeInfo {
+                    name: meta_node.red_name().to_string(),
+                    module: meta_node.module().to_string(),
+                    version: meta_node.version().to_string(),
+                    local: meta_node.local(),
+                    user: meta_node.user(),
                     types: Vec::new(),
                 });
-                entry.types.push(meta_node.type_.to_string());
+                entry.types.push(meta_node.type_().to_string());
             }
 
             let flat_nodes: Vec<_> = grouped_nodes
@@ -261,13 +261,13 @@ pub async fn get_node_module(
     if let Some(registry) = registry_guard.as_ref() {
         // Lookup module info from registry
         for meta_node in registry.all().values() {
-            if meta_node.module == module_name {
+            if meta_node.module() == module_name {
                 let module_info = serde_json::json!({
-                    "name": meta_node.module,
-                    "version": meta_node.version,
+                    "name": meta_node.module(),
+                    "version": meta_node.version(),
                     "enabled": true,
-                    "local": meta_node.local,
-                    "user": meta_node.user
+                    "local": meta_node.local(),
+                    "user": meta_node.user()
                 });
                 return Ok(Json(module_info));
             }
@@ -345,13 +345,13 @@ pub async fn get_node_set(
     if let Some(registry) = registry_guard.as_ref() {
         // Lookup node set info from registry
         for meta_node in registry.all().values() {
-            if meta_node.module == module_name {
+            if meta_node.module() == module_name {
                 let node_set = serde_json::json!({
                     "id": format!("{}/{}", module_name, set_name),
                     "module": module_name,
                     "set": set_name,
                     "enabled": true,
-                    "nodes": [meta_node.type_]
+                    "nodes": [meta_node.type_()]
                 });
                 return Ok(Json(node_set));
             }

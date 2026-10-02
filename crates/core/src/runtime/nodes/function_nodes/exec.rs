@@ -301,7 +301,7 @@ impl ExecNode {
         let (code, signal) = tokio::select! {
             _ = cancel.cancelled() => {
                 let _ = Self::stop_child(child, Some("SIGTERM")).await;
-                return Err(crate::EdgelinkError::TaskCancelled.into());
+                return Err(crate::EdgelinkError::TaskCancelled);
             }
             status = child.wait() => (status?.code(), None),
             signal = timer_future => {
@@ -649,7 +649,7 @@ impl FlowNodeBehavior for ExecNode {
             let msg = match self.recv_msg(cancel.clone()).await {
                 Ok(msg) => msg,
                 Err(ref err) => {
-                    if let Some(EdgelinkError::TaskCancelled) = err.downcast_ref::<EdgelinkError>() {
+                    if err.is_cancelled() {
                         return;
                     }
                     log::warn!("[{}:{}] {}", self.type_str(), self.name(), err);

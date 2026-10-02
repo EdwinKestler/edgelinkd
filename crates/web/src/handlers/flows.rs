@@ -1,6 +1,7 @@
 use crate::handlers::WebState;
 use crate::models::*;
 use axum::{Extension, extract::Path, http::StatusCode, response::Json};
+use edgelink_core::runtime::engine::Engine;
 use serde_json::Value;
 use std::path::Path as StdPath;
 use std::sync::Arc;
@@ -68,9 +69,11 @@ pub async fn get_flows(Extension(state): Extension<Arc<WebState>>) -> Result<Jso
         vec![]
     };
 
+    let flows_value = serde_json::Value::Array(flows);
+    let revision = Engine::revision_of(&flows_value);
     let response = serde_json::json!({
-        "flows": flows,
-        "rev": "1"  // Simple revision for now
+        "flows": flows_value,
+        "rev": revision,
     });
 
     Ok(Json(response))
@@ -93,74 +96,58 @@ pub async fn post_flows(
         }
     };
 
-    // TODO: Check/validate rev field - appears to be SHA256 hash but algorithm unknown
+    // Node-RED rejects a deploy whose `rev` is not the current SHA-256 of the flows. That check is still open.
     log::debug!("Received deployment request with rev: {:?}", parsed_payload.rev);
     log::debug!("Received deployment request with {} flows", parsed_payload.flows.len());
     log::debug!("Full payload: {parsed_payload:?}");
 
-    // Save flows to file if path is available
-    let flows_path_guard = state.flows_file_path.read().await;
-    if let Some(flows_path) = flows_path_guard.as_ref() {
-        match save_flows_to_file(&parsed_payload.flows, flows_path).await {
-            Ok(_) => {
-                log::info!("Flows saved to file: {}", flows_path.display());
+    // Copy the path out so the lock is not held across the file write and redeploy.
+    let flows_path = {
+        let flows_path_guard = state.flows_file_path.read().await;
+        flows_path_guard.clone()
+    };
+    let Some(flows_path) = flows_path else {
+        log::error!("No flows file path configured, cannot save flows");
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    };
 
-                // Redeploy flows using event-driven approach
-                let engine_guard = state.engine.read().await;
-                if let Some(_engine) = engine_guard.as_ref() {
-                    let flows_json = serde_json::Value::Array(parsed_payload.flows);
-                    match state.redeploy_flows(flows_json).await {
-                        Ok(_) => {
-                            log::info!("Flows redeployed successfully!");
-                            // Send deploy success notification with actual revision
-                            let engine_guard2 = state.engine.read().await;
-                            let revision = if let Some(engine) = engine_guard2.as_ref() {
-                                Some(engine.flows_rev().await)
-                            } else {
-                                None
-                            };
-                            state.comms.send_deploy_notification(true, revision.as_deref()).await;
-                            // Note: other notifications will be sent automatically by event listeners
-                        }
-                        Err(e) => {
-                            log::error!("Failed to redeploy flows: {e}");
-                            state.comms.send_deploy_notification(false, Some("0")).await;
-                            state.comms.send_notification("error", &format!("Failed to redeploy flows: {e}")).await;
-                            return Err(StatusCode::INTERNAL_SERVER_ERROR);
-                        }
-                    }
-                } else {
-                    // Fall back to traditional restart method
-                    log::warn!("Engine not available in AppState, falling back to traditional restart");
-                    // Send deploy success notification with fallback revision
-                    state.comms.send_deploy_notification(true, Some("1")).await;
-                    state
-                        .comms
-                        .send_notification(
-                            "success",
-                            &format!("Successfully deployed {} flows", parsed_payload.flows.len()),
-                        )
-                        .await;
-                    restart_engine_if_available(&state).await;
-                }
+    let deployed_count = parsed_payload.flows.len();
+    if let Err(e) = save_flows_to_file(&parsed_payload.flows, &flows_path).await {
+        log::error!("Failed to save flows to file: {e}");
+        state.comms.send_deploy_notification(false, Some("0")).await;
+        state.comms.send_notification("error", &format!("Failed to save flows: {e}")).await;
+        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+    log::info!("Flows saved to file: {}", flows_path.display());
+
+    let flows_json = serde_json::Value::Array(parsed_payload.flows);
+    // Same digest `redeploy_flows` stores, so the response matches the next GET.
+    let revision = Engine::revision_of(&flows_json);
+
+    // Drop the engine lock before redeploy. `redeploy_flows` takes the same lock, and holding
+    // a read across that call stalls if a writer is already waiting.
+    let engine_present = state.engine.read().await.is_some();
+    if engine_present {
+        match state.redeploy_flows(flows_json).await {
+            Ok(()) => {
+                log::info!("Flows redeployed successfully!");
+                state.comms.send_deploy_notification(true, Some(&revision)).await;
             }
             Err(e) => {
-                log::error!("Failed to save flows to file: {e}");
+                log::error!("Failed to redeploy flows: {e}");
                 state.comms.send_deploy_notification(false, Some("0")).await;
-                state.comms.send_notification("error", &format!("Failed to save flows: {e}")).await;
+                state.comms.send_notification("error", &format!("Failed to redeploy flows: {e}")).await;
                 return Err(StatusCode::INTERNAL_SERVER_ERROR);
             }
         }
     } else {
-        log::error!("No flows file path configured, cannot save flows");
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        log::warn!("Engine not available in AppState, falling back to traditional restart");
+        state.comms.send_deploy_notification(true, Some(&revision)).await;
+        state.comms.send_notification("success", &format!("Successfully deployed {deployed_count} flows")).await;
+        restart_engine_if_available(&state).await;
     }
 
-    let response = serde_json::json!({
-        "rev": "1"
-    });
-
-    Ok(Json(response))
+    Ok(Json(serde_json::json!({ "rev": revision })))
 }
 
 /// Get flows state

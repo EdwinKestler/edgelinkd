@@ -555,7 +555,8 @@ impl FlowNodeBehavior for MqttInNode {
                 while !input_stop_token.is_cancelled() {
                     let node = node.clone();
 
-                    with_uow(node.as_ref(), input_stop_token.clone(), |node, msg| async move {
+                    let cancel = input_stop_token.clone();
+                    with_uow(node.as_ref(), cancel.clone(), |node, msg| async move {
                         let msg_guard = msg.read().await;
 
                         match node.handle_input_message(&msg_guard).await {
@@ -563,8 +564,7 @@ impl FlowNodeBehavior for MqttInNode {
                                 // Send response message if action produced one
                                 drop(msg_guard);
                                 let response_handle = MsgHandle::new(response_msg);
-                                node.fan_out_one(Envelope { port: 0, msg: response_handle }, CancellationToken::new())
-                                    .await?;
+                                node.fan_out_one(Envelope { port: 0, msg: response_handle }, cancel).await?;
                             }
                             Ok(None) => {
                                 // No response message
@@ -597,8 +597,12 @@ impl FlowNodeBehavior for MqttInNode {
                 let mut connection = self.connection.lock().await;
                 if let Some(mut event_loop) = connection.event_loop.take() {
                     let node = self.clone();
+                    let send_cancel = stop_token.clone();
                     event_loop_task = Some(tokio::spawn(async move {
                         loop {
+                            if send_cancel.is_cancelled() {
+                                break;
+                            }
                             match event_loop.poll().await {
                                 Ok(rumqttc::Event::Incoming(rumqttc::Packet::Publish(publish))) => {
                                     // Create message from MQTT publish
@@ -637,7 +641,7 @@ impl FlowNodeBehavior for MqttInNode {
                                     // Send message
                                     let msg_handle = MsgHandle::new(mqtt_msg);
                                     if let Err(e) = node
-                                        .fan_out_one(Envelope { port: 0, msg: msg_handle }, CancellationToken::new())
+                                        .fan_out_one(Envelope { port: 0, msg: msg_handle }, send_cancel.clone())
                                         .await
                                     {
                                         log::warn!("Failed to send MQTT message: {e}");

@@ -128,8 +128,7 @@ impl VariantObject for VariantObjectMap {
             None if create_missing => first_prop.set_segs_property(&segs[1..], value, true),
             None => Err(crate::EdgelinkError::InvalidOperation(
                 "Unable to set property: missing intermediate segments".into(),
-            )
-            .into()),
+            )),
         }
     }
 
@@ -160,7 +159,7 @@ impl VariantObject for VariantObjectMap {
                         PropexEnv::ExtRef(_, _) => None,
                     }),
                     // 不支持递归
-                    _ => return Err(EdgelinkError::OutOfRange.into()),
+                    _ => return Err(EdgelinkError::OutOfRange),
                 };
                 if let Some(nested_var) = nested_var {
                     *seg = match nested_var.get_segs_property(&nested_segs[1..]).ok_or(EdgelinkError::OutOfRange)? {
@@ -170,10 +169,10 @@ impl VariantObject for VariantObjectMap {
                         {
                             PropexSegment::Index(num_index.as_u64().unwrap() as usize)
                         }
-                        _ => return Err(EdgelinkError::OutOfRange.into()), // We cannot found the nested property
+                        _ => return Err(EdgelinkError::OutOfRange), // We cannot found the nested property
                     };
                 } else {
-                    return Err(EdgelinkError::OutOfRange.into());
+                    return Err(EdgelinkError::OutOfRange);
                 }
             }
         }

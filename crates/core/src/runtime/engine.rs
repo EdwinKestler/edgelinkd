@@ -92,6 +92,11 @@ impl Engine {
         hasher.finalize().to_vec()
     }
 
+    /// SHA-256 hex digest of the compact JSON. This is the `rev` the editor compares.
+    pub fn revision_of(json: &serde_json::Value) -> String {
+        hex::encode(Self::calculate_flows_hash(json))
+    }
+
     /// Get flows revision hash as hex string
     pub async fn flows_rev(&self) -> String {
         let hash = self.inner.flows_hash.read().await;
@@ -203,8 +208,7 @@ impl Engine {
                     if self.inner.all_flow_nodes.contains_key(&fnode.id()) {
                         return Err(EdgelinkError::InvalidOperation(format!(
                             "This flow node already existed: {fnode}"
-                        ))
-                        .into());
+                        )));
                     }
                     self.inner.all_flow_nodes.insert(fnode.id(), fnode.clone());
                 }
@@ -248,8 +252,7 @@ impl Engine {
                     return Err(EdgelinkError::NotSupported(format!(
                         "Must be a global node: Node(id={0}, type='{1}')",
                         global_config.id, global_config.type_name
-                    ))
-                    .into());
+                    )));
                 }
             };
 
@@ -382,7 +385,7 @@ impl Engine {
         match result {
             Ok(Ok(())) => Ok(received),
             Ok(Err(e)) => Err(e),
-            Err(_) => Err(EdgelinkError::Timeout.into()),
+            Err(_) => Err(EdgelinkError::Timeout),
         }
     }
 
@@ -543,7 +546,7 @@ impl Engine {
         } else if nfound == 0 {
             Ok(None)
         } else {
-            Err(EdgelinkError::InvalidOperation(format!("There are multiple global nodes with name '{name}'")).into())
+            Err(EdgelinkError::InvalidOperation(format!("There are multiple global nodes with name '{name}'")))
         }
     }
 
@@ -710,8 +713,18 @@ impl Engine {
 
 impl std::fmt::Debug for InnerEngine {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // TODO
-        f.debug_struct("FlowEngine").finish()
+        // `try_read` so Debug never waits on the runtime. The configuration is omitted: it can
+        // hold credentials.
+        let rev = match self.flows_hash.try_read() {
+            Ok(hash) => hex::encode(&*hash),
+            Err(_) => "<locked>".to_string(),
+        };
+        f.debug_struct("InnerEngine")
+            .field("flows", &self.flows.len())
+            .field("flow_nodes", &self.all_flow_nodes.len())
+            .field("global_nodes", &self.global_nodes.len())
+            .field("flows_rev", &rev)
+            .finish()
     }
 }
 
@@ -726,6 +739,18 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::time::Duration;
+
+    #[test]
+    fn debug_shows_flow_counts_and_revision() {
+        let engine = build_test_engine(make_simple_flows_json()).unwrap();
+        let rendered = format!("{engine:?}");
+        assert!(rendered.contains("InnerEngine"), "{rendered}");
+        assert!(rendered.contains("flows:"), "{rendered}");
+        assert!(rendered.contains("flow_nodes:"), "{rendered}");
+        assert!(rendered.contains("global_nodes:"), "{rendered}");
+        assert!(rendered.contains("flows_rev:"), "{rendered}");
+        assert!(!rendered.contains("elcfg"), "{rendered}");
+    }
 
     fn make_simple_flows_json() -> serde_json::Value {
         let flows_json = json!([

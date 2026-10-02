@@ -34,9 +34,8 @@ impl FlowNodeBehavior for TestOnceNode {
             match self.recv_msg(stop_token.clone()).await {
                 Ok(msg) => engine.recv_final_msg(msg).expect("Shoud send final msg to the engine"),
                 Err(e) => {
-                    match e.downcast_ref::<EdgelinkError>() {
-                        Some(EdgelinkError::TaskCancelled) => (),
-                        None | Some(_) => eprintln!("Failed to recv_msg(): {e:?}"),
+                    if !e.is_cancelled() {
+                        eprintln!("Failed to recv_msg(): {e:?}");
                     }
                     break;
                 }

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 
-use anyhow::Context as _;
+use crate::ErrorContext as _;
 use serde::{self, Deserialize, Deserializer};
 
 use crate::runtime::model::json::red_desers;
