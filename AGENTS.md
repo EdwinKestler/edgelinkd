@@ -101,7 +101,9 @@ missing `it()` for an out-of-scope feature as a decision to record, not work to 
 4. **Never hand-edit generated files** — `tests/REDNODES-SPECS-DIFF.md` (regenerate with
    the script) and `Cargo.lock` (let `cargo` update it).
 5. **Run `cargo fmt` before committing.** The tree is rustfmt-clean with the root
-   `rustfmt.toml` (120 columns, `use_small_heuristics = "Max"`), and CI checks it.
+   `rustfmt.toml` (120 columns, `use_small_heuristics = "Max"`). Edition-2024 crates
+   repeat that file with `edition = "2024"` so a direct `rustfmt` invocation parses
+   `let` chains. CI runs `cargo fmt --check`, which uses each crate's Cargo.toml edition.
 6. **Keep clippy clean.** `cargo clippy -p edgelink-core --tests` is a fast local check;
    CI runs the stricter `--all-features --tests --all`.
 7. **Commits**: English, present tense, imperative, subject ≤ 72 characters. Do not mix

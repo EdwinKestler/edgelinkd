@@ -1,4 +1,7 @@
 use_field_init_shorthand = true
 max_width = 120
 use_small_heuristics = "Max"
+# App crate edition. rustfmt does not merge config files, so each edition-2024
+# crate repeats this file with edition = "2024". A direct `rustfmt path` then
+# parses `let` chains. `cargo fmt` still uses the edition in that crate's Cargo.toml.
 edition = "2021"
