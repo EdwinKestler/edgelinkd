@@ -98,6 +98,8 @@ async fn generate_nodes_html(static_dir: &std::path::Path, allowed: &HashSet<Str
 
     append_bundled_editor("modbus", "modbus-editor/82-modbus.html", allowed, &mut html_content);
     append_bundled_editor("scan", "scan-editor/80-scan.html", allowed, &mut html_content);
+    append_bundled_editor("ai-provider", "ai-editor/90-ai-provider.html", allowed, &mut html_content);
+    append_bundled_editor("ai-chat", "ai-editor/91-ai-chat.html", allowed, &mut html_content);
 
     if html_content.is_empty() {
         return get_fallback_nodes_html(allowed);
@@ -698,6 +700,16 @@ mod tests {
         assert!(json_types.contains("modbus"));
         #[cfg(feature = "runtime_scan")]
         assert!(json_types.contains("scan"));
+        #[cfg(not(feature = "nodes_ai"))]
+        {
+            assert!(!json_types.contains("ai-provider"));
+            assert!(!json_types.contains("ai-chat"));
+        }
+        #[cfg(feature = "nodes_ai")]
+        {
+            assert!(json_types.contains("ai-provider"));
+            assert!(json_types.contains("ai-chat"));
+        }
 
         let html_response = router
             .oneshot(Request::builder().uri("/nodes").header("accept", "text/html").body(Body::empty()).unwrap())
@@ -721,5 +733,15 @@ mod tests {
         assert!(html_types.iter().any(|kind| kind == "modbus"));
         #[cfg(feature = "runtime_scan")]
         assert!(html_types.iter().any(|kind| kind == "scan"));
+        #[cfg(not(feature = "nodes_ai"))]
+        {
+            assert!(!html_types.iter().any(|kind| kind == "ai-provider"));
+            assert!(!html_types.iter().any(|kind| kind == "ai-chat"));
+        }
+        #[cfg(feature = "nodes_ai")]
+        {
+            assert!(html_types.iter().any(|kind| kind == "ai-provider"));
+            assert!(html_types.iter().any(|kind| kind == "ai-chat"));
+        }
     }
 }

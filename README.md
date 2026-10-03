@@ -253,6 +253,12 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
             - [x] `msg.tick`, or `period` in milliseconds, re-checks the current state's edges
             - [x] Entry actions write context keys
             - [ ] Parallel branches, history states, JSONata actions, and a chart editor
+        - [x] AI (`nodes_ai`, included by default; disable with `--no-default-features`)
+            - [x] `ai-provider` config: OpenAI, xAI (Grok), Anthropic (Claude), Snowflake Cortex
+            - [x] `ai-chat` one-shot and `msg.messages` conversations. Keys stay in `flows_cred.json`
+            - [x] Flow Copilot add-and-connect draft/validate/apply; review and Deploy stay manual
+            - [ ] Flow Copilot update/delete/install tools
+            - [ ] `ai-agent` bounded tool loop
         - [x] Scan (`runtime_scan`, off by default)
             - [x] One task writes `flow.scan` (`seq`, `period`, `duration`, `overrun`). Nodes read it
             - [x] `runtime.scan.period_ms` in `edgelinkd.toml` is the period in milliseconds. Absent or `0` leaves the task off. A period below 10 ms is an error at start

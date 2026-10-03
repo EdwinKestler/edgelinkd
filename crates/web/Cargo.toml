@@ -1,6 +1,6 @@
 [package]
 name = "edgelink-web"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 
 [dependencies]
@@ -29,6 +29,7 @@ edgelink-core = { path = "../core" }
 default = []
 nodes_modbus = ["edgelink-core/nodes_modbus"]
 runtime_scan = ["edgelink-core/runtime_scan"]
+nodes_ai = ["edgelink-core/nodes_ai"]
 
 [dev-dependencies]
 tokio-tungstenite = { workspace = true }

@@ -1,6 +1,6 @@
 [package]
 name = "edgelink-core"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 readme = "README.md"
 authors = ["Li Wei <oldrev@gmail.com>"]
@@ -109,3 +109,5 @@ nodes_yaml = ["serde_yaml_ng"]
 runtime_scan = []
 # Modbus TCP. Off unless a build asks for it. Serial RTU is not included.
 nodes_modbus = []
+# OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Off unless a build asks for it.
+nodes_ai = ["reqwest"]

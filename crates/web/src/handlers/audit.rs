@@ -12,18 +12,19 @@ use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 use tokio::io::AsyncWriteExt;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use super::WebState;
 use super::reply::api_error;
 
 pub struct AuditLog {
     home: RwLock<Option<PathBuf>>,
+    write: Mutex<()>,
 }
 
 impl AuditLog {
     pub fn new() -> Self {
-        Self { home: RwLock::new(None) }
+        Self { home: RwLock::new(None), write: Mutex::new(()) }
     }
 
     pub async fn set_home(&self, home: PathBuf) {
@@ -31,6 +32,7 @@ impl AuditLog {
     }
 
     pub async fn record(&self, actor: &str, event: &str, rev: Option<&str>) -> Result<(), String> {
+        let _write = self.write.lock().await;
         let home = self.home.read().await.clone().ok_or_else(|| "audit log is not configured".to_string())?;
         let path = home.join("audit.log");
         if let Some(parent) = path.parent() {
@@ -47,6 +49,7 @@ impl AuditLog {
         let mut file =
             tokio::fs::OpenOptions::new().create(true).append(true).open(&path).await.map_err(|err| err.to_string())?;
         file.write_all(text.as_bytes()).await.map_err(|err| err.to_string())?;
+        file.flush().await.map_err(|err| err.to_string())?;
         Ok(())
     }
 

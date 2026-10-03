@@ -1,6 +1,6 @@
 [package]
 name = "edgelink-app"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.88"
 readme = "README.md"
@@ -165,7 +165,7 @@ identifier = "com.github.oldrev.edgelink"
 
 [features]
 full = ["default", "rqjs_bindgen"]
-default = ["core", "js", "jsonata", "nodes_network", "nodes_storage"]
+default = ["core", "js", "jsonata", "nodes_network", "nodes_storage", "nodes_ai"]
 core = ["edgelink-core/core"]
 js = ["edgelink-core/js"]
 jsonata = ["edgelink-core/jsonata"]
@@ -176,3 +176,5 @@ rqjs_bindgen = ["js", "edgelink-core/rqjs_bindgen"]
 runtime_scan = ["edgelink-core/runtime_scan"]
 # Modbus TCP. Off unless a build asks for it.
 nodes_modbus = ["edgelink-core/nodes_modbus"]
+# OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Included in the application by default.
+nodes_ai = ["edgelink-core/nodes_ai", "edgelink-web/nodes_ai"]

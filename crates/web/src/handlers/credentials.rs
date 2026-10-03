@@ -31,6 +31,7 @@ const TLS_CONFIG: &[(&str, FieldKind)] = &[
     ("passphrase", FieldKind::Password),
 ];
 const HTTP_PROXY: &[(&str, FieldKind)] = &[("username", FieldKind::Text), ("password", FieldKind::Password)];
+const AI_PROVIDER: &[(&str, FieldKind)] = &[("apiKey", FieldKind::Password)];
 
 fn fields_for(node_type: &str) -> Option<&'static [(&'static str, FieldKind)]> {
     match node_type {
@@ -38,6 +39,7 @@ fn fields_for(node_type: &str) -> Option<&'static [(&'static str, FieldKind)]> {
         "http request" | "http-request" => Some(HTTP_REQUEST),
         "tls-config" => Some(TLS_CONFIG),
         "http proxy" | "http-proxy" => Some(HTTP_PROXY),
+        "ai-provider" => Some(AI_PROVIDER),
         _ => None,
     }
 }

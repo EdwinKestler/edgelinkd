@@ -142,6 +142,7 @@ fn build_static_files() {
         copy_scan_editor(&static_dir);
         // The Modbus palette entry exists only when the runtime registers the node.
         copy_modbus_editor(&static_dir);
+        copy_ai_editor(&static_dir);
 
         // Copy Node-RED core nodes lib directories to static/
         if node_red_nodes_dir.exists() {
@@ -207,6 +208,33 @@ fn copy_modbus_editor(static_dir: &Path) {
     let dest = static_dir.join("nodes/core/network/82-modbus.html");
     if dest.exists() {
         let _ = std::fs::remove_file(dest);
+    }
+}
+
+#[cfg(feature = "nodes_ai")]
+fn copy_ai_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/90-ai-provider.html");
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/91-ai-chat.html");
+    let dest_dir = static_dir.join("nodes/core/function");
+    std::fs::create_dir_all(&dest_dir).expect("Failed to create the AI editor directory");
+    for name in ["90-ai-provider.html", "91-ai-chat.html"] {
+        let src = PathBuf::from("crates/web/ai-editor").join(name);
+        if src.exists() {
+            std::fs::copy(&src, dest_dir.join(name)).expect("Failed to copy the AI editor");
+        }
+    }
+}
+
+#[cfg(not(feature = "nodes_ai"))]
+fn copy_ai_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/90-ai-provider.html");
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/91-ai-chat.html");
+    let dest_dir = static_dir.join("nodes/core/function");
+    for name in ["90-ai-provider.html", "91-ai-chat.html"] {
+        let dest = dest_dir.join(name);
+        if dest.exists() {
+            let _ = std::fs::remove_file(dest);
+        }
     }
 }
 

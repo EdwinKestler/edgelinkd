@@ -18,7 +18,7 @@ use crate::health::*;
 /// Create Node-RED compatible API routes
 /// These routes directly mimic Node-RED's path structure
 fn create_node_red_api_routes() -> Router {
-    Router::new()
+    let router = Router::new()
         // Flows management (Node-RED compatible paths)
         .route("/flows", get(get_flows).post(post_flows))
         .route("/credentials/{node_type}/{id}", get(get_node_credentials))
@@ -65,7 +65,14 @@ fn create_node_red_api_routes() -> Router {
         .route("/context/node/{id}/{key}", get(get_node_context_key).delete(delete_node_context_key))
         .route("/context/global/{key}/force", post(force_global_context_key).delete(clear_global_context_force))
         .route("/context/flow/{id}/{key}/force", post(force_flow_context_key).delete(clear_flow_context_force))
-        .route("/context/node/{id}/{key}/force", post(force_node_context_key).delete(clear_node_context_force))
+        .route("/context/node/{id}/{key}/force", post(force_node_context_key).delete(clear_node_context_force));
+
+    #[cfg(feature = "nodes_ai")]
+    let router = router
+        .route("/assistant/skills", get(get_assistant_skills))
+        .route("/assistant/draft", post(post_assistant_draft));
+
+    router
 }
 
 /// Create editor routes (for frontend file service)

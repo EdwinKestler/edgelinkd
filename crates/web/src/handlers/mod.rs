@@ -1,3 +1,5 @@
+#[cfg(feature = "nodes_ai")]
+pub mod assistant;
 pub mod audit;
 pub mod auth;
 pub mod comms;
@@ -15,6 +17,8 @@ pub mod static_resources;
 pub mod status;
 pub mod web_state;
 
+#[cfg(feature = "nodes_ai")]
+pub use assistant::*;
 pub use comms::*;
 pub use context::*;
 pub use flows::*;

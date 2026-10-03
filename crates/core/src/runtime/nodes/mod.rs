@@ -31,6 +31,9 @@ mod storage_nodes;
 #[cfg(feature = "nodes_network")]
 mod network_nodes;
 
+#[cfg(feature = "nodes_ai")]
+pub(crate) mod ai_nodes;
+
 #[cfg(all(feature = "nodes_modbus", not(feature = "nodes_network")))]
 #[path = "network_nodes/modbus.rs"]
 mod modbus;

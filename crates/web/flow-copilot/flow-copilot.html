@@ -1,0 +1,182 @@
+<style>
+    .edgelink-copilot { display:flex; flex-direction:column; height:100%; padding:10px; gap:8px; box-sizing:border-box; }
+    .edgelink-copilot-target { color:var(--red-ui-secondary-text-color); font-size:12px; }
+    .edgelink-copilot textarea { width:100%; min-height:105px; resize:vertical; box-sizing:border-box; }
+    .edgelink-copilot-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .edgelink-copilot-preview { flex:1; overflow:auto; border-top:1px solid var(--red-ui-secondary-border-color); padding-top:8px; }
+    .edgelink-copilot-preview h4 { margin:6px 0; }
+    .edgelink-copilot-preview ul { margin:4px 0 10px 20px; }
+    .edgelink-copilot-empty { color:var(--red-ui-secondary-text-color); font-style:italic; }
+    .edgelink-copilot select { width:100%; }
+</style>
+
+<script type="text/javascript">
+(function() {
+    "use strict";
+
+    RED.plugins.registerPlugin("edgelink-flow-copilot/flow-copilot", {
+        type: "edgelink-flow-copilot",
+        onadd: function() {
+            var content = $('<div class="edgelink-copilot"></div>');
+            var target = $('<div class="edgelink-copilot-target"></div>').appendTo(content);
+            var provider = $('<select aria-label="AI provider"></select>').appendTo(content);
+            var prompt = $('<textarea placeholder="Describe the flow to add to the active tab..."></textarea>').appendTo(content);
+            var actions = $('<div class="edgelink-copilot-actions"></div>').appendTo(content);
+            var generate = $('<button type="button" class="red-ui-button red-ui-button-primary"><i class="fa fa-magic"></i> Draft</button>').appendTo(actions);
+            var apply = $('<button type="button" class="red-ui-button" disabled><i class="fa fa-plus"></i> Apply to flow</button>').appendTo(actions);
+            var clear = $('<button type="button" class="red-ui-button">Clear</button>').appendTo(actions);
+            var preview = $('<div class="edgelink-copilot-preview"><div class="edgelink-copilot-empty">No draft yet.</div></div>').appendTo(content);
+            var pending = null;
+
+            function activeWorkspace() {
+                var id = RED.workspaces.active();
+                var workspace = RED.nodes.workspace(id);
+                return workspace ? {id: id, label: workspace.label || id} : null;
+            }
+
+            function editorSnapshot() {
+                return RED.nodes.createCompleteNodeSet({credentials: false});
+            }
+
+            function updateTarget() {
+                var workspace = activeWorkspace();
+                target.text(workspace ? "Target: " + workspace.label : "Select a flow tab");
+            }
+
+            function refreshProviders() {
+                var selected = provider.val();
+                provider.empty();
+                RED.nodes.eachConfig(function(node) {
+                    if (node.type === "ai-provider") {
+                        var label = node.name || node.provider || node.id;
+                        $('<option></option>').val(node.id).text(label + " · " + (node.defaultModel || "default model")).appendTo(provider);
+                    }
+                });
+                if (selected && provider.find('option[value="' + selected + '"]').length) {
+                    provider.val(selected);
+                }
+                if (provider.children().length === 0) {
+                    $('<option value="">Deploy an ai-provider configuration first</option>').appendTo(provider);
+                }
+            }
+
+            function list(title, values) {
+                if (!values || values.length === 0) { return $(); }
+                var block = $('<div></div>');
+                $('<h4></h4>').text(title).appendTo(block);
+                var items = $('<ul></ul>').appendTo(block);
+                values.forEach(function(value) { $('<li></li>').text(value).appendTo(items); });
+                return block;
+            }
+
+            function showDraft(draft) {
+                preview.empty();
+                $('<h4>Draft</h4>').appendTo(preview);
+                $('<p></p>').text(draft.summary).appendTo(preview);
+                preview.append(list("Assumptions", draft.assumptions));
+                preview.append(list("Warnings", draft.warnings));
+                var nodes = (draft.nodes || []).map(function(node) {
+                    return (node.name || node.type) + " [" + node.type + "]";
+                });
+                preview.append(list("Nodes to add", nodes));
+                apply.prop("disabled", !draft.nodes || draft.nodes.length === 0);
+            }
+
+            function resetDraft() {
+                pending = null;
+                apply.prop("disabled", true);
+                preview.html('<div class="edgelink-copilot-empty">No draft yet.</div>');
+            }
+
+            generate.on("click", function() {
+                var workspace = activeWorkspace();
+                var providerId = provider.val();
+                var text = prompt.val().trim();
+                if (!workspace) {
+                    RED.notify("Select a flow tab first", "warning");
+                    return;
+                }
+                if (!providerId) {
+                    RED.notify("Deploy an ai-provider configuration first", "warning");
+                    return;
+                }
+                if (!text) {
+                    RED.notify("Describe the flow to create", "warning");
+                    return;
+                }
+                var flows = editorSnapshot();
+                var snapshot = JSON.stringify(flows);
+                generate.prop("disabled", true).find("i").attr("class", "fa fa-spinner fa-spin");
+                resetDraft();
+                $.ajax({
+                    url: RED.settings.apiRootUrl + "assistant/draft",
+                    method: "POST",
+                    contentType: "application/json",
+                    dataType: "json",
+                    data: JSON.stringify({
+                        providerId: providerId,
+                        model: "",
+                        prompt: text,
+                        workspaceId: workspace.id,
+                        workspaceLabel: workspace.label,
+                        flows: flows
+                    })
+                }).done(function(draft) {
+                    pending = {draft: draft, snapshot: snapshot, workspaceId: workspace.id};
+                    showDraft(draft);
+                }).fail(function(xhr) {
+                    var body = xhr.responseJSON || {};
+                    RED.notify(body.message || "Flow Copilot could not create a draft", "error");
+                }).always(function() {
+                    generate.prop("disabled", false).find("i").attr("class", "fa fa-magic");
+                });
+            });
+
+            apply.on("click", function() {
+                if (!pending) { return; }
+                if (RED.workspaces.active() !== pending.workspaceId) {
+                    RED.notify("The active flow changed. Generate the draft again.", "warning");
+                    resetDraft();
+                    return;
+                }
+                if (JSON.stringify(editorSnapshot()) !== pending.snapshot) {
+                    RED.notify("The flow changed after this draft was generated. Generate it again.", "warning");
+                    resetDraft();
+                    return;
+                }
+                RED.view.importNodes(pending.draft.nodes, {
+                    addFlow: false,
+                    touchImport: true,
+                    generateIds: false,
+                    generateDefaultNames: true,
+                    notify: true,
+                    applyNodeDefaults: true,
+                    eventContext: {source: "edgelink-flow-copilot"}
+                });
+                RED.notify("Flow Copilot draft added. Review it, then use Deploy when ready.", "success");
+                resetDraft();
+            });
+
+            clear.on("click", function() {
+                prompt.val("");
+                resetDraft();
+            });
+
+            RED.sidebar.addTab({
+                id: "edgelink-flow-copilot",
+                label: "Flow Copilot",
+                name: "Flow Copilot",
+                iconClass: "fa fa-magic",
+                content: content,
+                enableOnEdit: true
+            });
+            RED.events.on("workspace:change", function() { updateTarget(); resetDraft(); });
+            RED.events.on("nodes:add", refreshProviders);
+            RED.events.on("nodes:remove", refreshProviders);
+            RED.events.on("nodes:change", refreshProviders);
+            updateTarget();
+            refreshProviders();
+        }
+    });
+})();
+</script>

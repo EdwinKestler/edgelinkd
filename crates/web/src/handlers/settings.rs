@@ -128,6 +128,18 @@ pub async fn get_plugins(headers: HeaderMap) -> Result<axum::response::Response,
         Ok(Html(html_content).into_response())
     } else {
         // Return plugin list in JSON format
+        #[cfg(feature = "nodes_ai")]
+        let plugins = serde_json::json!([{
+            "id": "edgelink-flow-copilot/flow-copilot",
+            "name": "flow-copilot",
+            "types": ["edgelink-flow-copilot"],
+            "enabled": true,
+            "local": true,
+            "user": false,
+            "module": "edgelink-flow-copilot",
+            "version": env!("CARGO_PKG_VERSION")
+        }]);
+        #[cfg(not(feature = "nodes_ai"))]
         let plugins = serde_json::json!([]);
         Ok(Json(plugins).into_response())
     }
@@ -137,8 +149,17 @@ pub async fn get_plugins(headers: HeaderMap) -> Result<axum::response::Response,
 async fn generate_plugins_html() -> String {
     // Node-RED frontend expects plugin config in HTML format
     // Each plugin is wrapped with specific comment delimiters
-    // Currently returns an empty string, meaning no plugins
-    "".to_string()
+    #[cfg(feature = "nodes_ai")]
+    {
+        format!(
+            "\n<!-- --- [red-plugin:edgelink-flow-copilot/flow-copilot] --- -->\n{}",
+            include_str!("../../flow-copilot/flow-copilot.html")
+        )
+    }
+    #[cfg(not(feature = "nodes_ai"))]
+    {
+        String::new()
+    }
 }
 
 pub async fn get_theme() -> Result<Json<Value>, StatusCode> {
@@ -228,5 +249,44 @@ mod tests {
         let body: Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(body["uiHost"], "127.0.0.1");
         assert_eq!(body["uiPort"], 1888);
+    }
+
+    #[tokio::test]
+    async fn plugins_match_the_enabled_editor_features() {
+        let state = WebState::new();
+        let router = create_all_routes(&state).layer(Extension(state));
+
+        let response = router
+            .clone()
+            .oneshot(
+                Request::builder().uri("/plugins").header("accept", "application/json").body(Body::empty()).unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let plugins: Value = serde_json::from_slice(&bytes).unwrap();
+
+        let response = router
+            .oneshot(Request::builder().uri("/plugins").header("accept", "text/html").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+
+        #[cfg(feature = "nodes_ai")]
+        {
+            assert_eq!(plugins[0]["id"], "edgelink-flow-copilot/flow-copilot");
+            assert!(html.contains("[red-plugin:edgelink-flow-copilot/flow-copilot]"));
+            assert!(html.contains("RED.plugins.registerPlugin"));
+            assert!(html.contains("RED.sidebar.addTab"));
+            assert!(html.contains("RED.view.importNodes"));
+        }
+        #[cfg(not(feature = "nodes_ai"))]
+        {
+            assert_eq!(plugins, serde_json::json!([]));
+            assert!(html.is_empty());
+        }
     }
 }

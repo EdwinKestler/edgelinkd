@@ -1,0 +1,57 @@
+<script type="text/html" data-template-name="ai-provider">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-provider"><i class="fa fa-cloud"></i> Provider</label>
+        <select id="node-config-input-provider">
+            <option value="openai">OpenAI</option>
+            <option value="xai">xAI (Grok)</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="cortex">Snowflake Cortex</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-baseUrl"><i class="fa fa-globe"></i> Base URL</label>
+        <input type="text" id="node-config-input-baseUrl" placeholder="default for the provider">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-defaultModel"><i class="fa fa-cube"></i> Model</label>
+        <input type="text" id="node-config-input-defaultModel" placeholder="gpt-4o-mini">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-organization"><i class="fa fa-building"></i> Organization</label>
+        <input type="text" id="node-config-input-organization" placeholder="OpenAI org, optional">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-apiKey"><i class="fa fa-key"></i> API key</label>
+        <input type="password" id="node-config-input-apiKey">
+    </div>
+    <div class="form-tips">
+        OpenAI and xAI use the Responses API. Claude uses Anthropic Messages.
+        Cortex uses Snowflake's OpenAI-compatible Chat Completions path; <code>baseUrl</code> is required
+        (API root, no <code>/chat/completions</code> suffix).
+        Streaming, tools, and TLS-override options are rejected at deploy.
+        The key is stored in <code>flows_cred.json</code> and is never returned by the credentials API.
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType("ai-provider", {
+        category: "config",
+        defaults: {
+            name: {value: ""},
+            provider: {value: "openai", required: true},
+            baseUrl: {value: ""},
+            defaultModel: {value: "", required: true},
+            organization: {value: ""}
+        },
+        credentials: {
+            apiKey: {type: "password"}
+        },
+        label: function () {
+            return this.name || this.provider || "ai-provider";
+        }
+    });
+</script>

@@ -130,6 +130,20 @@ impl Engine {
         hex::encode(&*hash)
     }
 
+    /// Complete one prompt with a deployed AI provider without exposing its credentials.
+    #[cfg(feature = "nodes_ai")]
+    pub async fn complete_ai(
+        &self,
+        provider_id: &str,
+        model: Option<&str>,
+        system: &str,
+        prompt: &str,
+        max_tokens: u32,
+        timeout: std::time::Duration,
+    ) -> crate::Result<String> {
+        super::nodes::ai_nodes::complete_for_engine(self, provider_id, model, system, prompt, max_tokens, timeout).await
+    }
+
     pub fn downgrade(&self) -> WeakEngine {
         WeakEngine { inner: Arc::downgrade(&self.inner) }
     }
