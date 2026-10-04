@@ -1,0 +1,19 @@
+[runtime]
+
+[runtime.engine]
+
+[runtime.context]
+default = "memory"
+
+[runtime.context.stores]
+memory = { provider = "memory" }
+
+[runtime.flow]
+node_msg_queue_capacity = 16
+
+[runtime.scan]
+period_ms = 0
+
+[ui-host]
+host = "127.0.0.1"
+port = 19888
