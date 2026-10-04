@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::cliargs::CliArgs;
 
+pub mod credentials;
 pub mod list;
 pub mod run;
 

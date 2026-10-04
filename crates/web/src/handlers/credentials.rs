@@ -4,8 +4,9 @@
 //! changes inside the flow deploy body. Passwords are never returned. An unchanged password is
 //! the sentinel `__PWRD__`, and an empty password deletes the stored value.
 //!
-//! Secrets are stored in plaintext in `flows_cred.json` beside `flows.json`. There is no
-//! credential secret in this runtime. The flow file and `GET /flows` do not contain them.
+//! Secrets are stored in the versioned credential sidecar beside `flows.json`. Plaintext is
+//! accepted during migration; encrypted sidecars remain opaque to the editor. The flow file and
+//! `GET /flows` do not contain credentials.
 
 use crate::handlers::WebState;
 use axum::{Extension, Json, extract::Path, http::StatusCode};
@@ -238,12 +239,16 @@ pub async fn snapshot_sidecar(flows_file: &StdPath) -> Result<(), String> {
 }
 
 pub async fn write_sidecar(flows_file: &StdPath, stored: &Map<String, Value>) -> Result<(), String> {
+    let store = edgelink_core::runtime::credential_storage::CredentialStore::default();
+    let _lock = store.lock(flows_file).await?;
     let path = sidecar_path(flows_file);
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await.map_err(|err| err.to_string())?;
     }
-    let text = serde_json::to_string_pretty(stored).map_err(|err| err.to_string())?;
-    edgelink_core::utils::atomic_file::write_bytes(&path, text.as_bytes(), true).await
+    let current =
+        if path.exists() { tokio::fs::read(&path).await.map_err(|err| err.to_string())? } else { b"{}".to_vec() };
+    let bytes = store.encode_for_write(flows_file, stored, &current).await?;
+    edgelink_core::utils::atomic_file::write_bytes(&path, &bytes, true).await
 }
 
 pub async fn swap_sidecar(flows_file: &StdPath) -> Result<(), String> {
@@ -270,7 +275,7 @@ pub async fn get_node_credentials(
     let Some(flows_path) = flows_path else {
         return Ok(Json(json!({})));
     };
-    let stored = flow_credentials::read_sidecar(&flows_path).await.map_err(|err| {
+    let stored = flow_credentials::read_sidecar_with(&state.credentials, &flows_path).await.map_err(|err| {
         log::error!("Failed to read node credentials: {err}");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;

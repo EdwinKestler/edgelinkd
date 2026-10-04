@@ -129,6 +129,13 @@ max_redirects = 5
 [config_editor]
 enabled = false
 
+# Credential sidecars remain plaintext until an explicit `credentials migrate` command. Once
+# migrated, this environment variable takes precedence over the local flows_cred.key keyring.
+# Never place the key value in this file or commit a generated *.key file.
+[credentials]
+key_env = "EDGELINK_CREDENTIAL_KEY"
+# key_file = "flows_cred.key"
+
 # Admin login is off until a password, a user list, or an OIDC issuer is set.
 # A whitespace password does not turn it on. viewer can read, deployer can deploy flows, and
 # administrator can change process configuration.

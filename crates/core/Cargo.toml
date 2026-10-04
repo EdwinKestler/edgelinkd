@@ -47,6 +47,9 @@ serde_with.workspace = true
 bincode.workspace = true
 sha2.workspace = true
 hex.workspace = true
+chacha20poly1305 = { workspace = true, optional = true }
+zeroize = { workspace = true, optional = true }
+fs2 = { workspace = true, optional = true }
 # Template engine and YAML support
 mustache = "0.9.0"
 serde_yaml_ng = { version = "0.10.0", optional = true }
@@ -111,3 +114,4 @@ runtime_scan = []
 nodes_modbus = []
 # OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Off unless a build asks for it.
 nodes_ai = ["reqwest"]
+credential_encryption = ["dep:chacha20poly1305", "dep:zeroize", "dep:fs2"]

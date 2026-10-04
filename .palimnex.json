@@ -9,6 +9,7 @@
     "src/**/*.rs",
     "tests/**/*",
     "*.md",
+    "docs/**/*.md",
     "adoption/**/*.md",
     "*.rs",
     "Cargo.toml",

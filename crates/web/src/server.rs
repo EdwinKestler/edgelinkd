@@ -7,13 +7,14 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 
+use edgelink_core::runtime::credential_storage::CredentialStore;
 use edgelink_core::runtime::egress::EgressPolicyHandle;
 use edgelink_core::runtime::registry::RegistryHandle;
 
 use crate::api::create_all_routes;
 use crate::handlers::auth::AdminAuth;
 use crate::handlers::fleet::Fleet;
-use crate::handlers::{FlowEngineRestartCallback, WebState};
+use crate::handlers::{FlowEngineRestartCallback, WebRuntimeServices, WebState};
 use crate::models::*;
 
 pub struct WebServer {
@@ -49,13 +50,15 @@ impl WebServer {
         assert!(!config_editor_enabled || auth.enabled(), "config editor requires configured admin authentication");
         let fleet = Fleet::from_config_with_egress(cfg, egress.clone())
             .unwrap_or_else(|err| panic!("fleet configuration is not valid: {err}"));
+        let credentials = CredentialStore::from_config(Some(cfg))
+            .unwrap_or_else(|err| panic!("credential storage configuration is not valid: {err}"));
         let web_state = WebState::assemble_with_egress(
             args,
             static_dir.into(),
             Some(cancel_token.clone()),
             auth,
             fleet,
-            egress,
+            WebRuntimeServices { egress, credentials },
             config_editor_enabled,
         );
 

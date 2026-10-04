@@ -180,7 +180,7 @@ pub async fn post_assistant_draft(
     let mut candidate = request.flows.clone();
     candidate.extend(nodes.iter().cloned());
     if let Some(path) = state.flows_file_path.read().await.clone() {
-        match flow_credentials::read_sidecar(&path).await {
+        match flow_credentials::read_sidecar_with(&state.credentials, &path).await {
             Ok(stored) => flow_credentials::merge_into(&mut candidate, &stored),
             Err(err) => {
                 log::error!("Failed to read credential sidecar while validating a Flow Copilot draft: {err}");

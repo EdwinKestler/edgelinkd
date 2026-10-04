@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use toml_edit::DocumentMut;
 
+#[cfg(test)]
+use super::WebRuntimeServices;
 use super::WebState;
 use super::reply::api_error;
 
@@ -361,7 +363,10 @@ mod tests {
             None,
             AdminAuth::open(),
             Fleet::disabled(),
-            egress,
+            WebRuntimeServices {
+                egress,
+                credentials: edgelink_core::runtime::credential_storage::CredentialStore::default(),
+            },
             true,
         );
         state.set_registry(registry).await;

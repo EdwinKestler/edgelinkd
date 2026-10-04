@@ -1,6 +1,6 @@
 # Phase 1 Central Egress Policy Report
 
-- Status: closed locally; uncommitted
+- Status: complete; committed as `b092696`
 - Date: 2026-10-03 (America/Guatemala)
 - Branch: `master`
 - Base revision: `35e0546c68c6aed057e5ac246aac46b0844f457c`
@@ -142,15 +142,14 @@ migration or credential rewrite is needed.
 
 ## Git and release state
 
-Phase 1 remains uncommitted on top of the pre-existing Phase 0/adoption working tree. No commit,
-push, tag, package publication, release, deployment, version change, flow rewrite, credential
-rewrite, or Redis flush was performed.
+Phase 1 was committed as `b092696` on top of the Phase 0/adoption baseline and later pushed to
+`origin/master`. It did not create a tag, package publication, or release, and it did not rewrite
+flows or credentials.
 
 ## Phase 1.1 editor adjustment
 
 The central policy can now be administered from **User Settings -> EdgeLinkd** without exposing
-the rest of the active environment overlay. This adjustment is closed locally and remains
-uncommitted.
+the rest of the active environment overlay. This adjustment is included in `b092696`.
 
 - The pane is opt-in through `[config_editor] enabled = true` and EdgeLinkd refuses to enable it
   without configured admin authentication.

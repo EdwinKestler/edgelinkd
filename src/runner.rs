@@ -19,6 +19,7 @@ pub async fn run_app(cli_args: Arc<CliArgs>) -> edgelink_core::Result<()> {
     match &cli_args.command {
         Some(Commands::Run { flows_path: _, headless: _, bind: _ }) => run_app_internal(cli_args.clone()).await,
         Some(Commands::List) => list_available_nodes().await,
+        Some(Commands::Credentials { command }) => crate::commands::credentials::execute(&cli_args, command).await,
         // Some(Commands::Help) => crate::commands::help::HelpCommand.execute(cli_args).await,
         None => run_app_internal(cli_args.clone()).await,
     }

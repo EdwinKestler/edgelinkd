@@ -9,6 +9,7 @@ use std::path::{Path as StdPath, PathBuf};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use edgelink_core::EdgelinkError;
+use edgelink_core::runtime::credential_storage::CredentialStore;
 use edgelink_core::runtime::engine::Engine;
 use edgelink_core::runtime::flow_credentials::{self, sidecar_path};
 use edgelink_core::utils::atomic_file::{self, FileReplace};
@@ -120,27 +121,43 @@ fn pair_replaces(
     ]
 }
 
+async fn replace_generation(files: &[FileReplace], fail_before: Option<usize>) -> Result<(), String> {
+    match fail_before {
+        Some(index) => atomic_file::replace_files_failing_before(files, index).await,
+        None => atomic_file::replace_files(files).await,
+    }
+}
+
 /// Snapshot the live pair and replace it as one write-set. A later rename restores every file
 /// already replaced in this set.
 pub async fn persist_pair(flows_path: &StdPath, flows: &[Value], stored: &Map<String, Value>) -> Result<(), String> {
-    persist_pair_inner(flows_path, flows, stored, None).await
+    let store = CredentialStore::default();
+    let _lock = store.lock(flows_path).await?;
+    persist_pair_with_store(&store, flows_path, flows, stored).await
+}
+
+async fn persist_pair_with_store(
+    store: &CredentialStore,
+    flows_path: &StdPath,
+    flows: &[Value],
+    stored: &Map<String, Value>,
+) -> Result<(), String> {
+    persist_pair_inner(store, flows_path, flows, stored, None).await
 }
 
 async fn persist_pair_inner(
+    store: &CredentialStore,
     flows_path: &StdPath,
     flows: &[Value],
     stored: &Map<String, Value>,
     fail_before: Option<usize>,
 ) -> Result<(), String> {
     let flows_bytes = serde_json::to_string_pretty(flows).map_err(|err| err.to_string())?.into_bytes();
-    let cred_bytes = serde_json::to_string_pretty(stored).map_err(|err| err.to_string())?.into_bytes();
     let live_flows = read_or(flows_path, b"[]").await?;
     let live_creds = read_or(&sidecar_path(flows_path), b"{}").await?;
+    let cred_bytes = store.encode_for_write(flows_path, stored, &live_creds).await?;
     let files = pair_replaces(flows_path, live_flows, live_creds, flows_bytes, cred_bytes);
-    match fail_before {
-        Some(index) => atomic_file::replace_files_failing_before(&files, index).await,
-        None => atomic_file::replace_files(&files).await,
-    }
+    replace_generation(&files, fail_before).await
 }
 
 pub fn with_credentials(flows: Vec<Value>, stored: &Map<String, Value>) -> Value {
@@ -171,12 +188,17 @@ pub async fn commit(
     flows_path: &StdPath,
     mut flows: Vec<Value>,
 ) -> Result<(Vec<Value>, String), DeployErr> {
-    let mut stored = flow_credentials::read_sidecar(flows_path).await.map_err(DeployErr::Internal)?;
+    let _credential_lock = state.credentials.lock(flows_path).await.map_err(DeployErr::Internal)?;
+    let mut stored = state
+        .credentials
+        .read_sidecar_while_locked(flows_path, &_credential_lock)
+        .await
+        .map_err(DeployErr::Internal)?;
     credentials::separate(&mut flows, &mut stored);
     let attached = with_credentials(flows.clone(), &stored);
     prepare(state, &attached).await?;
     let snapshot = snapshot_all(flows_path).await.map_err(DeployErr::Internal)?;
-    persist_pair(flows_path, &flows, &stored).await.map_err(DeployErr::Internal)?;
+    persist_pair_with_store(&state.credentials, flows_path, &flows, &stored).await.map_err(DeployErr::Internal)?;
     let revision = Engine::revision_of(&Value::Array(flows.clone()));
     if let Err(err) = activate(state, attached).await {
         if let Err(restore) = restore_all(flows_path, snapshot).await {
@@ -194,14 +216,8 @@ fn parse_flows(bytes: &[u8]) -> Result<Vec<Value>, DeployErr> {
     serde_json::from_slice(bytes).map_err(|err| DeployErr::Internal(err.to_string()))
 }
 
-fn parse_creds(bytes: &[u8]) -> Result<Map<String, Value>, DeployErr> {
-    if bytes.is_empty() || bytes == b"{}" {
-        return Ok(Map::new());
-    }
-    serde_json::from_slice(bytes).map_err(|err| DeployErr::Internal(err.to_string()))
-}
-
 pub async fn rollback_pair(state: &WebState, flows_path: &StdPath) -> Result<String, DeployErr> {
+    let _credential_lock = state.credentials.lock(flows_path).await.map_err(DeployErr::Internal)?;
     let prev = previous_flows_path(flows_path);
     if !prev.exists() {
         return Err(DeployErr::NotFound);
@@ -210,14 +226,18 @@ pub async fn rollback_pair(state: &WebState, flows_path: &StdPath) -> Result<Str
     let live_creds = read_or(&sidecar_path(flows_path), b"{}").await.map_err(DeployErr::Internal)?;
     let prev_flows = tokio::fs::read(&prev).await.map_err(|err| DeployErr::Internal(err.to_string()))?;
     let prev_creds = read_or(&previous_creds_path(flows_path), b"{}").await.map_err(DeployErr::Internal)?;
-    let attached = with_credentials(parse_flows(&prev_flows)?, &parse_creds(&prev_creds)?);
+    let decoded_prev = state.credentials.decode_bytes(flows_path, &prev_creds).await.map_err(DeployErr::Internal)?;
+    let attached = with_credentials(parse_flows(&prev_flows)?, &decoded_prev);
     prepare(state, &attached).await?;
-    atomic_file::replace_files(&[
-        FileReplace { path: sidecar_path(flows_path), bytes: prev_creds.clone(), private: true },
-        FileReplace { path: flows_path.to_path_buf(), bytes: prev_flows.clone(), private: false },
-        FileReplace { path: previous_creds_path(flows_path), bytes: live_creds.clone(), private: true },
-        FileReplace { path: previous_flows_path(flows_path), bytes: live_flows.clone(), private: false },
-    ])
+    replace_generation(
+        &[
+            FileReplace { path: sidecar_path(flows_path), bytes: prev_creds.clone(), private: true },
+            FileReplace { path: flows_path.to_path_buf(), bytes: prev_flows.clone(), private: false },
+            FileReplace { path: previous_creds_path(flows_path), bytes: live_creds.clone(), private: true },
+            FileReplace { path: previous_flows_path(flows_path), bytes: live_flows.clone(), private: false },
+        ],
+        None,
+    )
     .await
     .map_err(DeployErr::Internal)?;
     let flows = parse_flows(&prev_flows)?;
@@ -293,21 +313,65 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_failed_flows_rename_restores_the_sidecar() {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-pair-{}", uuid::Uuid::new_v4())));
-        std::fs::create_dir_all(&dir.0).unwrap();
-        let flows = dir.0.join("flows.json");
-        std::fs::write(&flows, b"[]").unwrap();
-        let stored = json!({ "b": { "user": "operator" } });
-        let stored = stored.as_object().unwrap().clone();
-        let err =
-            persist_pair_inner(&flows, &[json!({ "id": "a", "type": "tab" })], &stored, Some(3)).await.unwrap_err();
-        assert!(!err.contains("operator"));
-        assert_eq!(read(&flows), "[]");
-        let cred = sidecar_path(&flows);
-        if cred.exists() {
-            let text = read(&cred);
-            assert!(!text.contains("operator"), "{text}");
+    async fn every_failed_deploy_rename_restores_the_four_file_generation() {
+        for fail_before in 0..4 {
+            let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-pair-{}", uuid::Uuid::new_v4())));
+            std::fs::create_dir_all(&dir.0).unwrap();
+            let flows = dir.0.join("flows.json");
+            let paths = [flows.clone(), sidecar_path(&flows), previous_flows_path(&flows), previous_creds_path(&flows)];
+            let originals = [
+                br#"[{"id":"live","type":"tab"}]"#.to_vec(),
+                br#"{"live":{"user":"original"}}"#.to_vec(),
+                br#"[{"id":"previous","type":"tab"}]"#.to_vec(),
+                br#"{"previous":{"user":"original"}}"#.to_vec(),
+            ];
+            for (path, bytes) in paths.iter().zip(&originals) {
+                std::fs::write(path, bytes).unwrap();
+            }
+            let stored = json!({ "candidate": { "user": "operator" } }).as_object().unwrap().clone();
+            let err = persist_pair_inner(
+                &CredentialStore::default(),
+                &flows,
+                &[json!({ "id": "candidate", "type": "tab" })],
+                &stored,
+                Some(fail_before),
+            )
+            .await
+            .unwrap_err();
+            assert!(!err.contains("operator"));
+            for (path, original) in paths.iter().zip(&originals) {
+                assert_eq!(&std::fs::read(path).unwrap(), original, "failure before rename {fail_before}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn every_failed_rollback_rename_restores_the_four_file_generation() {
+        for fail_before in 0..4 {
+            let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-rollback-{}", uuid::Uuid::new_v4())));
+            std::fs::create_dir_all(&dir.0).unwrap();
+            let flows = dir.0.join("flows.json");
+            let paths = [sidecar_path(&flows), flows.clone(), previous_creds_path(&flows), previous_flows_path(&flows)];
+            let originals = [
+                br#"{"live":{"user":"original"}}"#.to_vec(),
+                br#"[{"id":"live","type":"tab"}]"#.to_vec(),
+                br#"{"previous":{"user":"original"}}"#.to_vec(),
+                br#"[{"id":"previous","type":"tab"}]"#.to_vec(),
+            ];
+            for (path, bytes) in paths.iter().zip(&originals) {
+                std::fs::write(path, bytes).unwrap();
+            }
+            let replacements = [
+                FileReplace { path: paths[0].clone(), bytes: originals[2].clone(), private: true },
+                FileReplace { path: paths[1].clone(), bytes: originals[3].clone(), private: false },
+                FileReplace { path: paths[2].clone(), bytes: originals[0].clone(), private: true },
+                FileReplace { path: paths[3].clone(), bytes: originals[1].clone(), private: false },
+            ];
+            let err = replace_generation(&replacements, Some(fail_before)).await.unwrap_err();
+            assert!(err.contains("injected rename failure"), "{err}");
+            for (path, original) in paths.iter().zip(&originals) {
+                assert_eq!(&std::fs::read(path).unwrap(), original, "failure before rename {fail_before}");
+            }
         }
     }
 

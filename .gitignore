@@ -11,6 +11,8 @@ __pycache__
 /flows.json.prev
 /flows_cred.json
 /flows_cred.json.prev
+/flows_cred.json.lock
+/flows_cred.json.txn
 /fleet.json
 /audit.log
 /build-out
@@ -22,6 +24,16 @@ __pycache__
 .palimnex/
 *.pmem
 *.key
+
+# Local AI-agent state that is not part of the product
+/.claude/
+/.grok/
+/.agents/skills/rust-skills/
+/skills-lock.json
+
+# Operator-created credential recovery material belongs outside the checkout
+/credential-backups/
+/credential-exports/
 
 # Client-only page toolchain (Vite). The lockfile stays.
 /crates/web/client/node_modules

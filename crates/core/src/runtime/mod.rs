@@ -1,4 +1,5 @@
 pub mod context;
+pub mod credential_storage;
 pub mod debug_channel;
 pub mod egress;
 pub mod engine;

@@ -47,6 +47,8 @@ impl EdgelinkEnv {
     pub fn prepare(&self) -> Result<(), EdgelinkError> {
         // Parse and validate this before creating files or starting any runtime tasks.
         edgelink_core::runtime::egress::EgressPolicy::load(Some(&self.config))?;
+        edgelink_core::runtime::credential_storage::CredentialStore::from_config(Some(&self.config))
+            .map_err(anyhow::Error::msg)?;
         let flows_path =
             self.config.get_string("flows_path").expect("Config must provide flows_path after normalization");
         let is_default = self.config.get_bool("flows_path_is_default").unwrap_or(false);

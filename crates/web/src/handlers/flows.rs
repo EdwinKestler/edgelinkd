@@ -358,6 +358,27 @@ mod tests {
         (router, dir, flows)
     }
 
+    #[cfg(feature = "credential_encryption")]
+    async fn encrypted_router()
+    -> (axum::Router, TempDir, std::path::PathBuf, edgelink_core::runtime::credential_storage::CredentialStore) {
+        use edgelink_core::runtime::credential_storage::{CredentialStore, previous_credential_path};
+        use edgelink_core::runtime::flow_credentials::sidecar_path;
+
+        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-encrypted-flows-{}", uuid::Uuid::new_v4())));
+        std::fs::create_dir_all(&dir.0).unwrap();
+        let flows = dir.0.join("flows.json");
+        std::fs::write(&flows, b"[]").unwrap();
+        std::fs::write(deploy::previous_flows_path(&flows), b"[]").unwrap();
+        std::fs::write(sidecar_path(&flows), b"{}").unwrap();
+        std::fs::write(previous_credential_path(&flows), b"{}").unwrap();
+        let store = CredentialStore::default();
+        store.migrate(&flows, false, Some(&dir.0.join("backup"))).await.unwrap();
+        let state = WebState::new();
+        state.set_flows_file_path(flows.clone()).await;
+        let router = create_all_routes(&state).layer(Extension(state));
+        (router, dir, flows, store)
+    }
+
     async fn call(router: &axum::Router, method: &str, uri: &str, body: Option<Value>) -> (StatusCode, Value) {
         let mut builder = Request::builder().method(method).uri(uri);
         let payload = if let Some(body) = body {
@@ -495,6 +516,88 @@ mod tests {
         let log = std::fs::read_to_string(dir.0.join("audit.log")).unwrap();
         assert!(!log.contains("secret-value"));
         assert!(!log.contains("other-secret"));
+    }
+
+    #[cfg(feature = "credential_encryption")]
+    #[tokio::test]
+    async fn encrypted_credentials_keep_placeholder_clear_and_rollback_semantics() {
+        let (router, dir, flows, store) = encrypted_router().await;
+        let initial = json!({
+            "id": "b",
+            "type": "mqtt-broker",
+            "broker": "localhost",
+            "credentials": { "user": "operator", "password": "fixture-secret" }
+        });
+        let (status, _) = call(&router, "POST", "/flows", Some(json!({ "flows": [initial] }))).await;
+        assert_eq!(status, StatusCode::OK);
+        let raw = std::fs::read_to_string(dir.0.join("flows_cred.json")).unwrap();
+        assert!(raw.contains("edgelink-credentials"));
+        assert!(!raw.contains("fixture-secret"));
+        let (status, view) = call(&router, "GET", "/credentials/mqtt-broker/b", None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(view, json!({ "user": "operator", "has_password": true }));
+        let (_, current) = call(&router, "GET", "/flows", None).await;
+
+        let keep = json!({
+            "flows": [{
+                "id": "b",
+                "type": "mqtt-broker",
+                "broker": "localhost",
+                "credentials": { "user": "operator", "password": "__PWRD__" }
+            }],
+            "rev": current["rev"]
+        });
+        assert_eq!(call(&router, "POST", "/flows", Some(keep)).await.0, StatusCode::OK);
+        assert_eq!(store.read_sidecar(&flows).await.unwrap()["b"]["password"], "fixture-secret");
+
+        let changed = json!({
+            "id": "b",
+            "type": "mqtt-broker",
+            "broker": "localhost",
+            "credentials": { "user": "operator", "password": "fixture-changed" }
+        });
+        assert_eq!(call(&router, "POST", "/flows", Some(json!({ "flows": [changed] }))).await.0, StatusCode::OK);
+        assert_eq!(call(&router, "POST", "/flows/rollback", None).await.0, StatusCode::OK);
+        assert_eq!(store.read_sidecar(&flows).await.unwrap()["b"]["password"], "fixture-secret");
+
+        let cleared = json!({
+            "id": "b",
+            "type": "mqtt-broker",
+            "broker": "localhost",
+            "credentials": { "user": "operator", "password": "" }
+        });
+        assert_eq!(call(&router, "POST", "/flows", Some(json!({ "flows": [cleared] }))).await.0, StatusCode::OK);
+        assert!(store.read_sidecar(&flows).await.unwrap()["b"].get("password").is_none());
+        let audit = std::fs::read_to_string(dir.0.join("audit.log")).unwrap();
+        assert!(!audit.contains("fixture-secret"));
+        assert!(!audit.contains("fixture-changed"));
+    }
+
+    #[cfg(feature = "credential_encryption")]
+    #[tokio::test]
+    async fn encrypted_deploy_waits_for_the_credential_transaction_lock() {
+        let (router, _dir, flows, store) = encrypted_router().await;
+        let lock = store.lock(&flows).await.unwrap();
+        let mut deploy = tokio::spawn(async move {
+            call(
+                &router,
+                "POST",
+                "/flows",
+                Some(json!({
+                    "flows": [{
+                        "id": "b",
+                        "type": "mqtt-broker",
+                        "broker": "localhost",
+                        "credentials": { "password": "fixture-secret" }
+                    }]
+                })),
+            )
+            .await
+        });
+        assert!(tokio::time::timeout(std::time::Duration::from_millis(50), &mut deploy).await.is_err());
+        drop(lock);
+        let (status, body) = tokio::time::timeout(std::time::Duration::from_secs(2), deploy).await.unwrap().unwrap();
+        assert_eq!(status, StatusCode::OK, "{body}");
     }
 
     #[tokio::test]

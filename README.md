@@ -173,6 +173,42 @@ A deploy that sends `rev` is rejected with HTTP 409 `version_mismatch` when that
 
 Admin login stays off until `[admin]` in `edgelinkd.toml` sets a password, a `viewer`/`deployer`/`administrator` user, or a complete `[admin.oidc]` section. Viewer is read-only, deployer can edit settings and deploy flows, and administrator can change process configuration. Passwords accept Node-RED-compatible `$2a$`, `$2b$`, and `$2y$` bcrypt hashes. Generate one with `npx node-red-admin hash-pw`; plaintext remains accepted only as a migration path and emits a startup warning. Malformed or unsupported bcrypt-prefixed values stop startup. Bcrypt support is enabled by the default `admin_bcrypt` feature and can be omitted from a minimal build. An unknown role or a half-filled OIDC section also stops the process at startup. `GET /status` reports the flow revision, process uptime, node errors since the engine started, context-key ages, and MQTT or Modbus link text. Fleet push stays off until `[fleet] enabled = true`. The commented examples are in a newly created `edgelinkd.toml`.
 
+### Encrypted credential sidecars
+
+Existing plaintext `flows_cred.json` files remain readable and are never rewritten at startup.
+Encryption is an explicit operation. Preview it first, then provide a new empty backup directory:
+
+```bash
+EDGELINK_HOME="$PWD" cargo run -- credentials status
+EDGELINK_HOME="$PWD" cargo run -- credentials migrate --dry-run
+EDGELINK_HOME="$PWD" cargo run -- credentials migrate --backup-dir /offline/edgelink-credential-backup
+```
+
+The default application build uses a versioned XChaCha20-Poly1305 envelope. It generates a
+private `flows_cred.key` keyring during migration unless `EDGELINK_CREDENTIAL_KEY` contains an
+injected 32-byte base64url key. An explicitly configured `credentials.key_env` overrides that
+environment-variable name; a non-empty injected key always takes precedence and malformed input
+fails closed. Never commit `*.key`, plaintext exports, or backup directories.
+
+Local-key rotation requires a new backup file for the old key. Recovery proves the supplied
+keyring decrypts both generations before installing it. Export creates a directly compatible,
+mode-`0600` plaintext sidecar pair at the requested path and its `.prev` companion for a
+controlled downgrade; it never overwrites either output.
+
+```bash
+EDGELINK_HOME="$PWD" cargo run -- credentials rotate --backup-key /offline/old-flows-cred.key
+EDGELINK_HOME="$PWD" cargo run -- credentials recover --key-file /offline/old-flows-cred.key
+EDGELINK_HOME="$PWD" cargo run -- credentials export --output /offline/flows_cred.json
+```
+
+Deploy and rollback preserve whichever sidecar format is already active. A build without the
+`credential_encryption` feature still reads plaintext, but rejects an encrypted envelope. Keep
+the encrypted installation and its offline key backup until the exported copy has been exercised
+successfully with the older runtime.
+
+The complete migration, rotation, recovery, and downgrade procedure is in the
+[credential lifecycle operations manual](docs/operations/credential-lifecycle.md).
+
 ### Outbound network policy
 
 `[egress] mode = "off"` preserves the existing outbound behavior. Use `"observe"` first to
@@ -222,6 +258,9 @@ pinned. Redirects are resolved and checked again, HTTP/AI/OIDC/fleet responses a
 policy logs contain only the purpose, protocol, port, action, and reason—not hostnames, URL paths,
 queries, credentials, or tokens. Roll back without a data migration by changing the mode to
 `observe` or `off` and restarting; flows and credential files are unchanged.
+
+See the [egress policy security runbook](docs/security/egress-policy.md) for a staged rollout,
+acceptance checks, and rollback procedure.
 
 #### Editor configuration pane
 

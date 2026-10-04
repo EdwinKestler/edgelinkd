@@ -7,6 +7,7 @@ use crate::handlers::audit::AuditLog;
 use crate::handlers::auth::AdminAuth;
 use crate::handlers::fleet::Fleet;
 use crate::models::RedSystemSettings;
+use edgelink_core::runtime::credential_storage::CredentialStore;
 use edgelink_core::runtime::egress::EgressPolicyHandle;
 use edgelink_core::runtime::engine::Engine;
 use edgelink_core::runtime::engine_events::EngineEvent;
@@ -23,6 +24,12 @@ use edgelink_core::web::web_state_trait::WebStateCore;
 
 /// Callback type for restarting the flow engine
 pub type FlowEngineRestartCallback = Arc<dyn Fn(PathBuf) -> tokio::task::JoinHandle<()> + Send + Sync>;
+
+#[derive(Clone, Default)]
+pub struct WebRuntimeServices {
+    pub egress: EgressPolicyHandle,
+    pub credentials: CredentialStore,
+}
 
 /// Application state for storing system configuration
 ///
@@ -41,6 +48,7 @@ pub struct WebState {
     pub audit: AuditLog,
     pub fleet: Arc<Fleet>,
     pub egress: EgressPolicyHandle,
+    pub credentials: CredentialStore,
     pub config_editor_enabled: bool,
     /// The environment-specific overlay edited by the configuration pane.
     pub config_file_path: RwLock<Option<PathBuf>>,
@@ -104,7 +112,7 @@ impl WebState {
             cancel_token,
             auth,
             fleet,
-            EgressPolicyHandle::default(),
+            WebRuntimeServices::default(),
             false,
         )
     }
@@ -115,7 +123,7 @@ impl WebState {
         cancel_token: Option<CancellationToken>,
         auth: AdminAuth,
         fleet: Fleet,
-        egress: EgressPolicyHandle,
+        services: WebRuntimeServices,
         config_editor_enabled: bool,
     ) -> Arc<Self> {
         Arc::new(Self {
@@ -131,7 +139,8 @@ impl WebState {
             auth: Arc::new(auth),
             audit: AuditLog::new(),
             fleet: Arc::new(fleet),
-            egress,
+            egress: services.egress,
+            credentials: services.credentials,
             config_editor_enabled,
             config_file_path: RwLock::new(None),
             applied_config_rev: RwLock::new(String::new()),

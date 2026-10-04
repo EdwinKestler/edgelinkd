@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 
 const LONG_ABOUT: &str = r#"
@@ -61,6 +63,44 @@ pub enum Commands {
     },
     /// List all available node types
     List,
+    /// Inspect, migrate, rotate, recover, or export the credential sidecar
+    Credentials {
+        #[command(subcommand)]
+        command: CredentialCommand,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum CredentialCommand {
+    /// Report sidecar formats and key availability without exposing credentials
+    Status,
+    /// Encrypt plaintext sidecars after writing an explicit backup
+    Migrate {
+        /// Validate and report the migration without writing files
+        #[arg(long)]
+        dry_run: bool,
+        /// Empty directory that receives the pre-migration installation files
+        #[arg(long)]
+        backup_dir: Option<PathBuf>,
+    },
+    /// Generate a new local key and re-encrypt both sidecar generations
+    Rotate {
+        /// New file that receives the prior keyring for recovery
+        #[arg(long)]
+        backup_key: PathBuf,
+    },
+    /// Restore a local keyring after proving it decrypts both sidecar generations
+    Recover {
+        /// Existing keyring backup to validate and install
+        #[arg(long)]
+        key_file: PathBuf,
+    },
+    /// Write an explicit private plaintext bundle for downgrade or recovery
+    Export {
+        /// New plaintext sidecar path; its matching .prev path must also not exist
+        #[arg(long)]
+        output: PathBuf,
+    },
 }
 
 impl CliArgs {

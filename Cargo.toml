@@ -109,6 +109,9 @@ ctor = "^0.2"
 sha2 = "0.10"
 hex = "0.4"
 bcrypt = "0.19.3"
+chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc"] }
+zeroize = "1.8"
+fs2 = "0.4"
 reqwest = { version = "0.11", features = [
     "json",
     "rustls-tls",
@@ -167,7 +170,16 @@ identifier = "com.github.oldrev.edgelink"
 
 [features]
 full = ["default", "rqjs_bindgen"]
-default = ["core", "js", "jsonata", "nodes_network", "nodes_storage", "nodes_ai", "admin_bcrypt"]
+default = [
+    "core",
+    "js",
+    "jsonata",
+    "nodes_network",
+    "nodes_storage",
+    "nodes_ai",
+    "admin_bcrypt",
+    "credential_encryption",
+]
 core = ["edgelink-core/core"]
 js = ["edgelink-core/js"]
 jsonata = ["edgelink-core/jsonata"]
@@ -182,3 +194,5 @@ nodes_modbus = ["edgelink-core/nodes_modbus"]
 nodes_ai = ["edgelink-core/nodes_ai", "edgelink-web/nodes_ai"]
 # Node-RED-compatible bcrypt password verification. Default-on, but removable from minimal builds.
 admin_bcrypt = ["edgelink-web/admin_bcrypt"]
+# Versioned XChaCha20-Poly1305 credential envelopes and migration CLI.
+credential_encryption = ["edgelink-core/credential_encryption", "edgelink-web/credential_encryption"]

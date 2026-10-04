@@ -1,10 +1,11 @@
-use std::process;
+use std::fmt::Display;
+use std::process::ExitCode;
 use std::sync::Arc;
 
 // 3rd-party libs
 use clap::Parser;
 
-use edgelink_core::*;
+use edgelink_core::Result;
 
 include!(concat!(env!("OUT_DIR"), "/__use_node_plugins.rs"));
 
@@ -23,11 +24,21 @@ mod runner;
 pub use cliargs::*;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
     let args = Arc::new(CliArgs::parse());
-    if let Err(ref err) = runner::run_app(args).await {
-        log::error!("Application error: {err}");
-        process::exit(-1);
+    match runner::run_app(args).await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            report_application_error(&err);
+            ExitCode::FAILURE
+        }
     }
-    Ok(())
+}
+
+fn report_application_error(err: &impl Display) {
+    if log::log_enabled!(log::Level::Error) {
+        log::error!("Application error: {err}");
+    } else {
+        eprintln!("Application error: {err}");
+    }
 }

@@ -29,8 +29,9 @@ reqwest = { workspace = true }
 edgelink-core = { path = "../core" }
 
 [features]
-default = ["admin_bcrypt"]
+default = ["admin_bcrypt", "credential_encryption"]
 admin_bcrypt = ["dep:bcrypt"]
+credential_encryption = ["edgelink-core/credential_encryption"]
 nodes_modbus = ["edgelink-core/nodes_modbus"]
 runtime_scan = ["edgelink-core/runtime_scan"]
 nodes_ai = ["edgelink-core/nodes_ai"]

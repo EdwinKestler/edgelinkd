@@ -1,8 +1,8 @@
 # z8run Adoption Plan for EdgeLinkd
 
-Status: Phases 0 and 1 closed locally on 2026-10-03; phases 2-7 have not started. Phase 1
-evidence is in `adoption/phase1/REPORT.md`. The Phase 0 closure
-evidence is in `adoption/phase0/BASELINE.md`. Nothing in the adoption work is committed.
+Status: Phases 0-2 complete on 2026-10-03; phases 3-7 have not started. Phase 2
+evidence is in `adoption/phase2/REPORT.md`; earlier evidence is in
+`adoption/phase1/REPORT.md` and `adoption/phase0/BASELINE.md`.
 
 This plan evaluates patterns found in the sibling checkout at
 `/media/kestl/andor/github/z8run`, reviewed at commit
@@ -122,6 +122,9 @@ Exit gate: existing network behavior passes with explicit compatibility rules, a
 tests fail closed.
 
 ## Phase 2 - Encrypted credential storage
+
+Status: complete against `5a778f42eeb1fc890d9bd39aa94bd0cd110dca93`; see
+`adoption/phase2/DESIGN.md` and `adoption/phase2/REPORT.md`.
 
 Replace or supplement plaintext `flows_cred.json` with a versioned authenticated-encryption
 envelope while keeping Node-RED credential semantics and transactional rollback.

@@ -233,7 +233,11 @@ impl Engine {
         flows_json_path: &str,
         elcfg: Option<config::Config>,
     ) -> crate::Result<Engine> {
-        let json = super::flow_credentials::flows_value_with_credentials(std::path::Path::new(flows_json_path)).await?;
+        let json = super::flow_credentials::flows_value_with_credentials(
+            std::path::Path::new(flows_json_path),
+            elcfg.as_ref(),
+        )
+        .await?;
         Self::with_json(reg, json, elcfg)
     }
 
