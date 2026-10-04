@@ -8,6 +8,7 @@ use tokio_util::sync::CancellationToken;
 
 use serde::Deserialize;
 
+use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -106,6 +107,7 @@ struct TcpGetNode {
     reconnect_time: u64,
     socket_timeout: Option<u64>,
     msg_queue_size: usize,
+    egress: EgressPolicyHandle,
 }
 
 impl TcpGetNode {
@@ -131,7 +133,7 @@ impl TcpGetNode {
         FlowNodeBehavior::report_status(self, status, stop_token.clone()).await;
     }
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         state: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
@@ -148,7 +150,9 @@ impl TcpGetNode {
         let reconnect_time = 10000;
         let socket_timeout = None;
         // Node-RED caps the per-connection queues with its `tcpMsgQueueSize` setting.
-        let msg_queue_size = _flow.settings().tcp_msg_queue_size;
+        let msg_queue_size = flow.settings().tcp_msg_queue_size;
+        let engine =
+            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("tcp request has no engine"))?;
         let node = TcpGetNode {
             base: state,
             config: tcp_config,
@@ -156,6 +160,7 @@ impl TcpGetNode {
             reconnect_time,
             socket_timeout,
             msg_queue_size,
+            egress: engine.egress_policy().clone(),
         };
         Ok(Box::new(node))
     }
@@ -198,6 +203,15 @@ fn default_timeout() -> u64 {
 }
 
 impl TcpGetNode {
+    async fn connect_key(&self, connection_key: &str) -> crate::Result<TcpStream> {
+        let (host, port) = connection_key
+            .rsplit_once(':')
+            .ok_or_else(|| crate::EdgelinkError::invalid_operation("TCP request target is invalid"))?;
+        let port =
+            port.parse::<u16>().map_err(|_| crate::EdgelinkError::invalid_operation("TCP request port is invalid"))?;
+        self.egress.connect_tcp(EgressPurpose::Tcp, NetworkProtocol::Tcp, host.trim_matches(['[', ']']), port).await
+    }
+
     async fn get_payload_bytes(&self, payload: &Variant) -> crate::Result<Vec<u8>> {
         match payload {
             Variant::String(s) => Ok(s.as_bytes().to_vec()),
@@ -536,7 +550,7 @@ impl TcpGetNode {
                     }
                     last_msg = Some((msg.clone(), stop_token.clone()));
                 }
-                match TcpStream::connect(&connection_key).await {
+                match self.connect_key(&connection_key).await {
                     Ok(mut stream) => {
                         if !merged_payload.is_empty() {
                             if let Err(e) = stream.write_all(&merged_payload).await {
@@ -633,7 +647,7 @@ impl TcpGetNode {
                 _ => unreachable!(),
             }
         } else {
-            match TcpStream::connect(&connection_key).await {
+            match self.connect_key(&connection_key).await {
                 Ok(new_stream) => {
                     let stream_arc = Arc::new(Mutex::new(new_stream));
                     let queue = MessageQueue::new(self.msg_queue_size);

@@ -127,20 +127,29 @@ pub async fn get_plugins(headers: HeaderMap) -> Result<axum::response::Response,
         let html_content = generate_plugins_html().await;
         Ok(Html(html_content).into_response())
     } else {
-        // Return plugin list in JSON format
-        #[cfg(feature = "nodes_ai")]
-        let plugins = serde_json::json!([{
-            "id": "edgelink-flow-copilot/flow-copilot",
-            "name": "flow-copilot",
-            "types": ["edgelink-flow-copilot"],
-            "enabled": true,
-            "local": true,
-            "user": false,
-            "module": "edgelink-flow-copilot",
-            "version": env!("CARGO_PKG_VERSION")
-        }]);
-        #[cfg(not(feature = "nodes_ai"))]
-        let plugins = serde_json::json!([]);
+        let plugins = vec![
+            serde_json::json!({
+                "id": "edgelink-config/config-editor",
+                "name": "config-editor",
+                "types": ["edgelink-config"],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "edgelink-config",
+                "version": env!("CARGO_PKG_VERSION")
+            }),
+            #[cfg(feature = "nodes_ai")]
+            serde_json::json!({
+                "id": "edgelink-flow-copilot/flow-copilot",
+                "name": "flow-copilot",
+                "types": ["edgelink-flow-copilot"],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "edgelink-flow-copilot",
+                "version": env!("CARGO_PKG_VERSION")
+            }),
+        ];
         Ok(Json(plugins).into_response())
     }
 }
@@ -152,13 +161,17 @@ async fn generate_plugins_html() -> String {
     #[cfg(feature = "nodes_ai")]
     {
         format!(
-            "\n<!-- --- [red-plugin:edgelink-flow-copilot/flow-copilot] --- -->\n{}",
+            "\n<!-- --- [red-plugin:edgelink-config/config-editor] --- -->\n{}\n<!-- --- [red-plugin:edgelink-flow-copilot/flow-copilot] --- -->\n{}",
+            include_str!("../../config-editor/config-editor.html"),
             include_str!("../../flow-copilot/flow-copilot.html")
         )
     }
     #[cfg(not(feature = "nodes_ai"))]
     {
-        String::new()
+        format!(
+            "\n<!-- --- [red-plugin:edgelink-config/config-editor] --- -->\n{}",
+            include_str!("../../config-editor/config-editor.html")
+        )
     }
 }
 
@@ -275,9 +288,14 @@ mod tests {
         let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
 
+        assert_eq!(plugins[0]["id"], "edgelink-config/config-editor");
+        assert!(html.contains("[red-plugin:edgelink-config/config-editor]"));
+        assert!(html.contains("RED.userSettings.add"));
+        assert!(html.contains("id=\"red-ui-settings-tab-edgelink-config\""));
+
         #[cfg(feature = "nodes_ai")]
         {
-            assert_eq!(plugins[0]["id"], "edgelink-flow-copilot/flow-copilot");
+            assert_eq!(plugins[1]["id"], "edgelink-flow-copilot/flow-copilot");
             assert!(html.contains("[red-plugin:edgelink-flow-copilot/flow-copilot]"));
             assert!(html.contains("RED.plugins.registerPlugin"));
             assert!(html.contains("RED.sidebar.addTab"));
@@ -285,8 +303,8 @@ mod tests {
         }
         #[cfg(not(feature = "nodes_ai"))]
         {
-            assert_eq!(plugins, serde_json::json!([]));
-            assert!(html.is_empty());
+            assert_eq!(plugins.as_array().unwrap().len(), 1);
+            assert!(!html.is_empty());
         }
     }
 }

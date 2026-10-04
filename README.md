@@ -171,7 +171,83 @@ port = 1888
 
 A deploy that sends `rev` is rejected with HTTP 409 `version_mismatch` when that rev is not the SHA-256 of the flows on disk. Leaving `rev` out still deploys. `POST /flows/rollback` restores the previous file. One previous copy is kept.
 
-Admin login stays off until `[admin]` in `edgelinkd.toml` sets a password, a `viewer`/`deployer` user, or a complete `[admin.oidc]` section. An unknown role or a half-filled OIDC section stops the process at startup. `GET /status` reports the flow revision, process uptime, node errors since the engine started, context-key ages, and MQTT or Modbus link text. Fleet push stays off until `[fleet] enabled = true`. The commented examples are in a newly created `edgelinkd.toml`.
+Admin login stays off until `[admin]` in `edgelinkd.toml` sets a password, a `viewer`/`deployer`/`administrator` user, or a complete `[admin.oidc]` section. Viewer is read-only, deployer can edit settings and deploy flows, and administrator can change process configuration. Passwords accept Node-RED-compatible `$2a$`, `$2b$`, and `$2y$` bcrypt hashes. Generate one with `npx node-red-admin hash-pw`; plaintext remains accepted only as a migration path and emits a startup warning. Malformed or unsupported bcrypt-prefixed values stop startup. Bcrypt support is enabled by the default `admin_bcrypt` feature and can be omitted from a minimal build. An unknown role or a half-filled OIDC section also stops the process at startup. `GET /status` reports the flow revision, process uptime, node errors since the engine started, context-key ages, and MQTT or Modbus link text. Fleet push stays off until `[fleet] enabled = true`. The commented examples are in a newly created `edgelinkd.toml`.
+
+### Outbound network policy
+
+`[egress] mode = "off"` preserves the existing outbound behavior. Use `"observe"` first to
+inventory HTTP, AI, OIDC, fleet, MQTT, WebSocket, TCP, UDP, and Modbus decisions without
+blocking them. In `"enforce"`, every resolved address must match an exact protocol/port rule;
+private DNS targets also require an IP/CIDR constraint. Cloud metadata endpoints remain denied.
+Invalid modes, wildcard hosts, malformed CIDRs, zero ports, zero timeouts, and unknown fields
+stop startup.
+
+```toml
+[egress]
+mode = "observe" # migrate to "enforce" after reviewing the decision log
+allow_environment_proxy = false
+# proxy_url = "http://proxy.example.internal:3128"
+connect_timeout_ms = 10000
+request_timeout_ms = 60000
+idle_timeout_ms = 30000
+max_response_bytes = 1048576
+max_redirects = 5
+
+# Local industrial MQTT example. Broker credentials stay in the credential sidecar.
+[[egress.allow]]
+protocols = ["mqtt"]
+host = "127.0.0.1"
+ports = [1883]
+
+# If proxy_url is enabled, its origin needs its own address-bound rule.
+# [[egress.allow]]
+# protocols = ["http"]
+# host = "proxy.example.internal"
+# cidr = "192.168.10.0/24"
+# ports = [3128]
+
+# A private DNS name must also be bound to its expected network.
+[[egress.allow]]
+protocols = ["modbus"]
+host = "plc.example.internal"
+cidr = "192.168.20.0/24"
+ports = [502]
+```
+
+In `observe` and `enforce`, ambient environment proxy variables are always isolated. Setting
+`allow_environment_proxy = true` in a governed mode is rejected because such a proxy cannot be
+pinned. Use an explicit credential-free `proxy_url` instead and add a matching HTTP/HTTPS rule;
+the proxy is then a declared trust boundary and its actual socket is resolved, checked, and
+pinned. Redirects are resolved and checked again, HTTP/AI/OIDC/fleet responses are bounded, and
+policy logs contain only the purpose, protocol, port, action, and reason—not hostnames, URL paths,
+queries, credentials, or tokens. Roll back without a data migration by changing the mode to
+`observe` or `off` and restarting; flows and credential files are unchanged.
+
+#### Editor configuration pane
+
+An administrator can manage the egress policy from **User Settings → EdgeLinkd**. The pane reads,
+validates, saves, applies, and rolls back only the `[egress]` table in the active environment
+overlay (`edgelinkd.dev.toml` by default). It never returns the rest of that file to the browser,
+because it may contain passwords or OIDC secrets. Saves use a SHA-256 revision, atomic `0600`
+writes, and one `.prev` copy. Apply replaces the shared policy and restarts the flow runtime; an
+activation failure restores the previous policy and file.
+
+The pane is off by default and cannot be enabled without authentication:
+
+```toml
+[config_editor]
+enabled = true
+
+[[admin.users]]
+username = "operator"
+# Paste the output of: npx node-red-admin hash-pw
+password = "change-me"
+role = "administrator"
+```
+
+The backend independently enforces `config.read`, `config.write`, and `runtime.restart`. The
+`deployer` role deliberately lacks those permissions. Bootstrap and recovery remain file-based so
+an editor session cannot grant itself administrator access.
 
 ## Project Status
 

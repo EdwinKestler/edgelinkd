@@ -7,6 +7,7 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 
+use edgelink_core::runtime::egress::EgressPolicyHandle;
 use edgelink_core::runtime::registry::RegistryHandle;
 
 use crate::api::create_all_routes;
@@ -22,16 +23,41 @@ pub struct WebServer {
 
 impl WebServer {
     pub fn new(static_dir: impl Into<PathBuf>, cancel_token: CancellationToken, cfg: &config::Config) -> Self {
-        let args = match RedSystemSettings::load(cfg) {
-            Ok(a) => Arc::new(a),
+        let egress = EgressPolicyHandle::load(Some(cfg))
+            .unwrap_or_else(|err| panic!("egress configuration is not valid: {err}"));
+        Self::new_with_egress(static_dir, cancel_token, cfg, egress)
+    }
+
+    pub fn new_with_egress(
+        static_dir: impl Into<PathBuf>,
+        cancel_token: CancellationToken,
+        cfg: &config::Config,
+        egress: EgressPolicyHandle,
+    ) -> Self {
+        let mut args = match RedSystemSettings::load(cfg) {
+            Ok(a) => a,
             Err(e) => {
                 log::warn!("Failed to load WebServerArgs from config: {e}, using default");
-                Arc::new(RedSystemSettings::default())
+                RedSystemSettings::default()
             }
         };
-        let auth = AdminAuth::from_config(cfg).unwrap_or_else(|err| panic!("admin configuration is not valid: {err}"));
-        let fleet = Fleet::from_config(cfg).unwrap_or_else(|err| panic!("fleet configuration is not valid: {err}"));
-        let web_state = WebState::assemble(args, static_dir.into(), Some(cancel_token.clone()), auth, fleet);
+        let auth = AdminAuth::from_config_with_egress(cfg, egress.clone())
+            .unwrap_or_else(|err| panic!("admin configuration is not valid: {err}"));
+        let config_editor_enabled = cfg.get_bool("config_editor.enabled").unwrap_or(false);
+        args.config_editor = config_editor_enabled;
+        let args = Arc::new(args);
+        assert!(!config_editor_enabled || auth.enabled(), "config editor requires configured admin authentication");
+        let fleet = Fleet::from_config_with_egress(cfg, egress.clone())
+            .unwrap_or_else(|err| panic!("fleet configuration is not valid: {err}"));
+        let web_state = WebState::assemble_with_egress(
+            args,
+            static_dir.into(),
+            Some(cancel_token.clone()),
+            auth,
+            fleet,
+            egress,
+            config_editor_enabled,
+        );
 
         // Start heartbeat task
         tokio::spawn({
@@ -55,6 +81,11 @@ impl WebServer {
 
     pub async fn with_flows_file_path(self, path: PathBuf) -> Self {
         self.state.set_flows_file_path(path).await;
+        self
+    }
+
+    pub async fn with_config_file_path(self, path: PathBuf) -> Self {
+        self.state.set_config_file_path(path).await;
         self
     }
 
@@ -127,5 +158,21 @@ impl WebServer {
                 }
             }
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    #[should_panic(expected = "config editor requires configured admin authentication")]
+    async fn the_configuration_editor_cannot_run_without_authentication() {
+        let cfg = config::Config::builder()
+            .add_source(config::File::from_str("[config_editor]\nenabled = true\n", config::FileFormat::Toml))
+            .build()
+            .unwrap();
+
+        let _ = WebServer::new(std::env::temp_dir(), CancellationToken::new(), &cfg);
     }
 }

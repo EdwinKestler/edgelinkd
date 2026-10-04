@@ -15,10 +15,13 @@ futures-util = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+toml_edit = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
 chrono = { workspace = true, features = ["serde"] }
 anyhow = { workspace = true }
 sha2 = { workspace = true }
+hex = { workspace = true }
+bcrypt = { workspace = true, optional = true }
 tokio-tungstenite = { workspace = true, optional = true, features = ["rustls-tls-native-roots"] }
 config = { workspace = true }
 reqwest = { workspace = true }
@@ -26,7 +29,8 @@ reqwest = { workspace = true }
 edgelink-core = { path = "../core" }
 
 [features]
-default = []
+default = ["admin_bcrypt"]
+admin_bcrypt = ["dep:bcrypt"]
 nodes_modbus = ["edgelink-core/nodes_modbus"]
 runtime_scan = ["edgelink-core/runtime_scan"]
 nodes_ai = ["edgelink-core/nodes_ai"]

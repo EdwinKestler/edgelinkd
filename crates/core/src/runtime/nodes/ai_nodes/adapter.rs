@@ -6,6 +6,7 @@ use reqwest::Client;
 use serde_json::{Value, json};
 
 use crate::EdgelinkError;
+use crate::runtime::egress::{EgressPolicy, EgressPurpose};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ProviderKind {
@@ -76,15 +77,38 @@ pub(crate) struct ProviderSettings {
     pub organization: Option<String>,
 }
 
+#[cfg(test)]
 pub(crate) async fn complete(
     client: &Client,
     settings: &ProviderSettings,
     request: &ChatRequest,
 ) -> crate::Result<ChatResponse> {
+    complete_inner(client, None, settings, request).await
+}
+
+pub(crate) async fn complete_with_policy(
+    client: &Client,
+    policy: &EgressPolicy,
+    settings: &ProviderSettings,
+    request: &ChatRequest,
+) -> crate::Result<ChatResponse> {
+    if policy.mode() == crate::runtime::egress::EgressMode::Off {
+        complete_inner(client, None, settings, request).await
+    } else {
+        complete_inner(client, Some(policy), settings, request).await
+    }
+}
+
+async fn complete_inner(
+    client: &Client,
+    policy: Option<&EgressPolicy>,
+    settings: &ProviderSettings,
+    request: &ChatRequest,
+) -> crate::Result<ChatResponse> {
     match settings.kind {
-        ProviderKind::Openai | ProviderKind::Xai => responses_complete(client, settings, request).await,
-        ProviderKind::Anthropic => anthropic_complete(client, settings, request).await,
-        ProviderKind::Cortex => chat_completions_complete(client, settings, request).await,
+        ProviderKind::Openai | ProviderKind::Xai => responses_complete(client, policy, settings, request).await,
+        ProviderKind::Anthropic => anthropic_complete(client, policy, settings, request).await,
+        ProviderKind::Cortex => chat_completions_complete(client, policy, settings, request).await,
     }
 }
 
@@ -117,24 +141,53 @@ fn fail(status: reqwest::StatusCode, body: &str, secret: &str) -> EdgelinkError 
 
 async fn send_json(
     client: &Client,
+    policy: Option<&EgressPolicy>,
     settings: &ProviderSettings,
     url: &str,
     headers: &[(&str, String)],
     body: Value,
     timeout: Duration,
 ) -> crate::Result<Value> {
+    let governed;
+    let client = if let Some(policy) = policy {
+        governed = policy.http_client(EgressPurpose::AiProvider, url).await?;
+        &governed
+    } else {
+        client
+    };
+    let timeout = policy.map_or(timeout, |policy| timeout.min(policy.request_timeout()));
     let mut req = client.post(url).timeout(timeout).header("content-type", "application/json");
     for (name, value) in headers {
         req = req.header(*name, value);
     }
     let response = req.json(&body).send().await.map_err(|err| {
-        EdgelinkError::invalid_operation(&hide_secret(&format!("ai request failed: {err}"), &settings.api_key))
+        if policy.is_some() {
+            EdgelinkError::invalid_operation("ai request failed")
+        } else {
+            EdgelinkError::invalid_operation(&hide_secret(&format!("ai request failed: {err}"), &settings.api_key))
+        }
     })?;
     let status = response.status();
-    let text = response
-        .text()
-        .await
-        .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&err.to_string(), &settings.api_key)))?;
+    let text = if let Some(policy) = policy {
+        let mut response = response;
+        let mut bytes = Vec::new();
+        while let Some(chunk) = tokio::time::timeout(policy.idle_timeout(), response.chunk())
+            .await
+            .map_err(|_| EdgelinkError::Timeout)?
+            .map_err(|_| EdgelinkError::invalid_operation("ai response read failed"))?
+        {
+            if bytes.len().saturating_add(chunk.len()) > policy.max_response_bytes() {
+                return Err(EdgelinkError::invalid_operation("ai response exceeds configured limit"));
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        String::from_utf8(bytes).map_err(|_| EdgelinkError::invalid_operation("ai response is not UTF-8"))?
+    } else {
+        response
+            .text()
+            .await
+            .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&err.to_string(), &settings.api_key)))?
+    };
     if !status.is_success() {
         return Err(fail(status, &text, &settings.api_key));
     }
@@ -156,6 +209,7 @@ fn user_messages_as_input(request: &ChatRequest) -> Value {
 
 async fn responses_complete(
     client: &Client,
+    policy: Option<&EgressPolicy>,
     settings: &ProviderSettings,
     request: &ChatRequest,
 ) -> crate::Result<ChatResponse> {
@@ -174,7 +228,7 @@ async fn responses_complete(
     if let Some(org) = &settings.organization {
         headers.push(("openai-organization", org.clone()));
     }
-    let value = send_json(client, settings, &url, &headers, body, request.timeout).await?;
+    let value = send_json(client, policy, settings, &url, &headers, body, request.timeout).await?;
     let text = responses_text(&value)?;
     Ok(ChatResponse {
         text,
@@ -207,6 +261,7 @@ fn responses_text(value: &Value) -> crate::Result<String> {
 
 async fn anthropic_complete(
     client: &Client,
+    policy: Option<&EgressPolicy>,
     settings: &ProviderSettings,
     request: &ChatRequest,
 ) -> crate::Result<ChatResponse> {
@@ -227,7 +282,7 @@ async fn anthropic_complete(
     }
     let headers = [("x-api-key", settings.api_key.clone()), ("anthropic-version", "2023-06-01".to_owned())];
     let headers: Vec<(&str, String)> = headers.iter().map(|(k, v)| (*k, v.clone())).collect();
-    let value = send_json(client, settings, &url, &headers, body, request.timeout).await?;
+    let value = send_json(client, policy, settings, &url, &headers, body, request.timeout).await?;
     let mut collected = String::new();
     if let Some(content) = value.get("content").and_then(Value::as_array) {
         for part in content {
@@ -250,6 +305,7 @@ async fn anthropic_complete(
 
 async fn chat_completions_complete(
     client: &Client,
+    policy: Option<&EgressPolicy>,
     settings: &ProviderSettings,
     request: &ChatRequest,
 ) -> crate::Result<ChatResponse> {
@@ -272,7 +328,7 @@ async fn chat_completions_complete(
         body["max_tokens"] = json!(max_tokens);
     }
     let headers = vec![("authorization", format!("Bearer {}", settings.api_key))];
-    let value = send_json(client, settings, &url, &headers, body, request.timeout).await?;
+    let value = send_json(client, policy, settings, &url, &headers, body, request.timeout).await?;
     let text = value
         .pointer("/choices/0/message/content")
         .and_then(Value::as_str)
@@ -421,6 +477,86 @@ mod tests {
         };
         let err = complete(&client(), &settings, &request()).await.unwrap_err();
         assert!(!err.to_string().contains("super-secret-key"), "{err}");
+        task.abort();
+    }
+
+    #[tokio::test]
+    async fn governed_provider_response_is_bounded() {
+        let app = Router::new().route(
+            "/v1/responses",
+            post(|| async { Json(json!({ "output_text": "this response is deliberately too large" })) }),
+        );
+        let (base, task) = serve(app).await;
+        let port = url::Url::parse(&base).unwrap().port().unwrap();
+        let cfg = config::Config::builder()
+            .add_source(config::File::from_str(
+                &format!(
+                    r#"
+                    [egress]
+                    mode = "enforce"
+                    max_response_bytes = 12
+
+                    [[egress.allow]]
+                    protocols = ["http"]
+                    host = "127.0.0.1"
+                    ports = [{port}]
+                    "#
+                ),
+                config::FileFormat::Toml,
+            ))
+            .build()
+            .unwrap();
+        let policy = EgressPolicy::load(Some(&cfg)).unwrap();
+        let settings = ProviderSettings {
+            kind: ProviderKind::Openai,
+            base_url: format!("{base}/v1"),
+            api_key: "secret-not-in-error".into(),
+            organization: None,
+        };
+        let err = complete_with_policy(&client(), &policy, &settings, &request()).await.unwrap_err();
+        assert!(err.to_string().contains("configured limit"), "{err}");
+        assert!(!err.to_string().contains("secret-not-in-error"), "{err}");
+        task.abort();
+    }
+
+    #[tokio::test]
+    async fn governed_provider_request_timeout_is_enforced() {
+        let app = Router::new().route(
+            "/v1/responses",
+            post(|| async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Json(json!({ "output_text": "late" }))
+            }),
+        );
+        let (base, task) = serve(app).await;
+        let port = url::Url::parse(&base).unwrap().port().unwrap();
+        let cfg = config::Config::builder()
+            .add_source(config::File::from_str(
+                &format!(
+                    r#"
+                    [egress]
+                    mode = "enforce"
+                    request_timeout_ms = 20
+
+                    [[egress.allow]]
+                    protocols = ["http"]
+                    host = "127.0.0.1"
+                    ports = [{port}]
+                    "#
+                ),
+                config::FileFormat::Toml,
+            ))
+            .build()
+            .unwrap();
+        let policy = EgressPolicy::load(Some(&cfg)).unwrap();
+        let settings = ProviderSettings {
+            kind: ProviderKind::Openai,
+            base_url: format!("{base}/v1"),
+            api_key: "secret-not-in-error".into(),
+            organization: None,
+        };
+        let err = complete_with_policy(&client(), &policy, &settings, &request()).await.unwrap_err();
+        assert_eq!(err.to_string(), "ai request failed");
         task.abort();
     }
 }

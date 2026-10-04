@@ -12,6 +12,7 @@ use axum::Extension;
 use axum::extract::Path;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
+use edgelink_core::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
 use edgelink_core::runtime::engine::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -49,6 +50,7 @@ pub struct Fleet {
     home: RwLock<Option<PathBuf>>,
     devices: RwLock<Vec<Device>>,
     client: reqwest::Client,
+    egress: EgressPolicyHandle,
 }
 
 impl Fleet {
@@ -58,6 +60,7 @@ impl Fleet {
             home: RwLock::new(None),
             devices: RwLock::new(Vec::new()),
             client: reqwest::Client::builder().timeout(Duration::from_secs(10)).build().expect("http client"),
+            egress: EgressPolicyHandle::default(),
         }
     }
 
@@ -66,6 +69,11 @@ impl Fleet {
     }
 
     pub fn from_config(cfg: &config::Config) -> Result<Self, String> {
+        let egress = EgressPolicyHandle::load(Some(cfg)).map_err(|err| err.to_string())?;
+        Self::from_config_with_egress(cfg, egress)
+    }
+
+    pub fn from_config_with_egress(cfg: &config::Config, egress: EgressPolicyHandle) -> Result<Self, String> {
         let raw = match cfg.get::<RawFleet>("fleet") {
             Ok(raw) => raw,
             Err(config::ConfigError::NotFound(_)) => return Ok(Self::disabled()),
@@ -78,6 +86,7 @@ impl Fleet {
             check_device(&device.name, &device.url, &device.stage)?;
         }
         let mut fleet = Self::disabled();
+        fleet.egress = egress;
         fleet.enabled = true;
         fleet.devices = RwLock::new(raw.devices);
         Ok(fleet)
@@ -139,13 +148,18 @@ impl Fleet {
 
     async fn get_flows(&self, device: &Device) -> Result<Value, String> {
         let url = flows_url(device);
-        let mut request = self.client.get(url);
+        let client = self.client_for(&url).await?;
+        let mut request = client.get(&url);
         if let Some(token) = device.token.as_deref().filter(|token| !token.is_empty()) {
             request = request.bearer_auth(token);
         }
-        let response = request.send().await.map_err(|err| err.to_string())?;
+        let response = request.send().await.map_err(|_| "fleet request failed".to_string())?;
         let status = response.status();
-        let text = response.text().await.map_err(|err| err.to_string())?;
+        let text = if self.egress.mode() == EgressMode::Off {
+            response.text().await.map_err(|_| "fleet response read failed".to_string())?
+        } else {
+            read_limited(response, self.egress.max_response_bytes(), self.egress.idle_timeout()).await?
+        };
         if !status.is_success() {
             return Err(format!("device '{}' returned {status}", device.name));
         }
@@ -154,15 +168,28 @@ impl Fleet {
 
     async fn post_flows(&self, device: &Device, flows: &[Value], rev: &str) -> Result<(StatusCode, Value), String> {
         let url = flows_url(device);
-        let mut request = self.client.post(url).json(&json!({ "flows": flows, "rev": rev }));
+        let client = self.client_for(&url).await?;
+        let mut request = client.post(&url).json(&json!({ "flows": flows, "rev": rev }));
         if let Some(token) = device.token.as_deref().filter(|token| !token.is_empty()) {
             request = request.bearer_auth(token);
         }
-        let response = request.send().await.map_err(|err| err.to_string())?;
+        let response = request.send().await.map_err(|_| "fleet request failed".to_string())?;
         let status = StatusCode::from_u16(response.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
-        let text = response.text().await.map_err(|err| err.to_string())?;
+        let text = if self.egress.mode() == EgressMode::Off {
+            response.text().await.map_err(|_| "fleet response read failed".to_string())?
+        } else {
+            read_limited(response, self.egress.max_response_bytes(), self.egress.idle_timeout()).await?
+        };
         let body = serde_json::from_str(&text).unwrap_or_else(|_| json!({ "message": text }));
         Ok((status, body))
+    }
+
+    async fn client_for(&self, url: &str) -> Result<reqwest::Client, String> {
+        if self.egress.mode() == EgressMode::Off {
+            Ok(self.client.clone())
+        } else {
+            self.egress.http_client(EgressPurpose::Fleet, url).await.map_err(|err| err.to_string())
+        }
     }
 
     async fn note(&self, name: &str, ok: bool, rev: Option<String>, status: u16) -> Result<(), String> {
@@ -183,6 +210,21 @@ impl Fleet {
         let text = serde_json::to_string_pretty(&FleetFile { devices }).map_err(|err| err.to_string())?;
         edgelink_core::utils::atomic_file::write_bytes(&path, text.as_bytes(), true).await
     }
+}
+
+async fn read_limited(mut response: reqwest::Response, limit: usize, idle: Duration) -> Result<String, String> {
+    let mut bytes = Vec::new();
+    while let Some(chunk) = tokio::time::timeout(idle, response.chunk())
+        .await
+        .map_err(|_| "fleet response timed out".to_string())?
+        .map_err(|_| "fleet response read failed".to_string())?
+    {
+        if bytes.len().saturating_add(chunk.len()) > limit {
+            return Err("fleet response exceeds configured limit".to_string());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    String::from_utf8(bytes).map_err(|_| "fleet response is not UTF-8".to_string())
 }
 
 #[derive(Deserialize)]
@@ -441,13 +483,34 @@ mod tests {
         );
         let dev_url = serve(development).await;
         let prod_url = serve(production).await;
+        let dev_port = dev_url.rsplit(':').next().unwrap().parse::<u16>().unwrap();
+        let prod_port = prod_url.rsplit(':').next().unwrap().parse::<u16>().unwrap();
+        let policy_cfg = config::Config::builder()
+            .add_source(config::File::from_str(
+                &format!(
+                    r#"
+                    [egress]
+                    mode = "enforce"
+
+                    [[egress.allow]]
+                    protocols = ["http"]
+                    host = "127.0.0.1"
+                    ports = [{dev_port}, {prod_port}]
+                    "#
+                ),
+                config::FileFormat::Toml,
+            ))
+            .build()
+            .unwrap();
+        let mut fleet = enabled_fleet();
+        fleet.egress = EgressPolicyHandle::load(Some(&policy_cfg)).unwrap();
 
         let state = WebState::assemble(
             Arc::new(RedSystemSettings::default()),
             std::env::temp_dir(),
             None,
             AdminAuth::open(),
-            enabled_fleet(),
+            fleet,
         );
         let dir = std::env::temp_dir().join(format!("edgelinkd-fleet-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();

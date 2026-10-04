@@ -2,8 +2,8 @@
 //!
 //! Unset admin configuration leaves every route open, which is how a default install behaves.
 //! A configured password, user list, or OIDC issuer requires a bearer token. Viewer is `read`.
-//! Deployer is `*`. An OIDC role claim of `deployer` is deployer; every other claim, including a
-//! missing one, is viewer.
+//! Deployer can edit settings and deploy flows but cannot change process configuration.
+//! Administrator is `*`. Unknown or missing OIDC roles remain viewer.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -16,6 +16,7 @@ use axum::Extension;
 use axum::extract::Query;
 use axum::http::{HeaderMap, Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use edgelink_core::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -26,10 +27,21 @@ const SESSION_SECS: u64 = 7 * 24 * 60 * 60;
 const ATTEMPT_LIMIT: usize = 5;
 const ATTEMPT_WINDOW: Duration = Duration::from_secs(10 * 60);
 const PENDING_TTL: Duration = Duration::from_secs(10 * 60);
+#[cfg(not(feature = "admin_bcrypt"))]
 const DUMMY_PASSWORD: &str = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+#[cfg(feature = "admin_bcrypt")]
+const DUMMY_BCRYPT_HASH: &str = "$2b$08$XFJlDJeJjFhpBkEtfl8SpeSjM7e8uS4Lhh7FFNQHw.cJWpycRi1ky";
+const DEPLOYER_PERMISSIONS: &str = "read,settings.write,flows.write,credentials.write";
+
+#[derive(Clone)]
+enum LocalPassword {
+    Plaintext(String),
+    #[cfg(feature = "admin_bcrypt")]
+    Bcrypt(String),
+}
 
 struct LocalUser {
-    password: String,
+    password: LocalPassword,
     permissions: String,
 }
 
@@ -98,6 +110,7 @@ pub struct AdminAuth {
     exchanges: Mutex<HashMap<String, Pending>>,
     revocations: broadcast::Sender<String>,
     client: reqwest::Client,
+    egress: EgressPolicyHandle,
 }
 
 impl AdminAuth {
@@ -112,6 +125,7 @@ impl AdminAuth {
             exchanges: Mutex::new(HashMap::new()),
             revocations: broadcast::channel(32).0,
             client: http_client().expect("http client"),
+            egress: EgressPolicyHandle::default(),
         }
     }
 
@@ -124,6 +138,11 @@ impl AdminAuth {
     }
 
     pub fn from_config(cfg: &config::Config) -> Result<Self, String> {
+        let egress = EgressPolicyHandle::load(Some(cfg)).map_err(|err| err.to_string())?;
+        Self::from_config_with_egress(cfg, egress)
+    }
+
+    pub fn from_config_with_egress(cfg: &config::Config, egress: EgressPolicyHandle) -> Result<Self, String> {
         let password = optional::<String>(cfg, "admin.password")?;
         let listed = optional::<Vec<RawUser>>(cfg, "admin.users")?.unwrap_or_default();
         let oidc = oidc_from(cfg)?;
@@ -140,17 +159,19 @@ impl AdminAuth {
                 return Err(format!("admin user '{username}' has no password"));
             }
             let permissions = local_permissions(&user.role)?;
-            users.insert(
-                username.to_string(),
-                LocalUser { password: user.password, permissions: permissions.to_string() },
-            );
+            let password = local_password(username, user.password)?;
+            users.insert(username.to_string(), LocalUser { password, permissions: permissions.to_string() });
         }
         if let Some(password) = password.filter(|value| !value.trim().is_empty())
             && !users.contains_key("admin")
         {
-            users.insert("admin".to_string(), LocalUser { password, permissions: "*".to_string() });
+            users.insert(
+                "admin".to_string(),
+                LocalUser { password: local_password("admin", password)?, permissions: "*".to_string() },
+            );
         }
         let mut auth = Self::open();
+        auth.egress = egress;
         auth.enabled = !users.is_empty() || oidc.is_some();
         auth.users = users;
         auth.oidc = oidc;
@@ -176,15 +197,15 @@ impl AdminAuth {
             .unwrap_or(Actor { username: "anonymous".to_string(), permissions: String::new() })
     }
 
-    pub(crate) fn login(&self, username: &str, password: &str) -> Result<Issued, LoginFail> {
+    pub(crate) async fn login(&self, username: &str, password: &str) -> Result<Issued, LoginFail> {
         if self.locked(username) {
             return Err(LoginFail::Locked);
         }
         let (configured, permissions) = match self.users.get(username) {
             Some(user) => (user.password.clone(), Some(user.permissions.clone())),
-            None => (DUMMY_PASSWORD.to_string(), None),
+            None => (dummy_password(), None),
         };
-        if passwords_match(&configured, password)
+        if password_matches(configured, password.to_string()).await
             && let Some(permissions) = permissions
         {
             self.clear_attempts(username);
@@ -313,16 +334,17 @@ impl AdminAuth {
 
     async fn discovery(&self, oidc: &OidcConfig) -> Result<Discovery, String> {
         let url = format!("{}/.well-known/openid-configuration", oidc.issuer.trim_end_matches('/'));
-        let response = self.client.get(url).send().await.map_err(|err| err.to_string())?;
+        let client = self.client_for(&url).await?;
+        let response = client.get(url).send().await.map_err(|_| "OIDC discovery request failed".to_string())?;
         if !response.status().is_success() {
             return Err(format!("status {}", response.status()));
         }
-        response.json().await.map_err(|err| err.to_string())
+        self.read_json(response).await
     }
 
     async fn exchange_code(&self, oidc: &OidcConfig, discovery: &Discovery, code: &str) -> Result<Value, String> {
-        let response = self
-            .client
+        let client = self.client_for(&discovery.token_endpoint).await?;
+        let response = client
             .post(&discovery.token_endpoint)
             .form(&[
                 ("grant_type", "authorization_code"),
@@ -333,21 +355,61 @@ impl AdminAuth {
             ])
             .send()
             .await
-            .map_err(|err| err.to_string())?;
+            .map_err(|_| "OIDC token request failed".to_string())?;
         if !response.status().is_success() {
             return Err(format!("status {}", response.status()));
         }
-        response.json().await.map_err(|err| err.to_string())
+        self.read_json(response).await
     }
 
     async fn userinfo(&self, endpoint: &str, access_token: &str) -> Result<Value, String> {
-        let response =
-            self.client.get(endpoint).bearer_auth(access_token).send().await.map_err(|err| err.to_string())?;
+        let client = self.client_for(endpoint).await?;
+        let response = client
+            .get(endpoint)
+            .bearer_auth(access_token)
+            .send()
+            .await
+            .map_err(|_| "OIDC userinfo request failed".to_string())?;
         if !response.status().is_success() {
             return Err(format!("status {}", response.status()));
         }
-        response.json().await.map_err(|err| err.to_string())
+        self.read_json(response).await
     }
+
+    async fn client_for(&self, url: &str) -> Result<reqwest::Client, String> {
+        if self.egress.mode() == EgressMode::Off {
+            Ok(self.client.clone())
+        } else {
+            self.egress.http_client(EgressPurpose::Oidc, url).await.map_err(|err| err.to_string())
+        }
+    }
+
+    async fn read_json<T: serde::de::DeserializeOwned>(&self, response: reqwest::Response) -> Result<T, String> {
+        if self.egress.mode() == EgressMode::Off {
+            response.json().await.map_err(|_| "OIDC response is not valid JSON".to_string())
+        } else {
+            read_json_limited(response, self.egress.max_response_bytes(), self.egress.idle_timeout()).await
+        }
+    }
+}
+
+async fn read_json_limited<T: serde::de::DeserializeOwned>(
+    mut response: reqwest::Response,
+    limit: usize,
+    idle: Duration,
+) -> Result<T, String> {
+    let mut bytes = Vec::new();
+    while let Some(chunk) = tokio::time::timeout(idle, response.chunk())
+        .await
+        .map_err(|_| "OIDC response timed out".to_string())?
+        .map_err(|_| "OIDC response read failed".to_string())?
+    {
+        if bytes.len().saturating_add(chunk.len()) > limit {
+            return Err("OIDC response exceeds configured limit".to_string());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    serde_json::from_slice(&bytes).map_err(|_| "OIDC response is not valid JSON".to_string())
 }
 
 #[derive(Deserialize)]
@@ -360,7 +422,8 @@ struct RawUser {
 fn local_permissions(role: &str) -> Result<&'static str, String> {
     match role {
         "viewer" => Ok("read"),
-        "deployer" => Ok("*"),
+        "deployer" => Ok(DEPLOYER_PERMISSIONS),
+        "administrator" => Ok("*"),
         other => Err(format!("admin role '{other}' is not supported")),
     }
 }
@@ -406,8 +469,11 @@ pub fn allows(scope: &str, permission: &str) -> bool {
     if permission.is_empty() {
         return true;
     }
+    let administrator_only = permission.starts_with("config.") || permission == "runtime.restart";
     scope.split(',').map(str::trim).any(|item| {
-        item == "*" || item == permission || ((item == "read" || item == "*.read") && is_read_permission(permission))
+        item == "*"
+            || item == permission
+            || (!administrator_only && (item == "read" || item == "*.read") && is_read_permission(permission))
     })
 }
 
@@ -422,6 +488,15 @@ pub fn permission_for(method: &Method, path: &str) -> Option<&'static str> {
     let path = path.split('?').next().unwrap_or(path);
     if is_public(path) {
         return None;
+    }
+    if path == "/runtime/config/egress" {
+        return Some(if matches!(*method, Method::GET | Method::HEAD) { "config.read" } else { "config.write" });
+    }
+    if path == "/runtime/config/egress/validate" {
+        return Some("config.write");
+    }
+    if matches!(path, "/runtime/config/egress/apply" | "/runtime/config/egress/rollback") {
+        return Some("runtime.restart");
     }
     if path.starts_with("/settings") {
         return Some("settings.read");
@@ -472,6 +547,16 @@ fn is_public(path: &str) -> bool {
         || path == "/theme"
         || path.starts_with("/locales")
         || path.starts_with("/core/")
+        // Node-RED loads these with script tags or a popup window. Those browser requests
+        // cannot carry the bearer header installed by the editor's jQuery AJAX hook.
+        || matches!(
+            path,
+            "/debug.js"
+                | "/debug-utils.js"
+                | "/debug/view/view.html"
+                | "/debug/view/debug.js"
+                | "/debug/view/debug-utils.js"
+        )
 }
 
 fn bearer(headers: &HeaderMap) -> Option<&str> {
@@ -494,6 +579,61 @@ fn passwords_match(configured: &str, given: &str) -> bool {
     diff == 0
 }
 
+fn local_password(username: &str, password: String) -> Result<LocalPassword, String> {
+    if matches!(password.get(..4), Some("$2a$") | Some("$2b$") | Some("$2y$")) {
+        #[cfg(feature = "admin_bcrypt")]
+        {
+            password
+                .parse::<bcrypt::HashParts>()
+                .map_err(|_| format!("admin user '{username}' has an invalid bcrypt password hash"))?;
+            return Ok(LocalPassword::Bcrypt(password));
+        }
+        #[cfg(not(feature = "admin_bcrypt"))]
+        {
+            return Err(format!(
+                "admin user '{username}' uses bcrypt, but this build does not include the admin_bcrypt feature"
+            ));
+        }
+    }
+    if password.starts_with("$2") {
+        return Err(format!("admin user '{username}' has an unsupported bcrypt password prefix"));
+    }
+    log::warn!("Admin user '{username}' uses a plaintext password; replace it with node-red-admin hash-pw output");
+    Ok(LocalPassword::Plaintext(password))
+}
+
+fn dummy_password() -> LocalPassword {
+    #[cfg(feature = "admin_bcrypt")]
+    {
+        LocalPassword::Bcrypt(DUMMY_BCRYPT_HASH.to_string())
+    }
+    #[cfg(not(feature = "admin_bcrypt"))]
+    {
+        LocalPassword::Plaintext(DUMMY_PASSWORD.to_string())
+    }
+}
+
+async fn password_matches(configured: LocalPassword, given: String) -> bool {
+    match configured {
+        LocalPassword::Plaintext(expected) => {
+            // Keep plaintext as a migration path, but spend the same baseline bcrypt work as
+            // an unknown-user attempt so the legacy path does not become a cheap timing oracle.
+            #[cfg(feature = "admin_bcrypt")]
+            let _ = verify_bcrypt(given.clone(), DUMMY_BCRYPT_HASH.to_string()).await;
+            passwords_match(&expected, &given)
+        }
+        #[cfg(feature = "admin_bcrypt")]
+        LocalPassword::Bcrypt(hash) => verify_bcrypt(given, hash).await,
+    }
+}
+
+#[cfg(feature = "admin_bcrypt")]
+async fn verify_bcrypt(password: String, hash: String) -> bool {
+    tokio::task::spawn_blocking(move || bcrypt::verify(password.as_bytes(), &hash).unwrap_or(false))
+        .await
+        .unwrap_or(false)
+}
+
 pub fn authorize_url(endpoint: &str, client_id: &str, redirect_url: &str, state: &str) -> String {
     let query = format!(
         "response_type=code&client_id={}&redirect_uri={}&scope=openid&state={}",
@@ -505,7 +645,11 @@ pub fn authorize_url(endpoint: &str, client_id: &str, redirect_url: &str, state:
 }
 
 fn claim_permissions(claim: Option<&str>) -> &'static str {
-    if claim == Some("deployer") { "*" } else { "read" }
+    match claim {
+        Some("administrator") => "*",
+        Some("deployer") => DEPLOYER_PERMISSIONS,
+        _ => "read",
+    }
 }
 
 fn actor_from_userinfo(oidc: &OidcConfig, info: &Value) -> (String, String) {
@@ -668,7 +812,7 @@ pub async fn post_token(Extension(state): Extension<Arc<WebState>>, headers: Hea
     if username.is_empty() {
         return api_error(StatusCode::UNAUTHORIZED, "unauthorized", "credentials required");
     }
-    match state.auth.login(&username, &password) {
+    match state.auth.login(&username, &password).await {
         Ok(issued) => {
             let _ = state.audit.record(&username, "auth.login", None).await;
             token_response(&issued)
@@ -784,6 +928,9 @@ mod tests {
     use axum::http::Request;
     use tower::ServiceExt;
 
+    #[cfg(feature = "admin_bcrypt")]
+    const NODE_RED_ADMIN_HASH: &str = "$2b$08$jdQAx64H6t1.ezppGDmXKurlfrVT.tRGlgyUyIEOUH8TguWzK8RDy";
+
     fn cfg(text: &str) -> config::Config {
         config::Config::builder().add_source(config::File::from_str(text, config::FileFormat::Toml)).build().unwrap()
     }
@@ -834,7 +981,12 @@ mod tests {
         assert!(allows("*", "flows.write"));
         assert!(allows("*.read", "context.read"));
         assert!(!allows("flows.read", "nodes.read"));
-        assert_eq!(claim_permissions(Some("deployer")), "*");
+        assert!(allows(DEPLOYER_PERMISSIONS, "flows.write"));
+        assert!(allows(DEPLOYER_PERMISSIONS, "settings.write"));
+        assert!(!allows(DEPLOYER_PERMISSIONS, "config.write"));
+        assert!(!allows(DEPLOYER_PERMISSIONS, "runtime.restart"));
+        assert_eq!(claim_permissions(Some("deployer")), DEPLOYER_PERMISSIONS);
+        assert_eq!(claim_permissions(Some("administrator")), "*");
         assert_eq!(claim_permissions(Some("viewer")), "read");
         assert_eq!(claim_permissions(None), "read");
     }
@@ -854,7 +1006,38 @@ mod tests {
     }
 
     #[test]
-    fn users_replace_the_shorthand_password_for_the_same_name() {
+    fn administrator_is_the_only_local_role_with_process_configuration_access() {
+        assert_eq!(local_permissions("administrator").unwrap(), "*");
+        assert!(!allows(local_permissions("deployer").unwrap(), "config.write"));
+        assert!(!allows(local_permissions("viewer").unwrap(), "config.read"));
+    }
+
+    #[test]
+    fn runtime_configuration_routes_require_exact_administrator_permissions() {
+        assert_eq!(permission_for(&Method::GET, "/runtime/config/egress"), Some("config.read"));
+        assert_eq!(permission_for(&Method::PUT, "/runtime/config/egress"), Some("config.write"));
+        assert_eq!(permission_for(&Method::POST, "/runtime/config/egress/validate"), Some("config.write"));
+        assert_eq!(permission_for(&Method::POST, "/runtime/config/egress/apply"), Some("runtime.restart"));
+        assert_eq!(permission_for(&Method::POST, "/runtime/config/egress/rollback"), Some("runtime.restart"));
+        assert!(!allows(DEPLOYER_PERMISSIONS, "config.read"));
+    }
+
+    #[test]
+    fn deferred_debug_editor_assets_do_not_require_a_bearer_token() {
+        for path in [
+            "/debug.js",
+            "/debug-utils.js",
+            "/debug/view/view.html",
+            "/debug/view/debug.js",
+            "/debug/view/debug-utils.js",
+        ] {
+            assert_eq!(permission_for(&Method::GET, path), None, "{path}");
+        }
+        assert_eq!(permission_for(&Method::GET, "/debug/view/not-an-editor-asset.js"), Some("flows.read"));
+    }
+
+    #[tokio::test]
+    async fn users_replace_the_shorthand_password_for_the_same_name() {
         let auth = AdminAuth::from_config(&cfg(r#"
             [admin]
             password = "shorthand-secret"
@@ -864,22 +1047,84 @@ mod tests {
             role = "viewer"
             "#))
         .unwrap();
-        assert!(auth.login("admin", "shorthand-secret").is_err());
-        assert!(auth.login("admin", "listed-secret").is_ok());
+        assert!(auth.login("admin", "shorthand-secret").await.is_err());
+        assert!(auth.login("admin", "listed-secret").await.is_ok());
         assert_eq!(auth.users.get("admin").unwrap().permissions, "read");
     }
 
-    #[test]
-    fn five_failures_lock_the_account() {
+    #[tokio::test]
+    async fn five_failures_lock_the_account() {
         let auth = AdminAuth::from_config(&cfg(r#"
             [admin]
             password = "plant-secret"
             "#))
         .unwrap();
         for _ in 0..5 {
-            assert!(auth.login("admin", "wrong").is_err());
+            assert!(auth.login("admin", "wrong").await.is_err());
         }
-        assert!(matches!(auth.login("admin", "plant-secret"), Err(LoginFail::Locked)));
+        assert!(matches!(auth.login("admin", "plant-secret").await, Err(LoginFail::Locked)));
+    }
+
+    #[cfg(feature = "admin_bcrypt")]
+    #[tokio::test]
+    async fn node_red_bcrypt_hashes_support_2a_2b_and_2y() {
+        // Generated for "admin" with the bcrypt implementation bundled by the pinned Node-RED checkout.
+        for prefix in ["$2a$", "$2b$", "$2y$"] {
+            let hash = NODE_RED_ADMIN_HASH.replacen("$2b$", prefix, 1);
+            let auth = AdminAuth::from_config(&cfg(&format!(
+                r#"
+                [[admin.users]]
+                username = "admin"
+                password = "{hash}"
+                role = "administrator"
+                "#
+            )))
+            .unwrap();
+            assert!(auth.login("admin", "admin").await.is_ok(), "{prefix}");
+            assert!(auth.login("admin", "wrong").await.is_err(), "{prefix}");
+        }
+    }
+
+    #[cfg(feature = "admin_bcrypt")]
+    #[tokio::test]
+    async fn node_red_admin_client_logs_in_with_a_bcrypt_hash() {
+        let auth = AdminAuth::from_config(&cfg(&format!(
+            r#"
+            [[admin.users]]
+            username = "admin"
+            password = "{NODE_RED_ADMIN_HASH}"
+            role = "administrator"
+            "#
+        )))
+        .unwrap();
+        let (router, _) = router(auth);
+        let (status, body, _) = call(
+            &router,
+            "POST",
+            "/auth/token",
+            Some("client_id=node-red-admin&grant_type=password&username=admin&password=admin"),
+            None,
+            "application/x-www-form-urlencoded",
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(body["access_token"].as_str().is_some());
+    }
+
+    #[cfg(feature = "admin_bcrypt")]
+    #[test]
+    fn malformed_or_unsupported_bcrypt_hashes_stop_startup() {
+        for password in ["$2y$08$too-short", "$2x$08$synthetic-unsupported-prefix"] {
+            let result = AdminAuth::from_config(&cfg(&format!(
+                r#"
+                [[admin.users]]
+                username = "admin"
+                password = "{password}"
+                role = "administrator"
+                "#
+            )));
+            assert!(result.is_err(), "{password}");
+        }
     }
 
     #[tokio::test]
@@ -1006,13 +1251,22 @@ mod tests {
         let issuer = format!("http://{address}");
         let text = format!(
             r#"
+            [egress]
+            mode = "enforce"
+
+            [[egress.allow]]
+            protocols = ["http"]
+            host = "127.0.0.1"
+            ports = [{}]
+
             [admin.oidc]
             issuer = "{issuer}"
             client_id = "edgelinkd"
             client_secret = "idp-secret"
             role_claim = "edgelink_role"
             redirect_url = "http://127.0.0.1:9/auth/strategy/callback"
-            "#
+            "#,
+            address.port()
         );
         let auth = AdminAuth::from_config(&cfg(&text)).unwrap();
         assert_eq!(auth.login_kind(), "strategy");
@@ -1048,7 +1302,7 @@ mod tests {
         let (status, body, _) = call(&router, "GET", "/settings", None, Some(token), "application/json").await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["user"]["username"], "ada");
-        assert_eq!(body["user"]["permissions"], "*");
+        assert_eq!(body["user"]["permissions"], DEPLOYER_PERMISSIONS);
     }
 
     async fn discovery_doc(request: axum::extract::Request) -> Json<Value> {

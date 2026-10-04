@@ -10,7 +10,7 @@ use crate::EdgelinkError;
 use crate::runtime::engine::Engine;
 use crate::runtime::model::ElementId;
 
-use self::adapter::{ChatMessage, ChatRequest, complete};
+use self::adapter::{ChatMessage, ChatRequest, complete_with_policy};
 use self::provider::AiProviderNode;
 
 /// Complete one server-side prompt with a deployed `ai-provider` configuration.
@@ -46,7 +46,8 @@ pub(crate) async fn complete_for_engine(
         max_tokens: Some(max_tokens),
         timeout,
     };
-    let response = complete(&provider.client, &provider.settings, &request).await?;
+    let egress = provider.egress.snapshot();
+    let response = complete_with_policy(&provider.client, &egress, &provider.settings, &request).await?;
     Ok(response.text)
 }
 
@@ -74,15 +75,40 @@ mod tests {
         let task = tokio::spawn(async move {
             axum::serve(listener, app).await.unwrap();
         });
-        let engine = crate::runtime::engine::build_test_engine(json!([{
+        let flows = json!([{
             "id": "0000000000000001",
             "type": "ai-provider",
             "provider": "openai",
             "baseUrl": format!("http://{address}/v1"),
             "defaultModel": "reasoning-model",
             "credentials": { "apiKey": "secret-key" }
-        }]))
-        .unwrap();
+        }]);
+        let cfg = config::Config::builder()
+            .add_source(config::File::from_str(
+                &format!(
+                    r#"
+                    [runtime.context]
+                    default = "memory"
+
+                    [runtime.context.stores]
+                    memory = {{ provider = "memory" }}
+
+                    [egress]
+                    mode = "enforce"
+
+                    [[egress.allow]]
+                    protocols = ["http"]
+                    host = "127.0.0.1"
+                    ports = [{}]
+                    "#,
+                    address.port()
+                ),
+                config::FileFormat::Toml,
+            ))
+            .build()
+            .unwrap();
+        let registry = crate::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(cfg)).unwrap();
 
         let response =
             complete_for_engine(&engine, "0000000000000001", None, "system", "prompt", 256, Duration::from_secs(2))

@@ -1,0 +1,202 @@
+<style>
+    .edgelink-config-pane { padding:12px; box-sizing:border-box; }
+    .edgelink-config-pane h3 { margin:4px 0 8px; }
+    .edgelink-config-pane .form-row label { width:190px; }
+    .edgelink-config-pane .form-row input,
+    .edgelink-config-pane .form-row select { width:calc(100% - 205px); }
+    .edgelink-config-actions { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+    .edgelink-config-status { padding:8px; border:1px solid var(--red-ui-secondary-border-color); margin-bottom:12px; }
+    .edgelink-config-rules { width:100%; border-collapse:collapse; }
+    .edgelink-config-rules th { text-align:left; }
+    .edgelink-config-rules th, .edgelink-config-rules td { padding:4px; }
+    .edgelink-config-rules input { width:100%; box-sizing:border-box; }
+    .edgelink-config-help { color:var(--red-ui-secondary-text-color); font-size:12px; }
+</style>
+
+<script type="text/javascript">
+(function() {
+    "use strict";
+
+    RED.plugins.registerPlugin("edgelink-config/config-editor", {
+        type: "edgelink-config",
+        onadd: function() {
+            if (!RED.settings.get("configEditor") || !RED.user.hasPermission("config.read")) {
+                return;
+            }
+
+            var root = $('<div id="red-ui-settings-tab-edgelink-config" class="edgelink-config-pane"></div>');
+            $('<h3>Outbound network policy</h3>').appendTo(root);
+            $('<p class="edgelink-config-help">Edits only the [egress] section. Secrets and unrelated configuration are never returned to the browser.</p>').appendTo(root);
+            var status = $('<div class="edgelink-config-status">Not loaded</div>').appendTo(root);
+            var form = $('<div></div>').appendTo(root);
+            var revision = "";
+
+            function field(id, label, type) {
+                var row = $('<div class="form-row"></div>').appendTo(form);
+                $('<label></label>').attr("for", id).text(label).appendTo(row);
+                return $('<input>').attr({id: id, type: type || "text"}).appendTo(row);
+            }
+
+            var modeRow = $('<div class="form-row"></div>').appendTo(form);
+            $('<label for="edgelink-egress-mode">Mode</label>').appendTo(modeRow);
+            var mode = $('<select id="edgelink-egress-mode"><option value="off">off</option><option value="observe">observe</option><option value="enforce">enforce</option></select>').appendTo(modeRow);
+            var environmentProxy = field("edgelink-egress-env-proxy", "Allow environment proxy", "checkbox");
+            environmentProxy.css("width", "auto");
+            var proxyUrl = field("edgelink-egress-proxy", "Explicit proxy URL");
+            var connectTimeout = field("edgelink-egress-connect", "Connect timeout (ms)", "number");
+            var requestTimeout = field("edgelink-egress-request", "Request timeout (ms)", "number");
+            var idleTimeout = field("edgelink-egress-idle", "Idle timeout (ms)", "number");
+            var maxBytes = field("edgelink-egress-bytes", "Maximum response bytes", "number");
+            var maxRedirects = field("edgelink-egress-redirects", "Maximum redirects", "number");
+
+            $('<h3>Allow rules</h3>').appendTo(root);
+            var table = $('<table class="edgelink-config-rules"><thead><tr><th>Protocols</th><th>Host</th><th>CIDR</th><th>Ports</th><th></th></tr></thead><tbody></tbody></table>').appendTo(root);
+            var rules = table.find("tbody");
+            var addRule = $('<button type="button" class="red-ui-button red-ui-button-small"><i class="fa fa-plus"></i> Add rule</button>').appendTo(root);
+
+            function addRuleRow(rule) {
+                rule = rule || {protocols:["https"], host:"", cidr:"", ports:[443]};
+                var row = $('<tr></tr>').appendTo(rules);
+                $('<input aria-label="Protocols, comma separated">').val((rule.protocols || []).join(",")).appendTo($('<td></td>').appendTo(row));
+                $('<input aria-label="Exact host">').val(rule.host || "").appendTo($('<td></td>').appendTo(row));
+                $('<input aria-label="CIDR">').val(rule.cidr || "").appendTo($('<td></td>').appendTo(row));
+                $('<input aria-label="Ports, comma separated">').val((rule.ports || []).join(",")).appendTo($('<td></td>').appendTo(row));
+                $('<button type="button" class="red-ui-button red-ui-button-small"><i class="fa fa-trash"></i></button>')
+                    .on("click", function() { row.remove(); })
+                    .appendTo($('<td></td>').appendTo(row));
+            }
+
+            addRule.on("click", function() { addRuleRow(); });
+
+            function numberValue(input) {
+                return Number.parseInt(input.val(), 10);
+            }
+
+            function values() {
+                var allow = [];
+                rules.children().each(function() {
+                    var inputs = $(this).find("input");
+                    var host = inputs.eq(1).val().trim();
+                    var cidr = inputs.eq(2).val().trim();
+                    var rule = {
+                        protocols: inputs.eq(0).val().split(",").map(function(v) { return v.trim().toLowerCase(); }).filter(Boolean),
+                        ports: inputs.eq(3).val().split(",").map(function(v) { return Number.parseInt(v.trim(), 10); }).filter(Number.isFinite)
+                    };
+                    if (host) { rule.host = host; }
+                    if (cidr) { rule.cidr = cidr; }
+                    allow.push(rule);
+                });
+                return {
+                    mode: mode.val(),
+                    allow_environment_proxy: environmentProxy.prop("checked"),
+                    proxy_url: proxyUrl.val().trim() || null,
+                    connect_timeout_ms: numberValue(connectTimeout),
+                    request_timeout_ms: numberValue(requestTimeout),
+                    idle_timeout_ms: numberValue(idleTimeout),
+                    max_response_bytes: numberValue(maxBytes),
+                    max_redirects: numberValue(maxRedirects),
+                    allow: allow
+                };
+            }
+
+            function populate(view) {
+                var config = view.config;
+                revision = view.rev;
+                mode.val(config.mode);
+                environmentProxy.prop("checked", config.allow_environment_proxy);
+                proxyUrl.val(config.proxy_url || "");
+                connectTimeout.val(config.connect_timeout_ms);
+                requestTimeout.val(config.request_timeout_ms);
+                idleTimeout.val(config.idle_timeout_ms);
+                maxBytes.val(config.max_response_bytes);
+                maxRedirects.val(config.max_redirects);
+                rules.empty();
+                (config.allow || []).forEach(addRuleRow);
+                status.text(view.file + " · saved " + view.rev.slice(0, 12) + " · applied " + view.appliedRev.slice(0, 12) + (view.dirty ? " · restart required" : " · active"));
+            }
+
+            function failure(xhr, fallback) {
+                var body = xhr.responseJSON || {};
+                RED.notify(body.message || fallback, "error");
+            }
+
+            function load() {
+                return $.getJSON(RED.settings.apiRootUrl + "runtime/config/egress")
+                    .done(populate)
+                    .fail(function(xhr) { failure(xhr, "Configuration could not be read"); });
+            }
+
+            function validate() {
+                return $.ajax({
+                    url: RED.settings.apiRootUrl + "runtime/config/egress/validate",
+                    method: "POST",
+                    contentType: "application/json",
+                    dataType: "json",
+                    data: JSON.stringify(values())
+                });
+            }
+
+            function save() {
+                return $.ajax({
+                    url: RED.settings.apiRootUrl + "runtime/config/egress",
+                    method: "PUT",
+                    contentType: "application/json",
+                    dataType: "json",
+                    data: JSON.stringify({rev: revision, config: values()})
+                }).then(function(result) {
+                    revision = result.rev;
+                    return load();
+                });
+            }
+
+            var actions = $('<div class="edgelink-config-actions"></div>').appendTo(root);
+            $('<button type="button" class="red-ui-button"><i class="fa fa-refresh"></i> Read</button>').on("click", load).appendTo(actions);
+            if (RED.user.hasPermission("config.write")) {
+                $('<button type="button" class="red-ui-button">Validate</button>').on("click", function() {
+                    validate().done(function() { RED.notify("Configuration is valid", "success"); })
+                        .fail(function(xhr) { failure(xhr, "Configuration is invalid"); });
+                }).appendTo(actions);
+                $('<button type="button" class="red-ui-button">Save</button>').on("click", function() {
+                    save().done(function() { RED.notify("Configuration saved; apply it to restart the runtime", "success"); })
+                        .fail(function(xhr) { failure(xhr, "Configuration could not be saved"); });
+                }).appendTo(actions);
+            }
+            if (RED.user.hasPermission("runtime.restart")) {
+                $('<button type="button" class="red-ui-button red-ui-button-primary">Save & Apply</button>').on("click", function() {
+                    save().then(function() {
+                        return $.ajax({
+                            url: RED.settings.apiRootUrl + "runtime/config/egress/apply",
+                            method: "POST",
+                            contentType: "application/json",
+                            dataType: "json",
+                            data: JSON.stringify({rev: revision})
+                        });
+                    }).then(function() {
+                        RED.notify("Configuration applied and runtime reinitialized", "success");
+                        return load();
+                    }).fail(function(xhr) { failure(xhr, "Configuration could not be applied"); });
+                }).appendTo(actions);
+                $('<button type="button" class="red-ui-button">Rollback & Apply</button>').on("click", function() {
+                    $.ajax({
+                        url: RED.settings.apiRootUrl + "runtime/config/egress/rollback",
+                        method: "POST",
+                        contentType: "application/json",
+                        dataType: "json",
+                        data: JSON.stringify({rev: revision})
+                    }).done(function() {
+                        RED.notify("Previous configuration restored", "success");
+                        load();
+                    }).fail(function(xhr) { failure(xhr, "Configuration could not be rolled back"); });
+                }).appendTo(actions);
+            }
+
+            RED.userSettings.add({
+                id: "edgelink-config",
+                title: "EdgeLinkd",
+                get: function() { return root; },
+                focus: load
+            });
+        }
+    });
+})();
+</script>

@@ -9,6 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::context::{Context, ContextManager, ContextManagerBuilder};
 use super::debug_channel::DebugChannel;
+use super::egress::EgressPolicyHandle;
 use super::engine_events::{EngineEvent, EngineEventBus};
 use super::http_registry::HttpResponseRegistry;
 use super::model::json::{RedFlowConfig, RedGlobalNodeConfig};
@@ -76,6 +77,7 @@ struct InnerEngine {
     /// The configuration this engine was built with. A redeploy without its own configuration
     /// (the web deploy path) reuses this instead of silently falling back to the defaults.
     elcfg: Option<config::Config>,
+    egress: EgressPolicyHandle,
     envs: RedEnvs,
     context_manager: Arc<ContextManager>,
     context: Context,
@@ -167,6 +169,7 @@ impl Engine {
             let _ = ctx_builder.load_default();
         }
         let context_manager = ctx_builder.build()?;
+        let egress = EgressPolicyHandle::load(elcfg.as_ref())?;
 
         // let context_manager = Arc::new(ContextManager::default());
         let context = context_manager.new_global_context();
@@ -188,6 +191,7 @@ impl Engine {
                 envs,
                 _args: EngineArgs::load(elcfg.as_ref())?,
                 elcfg: elcfg.clone(),
+                egress,
                 context_manager,
                 context,
                 http_response_registry: Arc::new(HttpResponseRegistry::new()),
@@ -217,6 +221,11 @@ impl Engine {
 
         log::debug!("Loaded flow revision: {}", hex::encode(&flows_hash));
         Ok(engine)
+    }
+
+    /// Shared outbound-network policy used by nodes and web adapters.
+    pub fn egress_policy(&self) -> &EgressPolicyHandle {
+        &self.inner.egress
     }
 
     pub async fn with_flows_file(

@@ -19,6 +19,7 @@ use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
 use crate::EdgelinkError;
+use crate::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::model::{Msg, MsgHandle};
 use crate::runtime::nodes::*;
@@ -443,6 +444,7 @@ impl Incoming {
 
 struct Inner {
     options: BrokerOptions,
+    egress: EgressPolicyHandle,
     client: Mutex<Option<SharedClient>>,
     task: Mutex<Option<tokio::task::JoinHandle<()>>>,
     cancel: Mutex<CancellationToken>,
@@ -465,10 +467,16 @@ pub(crate) struct BrokerSession {
 }
 
 impl BrokerSession {
+    #[cfg(test)]
     fn from_options(options: BrokerOptions) -> Self {
+        Self::from_options_with_policy(options, EgressPolicyHandle::default())
+    }
+
+    fn from_options_with_policy(options: BrokerOptions, egress: EgressPolicyHandle) -> Self {
         Self {
             inner: Arc::new(Inner {
                 options,
+                egress,
                 client: Mutex::new(None),
                 task: Mutex::new(None),
                 cancel: Mutex::new(CancellationToken::new()),
@@ -536,7 +544,7 @@ impl BrokerSession {
             return Ok(());
         }
         if self.inner.client.lock().await.is_none() {
-            self.spawn().await;
+            self.spawn().await?;
         }
         self.wait_ready().await
     }
@@ -706,22 +714,33 @@ impl BrokerSession {
         self.require_client().await
     }
 
-    async fn spawn(&self) {
+    async fn spawn(&self) -> crate::Result<()> {
         let _gate = self.inner.start_gate.lock().await;
         if self.inner.client.lock().await.is_some() {
-            return;
+            return Ok(());
+        }
+        let approved = self
+            .inner
+            .egress
+            .approve(EgressPurpose::Mqtt, NetworkProtocol::Mqtt, &self.inner.options.host, self.inner.options.port)
+            .await?;
+        let mut options = self.inner.options.clone();
+        if self.inner.egress.mode() != EgressMode::Off
+            && let Some(address) = approved.addresses.first()
+        {
+            options.host = address.to_string();
         }
         self.inner.opens.fetch_add(1, Ordering::AcqRel);
         let generation = 1;
         self.mark(generation, Phase::Connecting, None);
-        let (client, link) = match self.inner.options.protocol {
+        let (client, link) = match options.protocol {
             Protocol::V4 => {
-                let (client, mut eventloop) = AsyncClient::new(self.inner.options.v4_options(), 100);
+                let (client, mut eventloop) = AsyncClient::new(options.v4_options(), 100);
                 eventloop.network_options.set_connection_timeout(CONNECT_WAIT.as_secs());
                 (SharedClient::V4(client), Link::V4(Box::new(eventloop)))
             }
             Protocol::V5 => {
-                let (client, eventloop) = V5Client::new(self.inner.options.v5_options(), 100);
+                let (client, eventloop) = V5Client::new(options.v5_options(), 100);
                 (SharedClient::V5(client), Link::V5(Box::new(eventloop)))
             }
         };
@@ -731,6 +750,7 @@ impl BrokerSession {
         let inner = self.inner.clone();
         let task = tokio::spawn(async move { poll_loop(inner, link, client, cancel, generation).await });
         *self.inner.task.lock().await = Some(task);
+        Ok(())
     }
 
     async fn wait_ready(&self) -> crate::Result<()> {
@@ -1498,7 +1518,7 @@ impl MqttBrokerNode {
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn GlobalNodeBehavior>> {
         let options = resolve_broker(&config.rest)?;
-        let session = BrokerSession::from_options(options);
+        let session = BrokerSession::from_options_with_policy(options, engine.egress_policy().clone());
         let node = MqttBrokerNode {
             base: BaseGlobalNodeState {
                 id: config.id,
@@ -1860,7 +1880,29 @@ mod tests {
             out,
             { "id": "4", "z": "100", "type": "test-once" }
         ]);
-        let engine = crate::runtime::engine::build_test_engine(flows).unwrap();
+        let cfg = config::Config::builder()
+            .add_source(config::File::from_str(
+                r#"
+                [runtime.context]
+                default = "memory"
+
+                [runtime.context.stores]
+                memory = { provider = "memory" }
+
+                [egress]
+                mode = "enforce"
+
+                [[egress.allow]]
+                protocols = ["mqtt"]
+                host = "127.0.0.1"
+                ports = [1883]
+                "#,
+                config::FileFormat::Toml,
+            ))
+            .build()
+            .unwrap();
+        let registry = crate::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(cfg)).unwrap();
         let inject = Vec::<(crate::runtime::model::ElementId, crate::runtime::model::Msg, f64)>::deserialize(json!([
             ["3", {"payload": payload, "topic": topic}, 1500.0]
         ]))

@@ -52,6 +52,10 @@ fn create_node_red_api_routes() -> Router {
         .route("/fleet/devices/{name}", axum::routing::delete(delete_device))
         .route("/fleet/push", post(post_push))
         .route("/fleet/pipelines/promote", post(post_promote))
+        .route("/runtime/config/egress", get(get_egress_config).put(put_egress_config))
+        .route("/runtime/config/egress/validate", post(validate_egress_config))
+        .route("/runtime/config/egress/apply", post(apply_egress_config))
+        .route("/runtime/config/egress/rollback", post(rollback_egress_config))
         // Icons
         .route("/icons", get(get_icons))
         // Theme

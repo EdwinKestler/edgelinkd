@@ -13,7 +13,7 @@ use crate::runtime::model::{Msg, MsgHandle, Variant};
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
 
-use super::adapter::{ChatMessage, ChatRequest, complete};
+use super::adapter::{ChatMessage, ChatRequest, complete_with_policy};
 use super::provider::provider_from_flow;
 
 const DEFAULT_TIMEOUT_MS: u64 = 30_000;
@@ -99,7 +99,7 @@ impl AiChatNode {
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         let flow = self.flow().ok_or_else(|| EdgelinkError::invalid_operation("ai-chat has no flow"))?;
-        let (settings, default_model, client) = provider_from_flow(&flow, &self.config.provider)?;
+        let (settings, default_model, client, egress) = provider_from_flow(&flow, &self.config.provider)?;
         let model = if self.config.model.trim().is_empty() { default_model } else { self.config.model.clone() };
         if model.is_empty() {
             return Err(EdgelinkError::invalid_operation("ai-chat model is required"));
@@ -116,9 +116,10 @@ impl AiChatNode {
             max_tokens: self.config.max_tokens,
             timeout: self.config.timeout,
         };
+        let egress = egress.snapshot();
         tokio::select! {
             _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
-            reply = complete(&client, &settings, &request) => {
+            reply = complete_with_policy(&client, &egress, &settings, &request) => {
                 let reply = reply?;
                 let mut guard = msg.write().await;
                 guard.set(self.config.output.clone(), Variant::String(reply.text));

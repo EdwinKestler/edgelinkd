@@ -6,6 +6,7 @@ use tokio_util::sync::CancellationToken;
 use mustache::{Data, MapBuilder};
 use serde::Deserialize;
 
+use crate::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -96,18 +97,26 @@ impl<'de> serde::Deserialize<'de> for AuthType {
 struct HttpRequestNode {
     base: BaseFlowNodeState,
     config: HttpRequestNodeConfig,
+    egress: EgressPolicyHandle,
 }
 
 impl HttpRequestNode {
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         state: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let http_config = HttpRequestNodeConfig::deserialize(&config.rest)?;
+        if http_config.proxy.as_deref().is_some_and(|value| !value.trim().is_empty()) {
+            return Err(crate::EdgelinkError::NotSupported(
+                "per-node HTTP proxies are not supported; configure egress.proxy_url".to_owned(),
+            ));
+        }
 
-        let node = HttpRequestNode { base: state, config: http_config };
+        let engine =
+            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("http request has no engine"))?;
+        let node = HttpRequestNode { base: state, config: http_config, egress: engine.egress_policy().clone() };
         Ok(Box::new(node))
     }
 }
@@ -611,37 +620,106 @@ impl HttpRequestNode {
         &self,
         method: HttpMethod,
         url: &str,
-        headers: HashMap<String, String>,
+        mut headers: HashMap<String, String>,
         body: Option<Vec<u8>>,
         timeout: Duration,
     ) -> Result<HttpRequestResponse, Box<dyn std::error::Error + Send + Sync>> {
-        // Create HTTP client
-        let client = reqwest::Client::builder().timeout(timeout).build()?;
-
-        // Build request
-        let mut request_builder = match method {
-            HttpMethod::Get => client.get(url),
-            HttpMethod::Post => client.post(url),
-            HttpMethod::Put => client.put(url),
-            HttpMethod::Delete => client.delete(url),
-            HttpMethod::Patch => client.patch(url),
-            HttpMethod::Head => client.head(url),
-            HttpMethod::Options => client.request(reqwest::Method::OPTIONS, url),
-            HttpMethod::Use => client.get(url), // fallback
+        if self.egress.mode() == EgressMode::Off {
+            let client = reqwest::Client::builder().timeout(timeout).build()?;
+            let mut request_builder = match method {
+                HttpMethod::Get => client.get(url),
+                HttpMethod::Post => client.post(url),
+                HttpMethod::Put => client.put(url),
+                HttpMethod::Delete => client.delete(url),
+                HttpMethod::Patch => client.patch(url),
+                HttpMethod::Head => client.head(url),
+                HttpMethod::Options => client.request(reqwest::Method::OPTIONS, url),
+                HttpMethod::Use => client.get(url),
+            };
+            for (key, value) in headers {
+                request_builder = request_builder.header(key, value);
+            }
+            if let Some(body_data) = body {
+                request_builder = request_builder.body(body_data);
+            }
+            let response = request_builder.send().await?;
+            let status_code = response.status().as_u16();
+            let response_headers = response
+                .headers()
+                .iter()
+                .map(|(key, value)| (key.as_str().to_owned(), value.to_str().unwrap_or("").to_owned()))
+                .collect();
+            let response_url = response.url().to_string();
+            let body = response.bytes().await?.to_vec();
+            return Ok(HttpRequestResponse { status_code, headers: response_headers, url: response_url, body });
+        }
+        let mut current = url.to_owned();
+        let mut redirect_method = method;
+        let mut redirect_body = body;
+        let follow_redirects = self.config.follow_redirects.unwrap_or(true);
+        let effective_timeout = timeout.min(self.egress.request_timeout());
+        let mut redirects = 0usize;
+        let response = loop {
+            let client = self.egress.http_client(EgressPurpose::HttpNode, &current).await?;
+            let mut request_builder = match redirect_method {
+                HttpMethod::Get => client.get(&current),
+                HttpMethod::Post => client.post(&current),
+                HttpMethod::Put => client.put(&current),
+                HttpMethod::Delete => client.delete(&current),
+                HttpMethod::Patch => client.patch(&current),
+                HttpMethod::Head => client.head(&current),
+                HttpMethod::Options => client.request(reqwest::Method::OPTIONS, &current),
+                HttpMethod::Use => client.get(&current),
+            }
+            .timeout(effective_timeout);
+            for (key, value) in &headers {
+                request_builder = request_builder.header(key, value);
+            }
+            if let Some(body_data) = &redirect_body {
+                request_builder = request_builder.body(body_data.clone());
+            }
+            let response = request_builder
+                .send()
+                .await
+                .map_err(|_| crate::EdgelinkError::invalid_operation("outbound HTTP request failed"))?;
+            if !follow_redirects || !response.status().is_redirection() {
+                break response;
+            }
+            let location = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .and_then(|value| value.to_str().ok())
+                .ok_or_else(|| crate::EdgelinkError::invalid_operation("HTTP redirect has no valid location"))?;
+            let base = url::Url::parse(&current)
+                .map_err(|_| crate::EdgelinkError::invalid_operation("HTTP redirect base is invalid"))?;
+            let next = base
+                .join(location)
+                .map_err(|_| crate::EdgelinkError::invalid_operation("HTTP redirect location is invalid"))?;
+            if base.origin() != next.origin() {
+                headers.retain(|name, _| {
+                    !name.eq_ignore_ascii_case("authorization")
+                        && !name.eq_ignore_ascii_case("cookie")
+                        && !name.eq_ignore_ascii_case("proxy-authorization")
+                        && !name.eq_ignore_ascii_case("host")
+                });
+            }
+            if (response.status() == reqwest::StatusCode::SEE_OTHER && redirect_method != HttpMethod::Head)
+                || ((response.status() == reqwest::StatusCode::MOVED_PERMANENTLY
+                    || response.status() == reqwest::StatusCode::FOUND)
+                    && redirect_method == HttpMethod::Post)
+            {
+                redirect_method = HttpMethod::Get;
+                redirect_body = None;
+                headers.retain(|name, _| {
+                    !name.eq_ignore_ascii_case("content-length") && !name.eq_ignore_ascii_case("content-type")
+                });
+            }
+            current = next.to_string();
+            redirects += 1;
+            if redirects > self.egress.max_redirects() {
+                return Err(crate::EdgelinkError::invalid_operation("HTTP redirect limit exceeded").into());
+            }
         };
-
-        // Add headers
-        for (key, value) in headers {
-            request_builder = request_builder.header(key, value);
-        }
-
-        // Add body if present
-        if let Some(body_data) = body {
-            request_builder = request_builder.body(body_data);
-        }
-
-        // Execute request
-        let response = request_builder.send().await?;
 
         let status_code = response.status().as_u16();
         let response_headers: HashMap<String, String> = response
@@ -651,9 +729,22 @@ impl HttpRequestNode {
             .collect();
 
         let response_url = response.url().to_string();
-        let body_bytes = response.bytes().await?;
+        let mut response = response;
+        let mut body_bytes = Vec::new();
+        while let Some(chunk) = tokio::time::timeout(self.egress.idle_timeout(), response.chunk())
+            .await
+            .map_err(|_| crate::EdgelinkError::Timeout)?
+            .map_err(|_| crate::EdgelinkError::invalid_operation("outbound HTTP response failed"))?
+        {
+            if body_bytes.len().saturating_add(chunk.len()) > self.egress.max_response_bytes() {
+                return Err(
+                    crate::EdgelinkError::invalid_operation("outbound HTTP response exceeds configured limit").into()
+                );
+            }
+            body_bytes.extend_from_slice(&chunk);
+        }
 
-        Ok(HttpRequestResponse { status_code, headers: response_headers, url: response_url, body: body_bytes.to_vec() })
+        Ok(HttpRequestResponse { status_code, headers: response_headers, url: response_url, body: body_bytes })
     }
 
     async fn send_response(

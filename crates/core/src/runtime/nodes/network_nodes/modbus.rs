@@ -19,6 +19,7 @@ use tokio::sync::Mutex;
 
 use crate::EdgelinkError;
 use crate::runtime::context::Context;
+use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
@@ -72,17 +73,25 @@ struct ModbusNode {
     config: ModbusConfig,
     link: Mutex<Option<TcpStream>>,
     tid: AtomicU16,
+    egress: EgressPolicyHandle,
 }
 
 impl ModbusNode {
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         base_node: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let compiled = compile(&config.rest)?;
-        Ok(Box::new(ModbusNode { base: base_node, config: compiled, link: Mutex::new(None), tid: AtomicU16::new(1) }))
+        let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("modbus node has no engine"))?;
+        Ok(Box::new(ModbusNode {
+            base: base_node,
+            config: compiled,
+            link: Mutex::new(None),
+            tid: AtomicU16::new(1),
+            egress: engine.egress_policy().clone(),
+        }))
     }
 
     fn context_for(&self, scope: Scope) -> crate::Result<Context> {
@@ -102,11 +111,16 @@ impl ModbusNode {
     async fn exchange(&self) -> crate::Result<MsgHandle> {
         let mut link = self.link.lock().await;
         if link.is_none() {
-            let connect = TcpStream::connect((self.config.host.as_str(), self.config.port));
-            let stream = tokio::time::timeout(IO_TIMEOUT, connect)
+            let connect = self.egress.connect_tcp(
+                EgressPurpose::Modbus,
+                NetworkProtocol::Modbus,
+                &self.config.host,
+                self.config.port,
+            );
+            let stream = tokio::time::timeout(IO_TIMEOUT.min(self.egress.connect_timeout()), connect)
                 .await
                 .map_err(|_| EdgelinkError::invalid_operation("modbus connect timed out"))?
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("modbus connect failed: {err}")))?;
+                .map_err(|_| EdgelinkError::invalid_operation("modbus connect failed"))?;
             *link = Some(stream);
         }
         let stream = link.as_mut().expect("stream");

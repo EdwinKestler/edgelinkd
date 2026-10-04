@@ -45,6 +45,8 @@ impl EdgelinkEnv {
 
     /// Prepare the runtime environment: ensure flows file exists or error if user-specified and missing
     pub fn prepare(&self) -> Result<(), EdgelinkError> {
+        // Parse and validate this before creating files or starting any runtime tasks.
+        edgelink_core::runtime::egress::EgressPolicy::load(Some(&self.config))?;
         let flows_path =
             self.config.get_string("flows_path").expect("Config must provide flows_path after normalization");
         let is_default = self.config.get_bool("flows_path_is_default").unwrap_or(false);
@@ -58,5 +60,27 @@ impl EdgelinkEnv {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_egress_configuration_fails_before_runtime_startup() {
+        let config = config::Config::builder()
+            .set_override("flows_path", "/not-used/flows.json")
+            .unwrap()
+            .set_override("flows_path_is_default", false)
+            .unwrap()
+            .set_override("egress.mode", "enforce")
+            .unwrap()
+            .set_override("egress.connect_timeout_ms", 0)
+            .unwrap()
+            .build()
+            .unwrap();
+        let err = EdgelinkEnv::new(config).prepare().unwrap_err();
+        assert!(err.to_string().contains("invalid egress configuration"), "{err}");
     }
 }

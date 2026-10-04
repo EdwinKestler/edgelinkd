@@ -2,11 +2,12 @@ use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::{Mutex, RwLock};
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::Message};
 use tokio_util::sync::CancellationToken;
 
 use serde::Deserialize;
 
+use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -29,18 +30,26 @@ struct WebSocketClientNode {
     base: BaseFlowNodeState,
     config: WebSocketClientConfig,
     connection: Arc<Mutex<Option<WebSocketClientConnection>>>,
+    egress: EgressPolicyHandle,
 }
 
 #[allow(dead_code)]
 impl WebSocketClientNode {
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         state: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let ws_config = WebSocketClientConfig::deserialize(&config.rest)?;
-        let node = WebSocketClientNode { base: state, config: ws_config, connection: Arc::new(Mutex::new(None)) };
+        let engine =
+            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("websocket client has no engine"))?;
+        let node = WebSocketClientNode {
+            base: state,
+            config: ws_config,
+            connection: Arc::new(Mutex::new(None)),
+            egress: engine.egress_policy().clone(),
+        };
         Ok(Box::new(node))
     }
 }
@@ -111,7 +120,7 @@ impl WebSocketClientNode {
     async fn create_connection(&self) -> crate::Result<WebSocketClientConnection> {
         let full_url = self.get_full_url();
 
-        log::debug!("WebSocket client: Creating connection to {full_url}");
+        log::debug!("WebSocket client: Creating connection");
 
         let connection = WebSocketClientConnection {
             stream: Arc::new(Mutex::new(None)),
@@ -126,9 +135,11 @@ impl WebSocketClientNode {
     async fn connect_websocket(&self, connection: &WebSocketClientConnection) -> crate::Result<()> {
         log::debug!("WebSocket client: Connecting to {}", connection.url);
 
-        let (ws_stream, _) = connect_async(&connection.url)
+        let (ws_stream, _) = self
+            .egress
+            .connect_websocket(&connection.url)
             .await
-            .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Failed to connect to WebSocket: {e}")))?;
+            .map_err(|_| crate::EdgelinkError::invalid_operation("WebSocket client connection failed"))?;
 
         // Store the stream
         {

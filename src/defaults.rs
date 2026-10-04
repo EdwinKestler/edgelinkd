@@ -105,19 +105,49 @@ period_ms = 0
 host = "127.0.0.1"
 port = 1888
 
+# Outbound compatibility mode. Move to "observe" to inventory decisions, then add exact
+# allow rules before selecting "enforce". Ambient environment proxy variables are isolated in
+# governed modes; configure a proxy_url and allowlist its origin if a proxy is required.
+[egress]
+mode = "off"
+allow_environment_proxy = false
+# proxy_url = "http://proxy.example.internal:3128"
+connect_timeout_ms = 10000
+request_timeout_ms = 60000
+idle_timeout_ms = 30000
+max_response_bytes = 1048576
+max_redirects = 5
+
+# Example for a local MQTT broker. Credentials remain in flows_cred.json, never here.
+# [[egress.allow]]
+# protocols = ["mqtt"]
+# host = "127.0.0.1"
+# ports = [1883]
+
+# The editor configuration pane is disabled until explicitly enabled. It also requires admin
+# authentication; EdgeLinkd refuses to start if this is true while login is off.
+[config_editor]
+enabled = false
+
 # Admin login is off until a password, a user list, or an OIDC issuer is set.
-# A whitespace password does not turn it on. viewer can read. deployer can deploy.
+# A whitespace password does not turn it on. viewer can read, deployer can deploy flows, and
+# administrator can change process configuration.
 # An unknown role, or an incomplete OIDC section, stops the process at startup.
 # [admin]
 # password = ""
 # [[admin.users]]
 # username = "operator"
+# Generate with: npx node-red-admin hash-pw
 # password = "change-me"
 # role = "deployer"
 # [[admin.users]]
 # username = "viewer"
 # password = "change-me"
 # role = "viewer"
+# [[admin.users]]
+# username = "administrator"
+# password = "change-me"
+# role = "administrator"
 # [admin.oidc]
 # issuer = "https://idp.example/realms/plant"
 # client_id = "edgelinkd"

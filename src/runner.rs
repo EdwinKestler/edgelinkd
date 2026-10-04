@@ -107,10 +107,17 @@ async fn start_web_server(
         })
     });
 
-    let web_server = WebServer::new(static_dir, cancel.clone(), cfg)
+    let egress = app.engine().read().await.egress_policy().clone();
+    let home_dir = cfg.get_string("home_dir").map_err(|_| anyhow::anyhow!("home_dir is not configured"))?;
+    let run_env = cfg.get_string("run_env").unwrap_or_else(|_| "dev".to_string());
+    let config_file = PathBuf::from(home_dir).join(format!("edgelinkd.{run_env}.toml"));
+
+    let web_server = WebServer::new_with_egress(static_dir, cancel.clone(), cfg, egress)
         .with_registry(app.registry().clone())
         .await
         .with_flows_file_path(flows_path)
+        .await
+        .with_config_file_path(config_file)
         .await
         .with_restart_callback(restart_callback)
         .await

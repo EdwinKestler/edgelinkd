@@ -2,11 +2,12 @@ use futures_util::SinkExt;
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, tungstenite::Message};
 use tokio_util::sync::CancellationToken;
 
 use serde::Deserialize;
 
+use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -28,17 +29,25 @@ struct WebSocketOutNode {
     base: BaseFlowNodeState,
     config: WebSocketOutConfig,
     connection: Arc<Mutex<Option<ClientWebSocketStream>>>,
+    egress: EgressPolicyHandle,
 }
 
 impl WebSocketOutNode {
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         state: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let ws_config = WebSocketOutConfig::deserialize(&config.rest)?;
-        let node = WebSocketOutNode { base: state, config: ws_config, connection: Arc::new(Mutex::new(None)) };
+        let engine =
+            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("websocket out has no engine"))?;
+        let node = WebSocketOutNode {
+            base: state,
+            config: ws_config,
+            connection: Arc::new(Mutex::new(None)),
+            egress: engine.egress_policy().clone(),
+        };
         Ok(Box::new(node))
     }
 }
@@ -101,13 +110,15 @@ impl WebSocketOutNode {
             .as_ref()
             .ok_or_else(|| crate::EdgelinkError::InvalidOperation("WebSocket URL not specified".to_string()))?;
 
-        log::debug!("WebSocket out: Connecting to {url}");
+        log::debug!("WebSocket out: Connecting");
 
-        let (ws_stream, _) = connect_async(url)
+        let (ws_stream, _) = self
+            .egress
+            .connect_websocket(url)
             .await
-            .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Failed to connect to WebSocket: {e}")))?;
+            .map_err(|_| crate::EdgelinkError::invalid_operation("WebSocket out connection failed"))?;
 
-        log::info!("WebSocket out: Connected to {url}");
+        log::info!("WebSocket out: Connected");
         *conn_guard = Some(ws_stream);
 
         Ok(())

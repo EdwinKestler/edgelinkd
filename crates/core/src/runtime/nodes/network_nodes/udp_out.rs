@@ -4,6 +4,7 @@ use tokio::net::UdpSocket;
 
 use serde::Deserialize;
 
+use crate::runtime::egress::{EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -120,7 +121,17 @@ impl UdpOutNode {
             return Err(crate::EdgelinkError::InvalidOperation("Invalid port number".to_string()));
         }
 
-        let remote_addr = std::net::SocketAddr::new(target_ip, target_port);
+        let engine = self.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("udp out has no engine"))?;
+        let approved = engine
+            .egress_policy()
+            .approve(EgressPurpose::Udp, NetworkProtocol::Udp, &target_ip.to_string(), target_port)
+            .await?;
+        let remote_addr = approved
+            .addresses
+            .first()
+            .copied()
+            .map(|ip| std::net::SocketAddr::new(ip, target_port))
+            .unwrap_or_else(|| std::net::SocketAddr::new(target_ip, target_port));
 
         let payload = msg_guard.get("payload").unwrap();
         let data_to_send = if self.config.base64 {

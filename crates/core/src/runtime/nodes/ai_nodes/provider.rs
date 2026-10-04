@@ -4,6 +4,7 @@ use reqwest::Client;
 use serde_json::Value;
 
 use crate::EdgelinkError;
+use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::engine::Engine;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedGlobalNodeConfig;
@@ -18,6 +19,7 @@ pub struct AiProviderNode {
     pub(crate) settings: ProviderSettings,
     pub(crate) default_model: String,
     pub(crate) client: Client,
+    pub(crate) egress: EgressPolicyHandle,
 }
 
 impl AiProviderNode {
@@ -46,6 +48,7 @@ impl AiProviderNode {
             client: Client::builder()
                 .build()
                 .map_err(|err| EdgelinkError::invalid_operation(&format!("ai HTTP client failed: {err}")))?,
+            egress: engine.egress_policy().clone(),
         };
         Ok(Box::new(node))
     }
@@ -58,7 +61,10 @@ impl GlobalNodeBehavior for AiProviderNode {
     }
 }
 
-pub(crate) fn provider_from_flow(flow: &Flow, provider_id: &str) -> crate::Result<(ProviderSettings, String, Client)> {
+pub(crate) fn provider_from_flow(
+    flow: &Flow,
+    provider_id: &str,
+) -> crate::Result<(ProviderSettings, String, Client, EgressPolicyHandle)> {
     if provider_id.is_empty() {
         return Err(EdgelinkError::invalid_operation("ai-chat has no provider"));
     }
@@ -73,7 +79,7 @@ pub(crate) fn provider_from_flow(flow: &Flow, provider_id: &str) -> crate::Resul
         .as_any()
         .downcast_ref::<AiProviderNode>()
         .ok_or_else(|| EdgelinkError::invalid_operation(&format!("node '{id}' is not an ai-provider")))?;
-    Ok((node.settings.clone(), node.default_model.clone(), node.client.clone()))
+    Ok((node.settings.clone(), node.default_model.clone(), node.client.clone(), node.egress.clone()))
 }
 
 pub(crate) fn resolve_provider(value: &Value) -> crate::Result<ProviderSettings> {

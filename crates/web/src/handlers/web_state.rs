@@ -7,6 +7,7 @@ use crate::handlers::audit::AuditLog;
 use crate::handlers::auth::AdminAuth;
 use crate::handlers::fleet::Fleet;
 use crate::models::RedSystemSettings;
+use edgelink_core::runtime::egress::EgressPolicyHandle;
 use edgelink_core::runtime::engine::Engine;
 use edgelink_core::runtime::engine_events::EngineEvent;
 use edgelink_core::runtime::registry::RegistryHandle;
@@ -39,12 +40,20 @@ pub struct WebState {
     pub auth: Arc<AdminAuth>,
     pub audit: AuditLog,
     pub fleet: Arc<Fleet>,
+    pub egress: EgressPolicyHandle,
+    pub config_editor_enabled: bool,
+    /// The environment-specific overlay edited by the configuration pane.
+    pub config_file_path: RwLock<Option<PathBuf>>,
+    /// Full-file revision whose egress policy is currently active.
+    pub applied_config_rev: RwLock<String>,
     /// Process start. A redeploy replaces the engine and must not reset this clock.
     pub started_at: std::time::Instant,
     /// Address the listener actually bound. `None` until [`crate::server::WebServer::spawn`].
     pub listen: RwLock<Option<SocketAddr>>,
     /// Serializes deploy and rollback so two clients cannot both pass the same revision.
     pub deploy: tokio::sync::Mutex<()>,
+    /// Serializes configuration save, apply, and rollback transactions.
+    pub config_apply: tokio::sync::Mutex<()>,
 }
 
 /// Implement WebStateCore trait for WebState
@@ -89,6 +98,26 @@ impl WebState {
         auth: AdminAuth,
         fleet: Fleet,
     ) -> Arc<Self> {
+        Self::assemble_with_egress(
+            red_settings,
+            static_dir,
+            cancel_token,
+            auth,
+            fleet,
+            EgressPolicyHandle::default(),
+            false,
+        )
+    }
+
+    pub fn assemble_with_egress(
+        red_settings: Arc<RedSystemSettings>,
+        static_dir: PathBuf,
+        cancel_token: Option<CancellationToken>,
+        auth: AdminAuth,
+        fleet: Fleet,
+        egress: EgressPolicyHandle,
+        config_editor_enabled: bool,
+    ) -> Arc<Self> {
         Arc::new(Self {
             red_settings,
             registry: RwLock::new(None),
@@ -102,9 +131,14 @@ impl WebState {
             auth: Arc::new(auth),
             audit: AuditLog::new(),
             fleet: Arc::new(fleet),
+            egress,
+            config_editor_enabled,
+            config_file_path: RwLock::new(None),
+            applied_config_rev: RwLock::new(String::new()),
             started_at: std::time::Instant::now(),
             listen: RwLock::new(None),
             deploy: tokio::sync::Mutex::new(()),
+            config_apply: tokio::sync::Mutex::new(()),
         })
     }
 }
@@ -159,6 +193,12 @@ impl WebState {
         }
         let mut f = self.flows_file_path.write().await;
         *f = Some(path);
+    }
+
+    pub async fn set_config_file_path(&self, path: PathBuf) {
+        let bytes = tokio::fs::read(&path).await.unwrap_or_default();
+        *self.applied_config_rev.write().await = crate::handlers::runtime_config::revision(&bytes);
+        *self.config_file_path.write().await = Some(path);
     }
 
     /// Set the restart callback

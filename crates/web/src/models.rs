@@ -191,6 +191,8 @@ pub struct RedSystemSettings {
     pub logging: LoggingConfig,
     #[serde(default = "default_libraries")]
     pub libraries: Vec<LibraryEntry>,
+    #[serde(default, rename = "configEditor")]
+    pub config_editor: bool,
     /// Present only when an admin password, user list, or OIDC issuer is configured.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "adminAuth")]
     pub admin_auth: Option<AdminAuthSettings>,
@@ -338,6 +340,7 @@ impl Default for RedSystemSettings {
             context: ContextConfig::default(),
             logging: LoggingConfig::default(),
             libraries: default_libraries(),
+            config_editor: false,
             admin_auth: None,
             user: None,
         }

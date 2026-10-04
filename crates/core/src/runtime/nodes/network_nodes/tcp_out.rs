@@ -7,6 +7,7 @@ use tokio_util::sync::CancellationToken;
 
 use serde::Deserialize;
 
+use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -28,17 +29,24 @@ struct TcpOutNode {
     base: BaseFlowNodeState,
     config: TcpOutNodeConfig,
     connections: Arc<Mutex<HashMap<String, Arc<Mutex<TcpStream>>>>>,
+    egress: EgressPolicyHandle,
 }
 
 impl TcpOutNode {
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         state: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let tcp_config = TcpOutNodeConfig::deserialize(&config.rest)?;
-        let node = TcpOutNode { base: state, config: tcp_config, connections: Arc::new(Mutex::new(HashMap::new())) };
+        let engine = flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("tcp out has no engine"))?;
+        let node = TcpOutNode {
+            base: state,
+            config: tcp_config,
+            connections: Arc::new(Mutex::new(HashMap::new())),
+            egress: engine.egress_policy().clone(),
+        };
         Ok(Box::new(node))
     }
 }
@@ -137,18 +145,14 @@ impl TcpOutNode {
             if let Some(existing_stream) = connections.get(&connection_key) {
                 existing_stream.clone()
             } else {
-                match TcpStream::connect(&remote_addr).await {
+                match self.egress.connect_tcp(EgressPurpose::Tcp, NetworkProtocol::Tcp, host, port).await {
                     Ok(new_stream) => {
                         let stream_arc = Arc::new(Mutex::new(new_stream));
                         connections.insert(connection_key.clone(), stream_arc.clone());
-                        log::info!("TCP out: Connected to {remote_addr}");
+                        log::info!("TCP out: Connected");
                         stream_arc
                     }
-                    Err(e) => {
-                        return Err(crate::EdgelinkError::InvalidOperation(format!(
-                            "Failed to connect to {remote_addr}: {e}"
-                        )));
-                    }
+                    Err(_) => return Err(crate::EdgelinkError::invalid_operation("TCP out connection failed")),
                 }
             }
         };

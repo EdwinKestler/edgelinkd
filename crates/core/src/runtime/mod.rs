@@ -1,5 +1,6 @@
 pub mod context;
 pub mod debug_channel;
+pub mod egress;
 pub mod engine;
 pub mod engine_events;
 pub mod eval;

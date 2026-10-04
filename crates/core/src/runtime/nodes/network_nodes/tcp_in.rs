@@ -7,6 +7,7 @@ use tokio_util::sync::CancellationToken;
 
 use serde::Deserialize;
 
+use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
@@ -36,17 +37,19 @@ enum DataMode {
 struct TcpInNode {
     base: BaseFlowNodeState,
     config: TcpInNodeConfig,
+    egress: EgressPolicyHandle,
 }
 
 impl TcpInNode {
     fn build(
-        _flow: &Flow,
+        flow: &Flow,
         state: BaseFlowNodeState,
         config: &RedFlowNodeConfig,
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let tcp_config = TcpInNodeConfig::deserialize(&config.rest)?;
-        let node = TcpInNode { base: state, config: tcp_config };
+        let engine = flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("tcp in has no engine"))?;
+        let node = TcpInNode { base: state, config: tcp_config, egress: engine.egress_policy().clone() };
         Ok(Box::new(node))
     }
 }
@@ -303,14 +306,14 @@ impl FlowNodeBehavior for TcpInNode {
             while !stop_token.is_cancelled() {
                 log::info!("TCP in: Attempting to connect to {remote_addr}");
 
-                match TcpStream::connect(&remote_addr).await {
+                match self.egress.connect_tcp(EgressPurpose::Tcp, NetworkProtocol::Tcp, host, port).await {
                     Ok(stream) => {
                         let mut counter = connection_counter.lock().await;
                         *counter += 1;
                         let session_id = format!("tcp_client_{}_{}", remote_addr.replace(':', "_"), *counter);
                         drop(counter);
 
-                        log::info!("TCP in: Connected to {remote_addr}");
+                        log::info!("TCP in: Connected");
                         reconnect_delay = tokio::time::Duration::from_secs(1); // Reset delay on successful connection
 
                         self.handle_connection(stream, session_id, stop_token.clone()).await;
@@ -321,8 +324,8 @@ impl FlowNodeBehavior for TcpInNode {
 
                         log::info!("TCP in: Connection to {remote_addr} lost, will reconnect");
                     }
-                    Err(e) => {
-                        log::error!("TCP in: Failed to connect to {remote_addr}: {e}");
+                    Err(_) => {
+                        log::error!("TCP in: Connection failed");
                     }
                 }
 
