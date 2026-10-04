@@ -1,0 +1,32 @@
+[runtime]
+
+[runtime.engine]
+
+[runtime.context]
+default = "memory"
+
+[runtime.context.stores]
+memory = { provider = "memory" }
+
+[runtime.flow]
+node_msg_queue_capacity = 16
+
+[ui-host]
+host = "127.0.0.1"
+port = 19889
+
+[api_protection]
+global_max_concurrency = 16
+max_rate_keys = 64
+trusted_proxies = []
+
+[api_protection.editor_admin]
+mode = "enforce"
+max_body_bytes = 16
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 600
+max_concurrency = 4
+queue_timeout_ms = 100
+request_timeout_ms = 5000
+max_response_bytes = 8388608

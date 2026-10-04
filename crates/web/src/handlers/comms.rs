@@ -13,6 +13,7 @@ use tokio::sync::broadcast;
 use tokio::time::{Duration, interval, sleep_until};
 
 use crate::handlers::WebState;
+use edgelink_core::runtime::ingress::EndpointClass;
 
 /// Node-RED WebSocket message format
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -515,7 +516,15 @@ impl CommsManager {
 
 /// WebSocket upgrade handler
 pub async fn websocket_handler(ws: WebSocketUpgrade, Extension(state): Extension<Arc<WebState>>) -> Response {
-    ws.on_upgrade(move |socket| handle_websocket(socket, Arc::clone(&state)))
+    let max_message_size = state.protection.limits(EndpointClass::Websocket).max_body_bytes;
+    let permit = match state.protection.acquire_websocket().await {
+        Ok(permit) => permit,
+        Err(response) => return *response,
+    };
+    ws.max_message_size(max_message_size).on_upgrade(move |socket| async move {
+        let _permit = permit;
+        handle_websocket(socket, Arc::clone(&state)).await;
+    })
 }
 
 /// Handle WebSocket connection

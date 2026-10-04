@@ -14,6 +14,7 @@ use crate::handlers::status::get_status;
 use crate::handlers::web_state::WebState;
 use crate::handlers::*;
 use crate::health::*;
+use crate::protection::protect_request;
 
 /// Create Node-RED compatible API routes
 /// These routes directly mimic Node-RED's path structure
@@ -122,6 +123,7 @@ pub fn create_all_routes(web_state: &WebState) -> Router {
     // so the middleware sees it.
     web_state
         .register_web_routes(router)
+        .layer(from_fn(protect_request))
         .layer(from_fn(require_admin))
         .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
 }

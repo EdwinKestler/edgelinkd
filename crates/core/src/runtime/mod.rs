@@ -9,6 +9,7 @@ pub mod flow;
 pub mod flow_credentials;
 pub mod group;
 pub mod http_registry;
+pub mod ingress;
 pub mod model;
 pub mod nodes;
 pub mod paths;

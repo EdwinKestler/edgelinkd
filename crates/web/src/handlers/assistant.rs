@@ -31,6 +31,7 @@ const MAX_FLOW_ELEMENTS: usize = 2_000;
 const MAX_DRAFT_NODES: usize = 64;
 const MAX_DRAFT_WIRES: usize = 128;
 const MAX_OUTPUT_PORT: usize = 15;
+const MAX_PROVIDER_RESPONSE_BYTES: usize = 512 * 1024;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -167,6 +168,9 @@ pub async fn post_assistant_draft(
             return api_error(StatusCode::BAD_GATEWAY, "provider_error", "AI provider request failed");
         }
     };
+    if reply.len() > MAX_PROVIDER_RESPONSE_BYTES {
+        return api_error(StatusCode::BAD_GATEWAY, "provider_response_too_large", "AI provider response is too large");
+    }
 
     let draft = match parse_model_draft(&reply) {
         Ok(draft) => draft,
@@ -218,6 +222,9 @@ fn workspace_exists(flows: &[Value], workspace_id: &str) -> bool {
 }
 
 fn parse_model_draft(text: &str) -> Result<ModelDraft, String> {
+    if text.len() > MAX_PROVIDER_RESPONSE_BYTES {
+        return Err("AI response exceeds the provider-response limit".to_owned());
+    }
     let start = text.find('{').ok_or_else(|| "AI response did not contain a JSON object".to_owned())?;
     let end = text.rfind('}').ok_or_else(|| "AI response did not contain a complete JSON object".to_owned())?;
     let draft: ModelDraft = serde_json::from_str(&text[start..=end])
@@ -349,6 +356,12 @@ mod tests {
             parse_model_draft("```json\n{\"version\":1,\"summary\":\"add debug\",\"nodes\":[],\"wires\":[]}\n```")
                 .unwrap();
         assert_eq!(draft.summary, "add debug");
+    }
+
+    #[test]
+    fn an_oversized_provider_response_is_rejected_before_json_parsing() {
+        let text = "x".repeat(MAX_PROVIDER_RESPONSE_BYTES + 1);
+        assert!(parse_model_draft(&text).unwrap_err().contains("provider-response limit"));
     }
 
     #[test]

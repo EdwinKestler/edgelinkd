@@ -19,6 +19,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 
+use crate::protection::ApiProtection;
+
 // --- WebStateCore trait implementation ---
 use edgelink_core::web::web_state_trait::WebStateCore;
 
@@ -29,6 +31,7 @@ pub type FlowEngineRestartCallback = Arc<dyn Fn(PathBuf) -> tokio::task::JoinHan
 pub struct WebRuntimeServices {
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
+    pub protection: ApiProtection,
 }
 
 /// Application state for storing system configuration
@@ -49,6 +52,7 @@ pub struct WebState {
     pub fleet: Arc<Fleet>,
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
+    pub protection: ApiProtection,
     pub config_editor_enabled: bool,
     /// The environment-specific overlay edited by the configuration pane.
     pub config_file_path: RwLock<Option<PathBuf>>,
@@ -141,6 +145,7 @@ impl WebState {
             fleet: Arc::new(fleet),
             egress: services.egress,
             credentials: services.credentials,
+            protection: services.protection,
             config_editor_enabled,
             config_file_path: RwLock::new(None),
             applied_config_rev: RwLock::new(String::new()),

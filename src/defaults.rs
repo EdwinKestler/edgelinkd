@@ -105,6 +105,105 @@ period_ms = 0
 host = "127.0.0.1"
 port = 1888
 
+# Inbound HTTP limits are independent by endpoint class. `enforce` rejects over-budget work;
+# `observe` records the same decision while permitting it; `off` is the per-class compatibility
+# fallback. Forwarded/real client headers are ignored unless the direct peer is listed here as
+# an exact IP address or CIDR. Do not trust a broad network you do not control.
+[api_protection]
+global_max_concurrency = 128
+max_rate_keys = 2048
+trusted_proxies = []
+# Optional: name of an environment variable whose bearer token every `http in` listener requires.
+# webhook_bearer_env = "EDGELINK_WEBHOOK_TOKEN"
+
+[api_protection.health]
+mode = "enforce"
+max_body_bytes = 0
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 1200
+max_concurrency = 32
+queue_timeout_ms = 500
+request_timeout_ms = 2000
+max_response_bytes = 65536
+
+[api_protection.editor_admin]
+mode = "enforce"
+max_body_bytes = 4194304
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 600
+max_concurrency = 32
+queue_timeout_ms = 500
+request_timeout_ms = 120000
+max_response_bytes = 8388608
+
+[api_protection.authentication]
+mode = "enforce"
+max_body_bytes = 65536
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 60
+max_concurrency = 8
+queue_timeout_ms = 500
+request_timeout_ms = 15000
+max_response_bytes = 65536
+
+[api_protection.websocket]
+mode = "enforce"
+max_body_bytes = 65536
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 120
+max_concurrency = 32
+queue_timeout_ms = 500
+request_timeout_ms = 10000
+max_response_bytes = 65536
+
+[api_protection.webhook]
+mode = "enforce"
+max_body_bytes = 1048576
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 600
+max_concurrency = 16
+queue_timeout_ms = 500
+request_timeout_ms = 30000
+max_response_bytes = 2097152
+
+[api_protection.copilot]
+mode = "enforce"
+max_body_bytes = 1048576
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 30
+max_concurrency = 2
+queue_timeout_ms = 1000
+request_timeout_ms = 70000
+max_response_bytes = 2097152
+
+[api_protection.fleet]
+mode = "enforce"
+max_body_bytes = 1048576
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 60
+max_concurrency = 4
+queue_timeout_ms = 500
+request_timeout_ms = 60000
+max_response_bytes = 4194304
+
+[api_protection.static_assets]
+mode = "enforce"
+max_body_bytes = 0
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 1200
+max_concurrency = 64
+queue_timeout_ms = 500
+request_timeout_ms = 30000
+max_response_bytes = 16777216
+
 # Outbound compatibility mode. Move to "observe" to inventory decisions, then add exact
 # allow rules before selecting "enforce". Ambient environment proxy variables are isolated in
 # governed modes; configure a proxy_url and allowlist its origin if a proxy is required.

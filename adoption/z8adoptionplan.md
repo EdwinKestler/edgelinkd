@@ -1,7 +1,7 @@
 # z8run Adoption Plan for EdgeLinkd
 
-Status: Phases 0-2 complete on 2026-10-03; phases 3-7 have not started. Phase 2
-evidence is in `adoption/phase2/REPORT.md`; earlier evidence is in
+Status: Phases 0-3 complete on 2026-10-03; phases 4-7 have not started. Phase 3
+evidence is in `adoption/phase3/REPORT.md`; earlier evidence is in `adoption/phase2/REPORT.md`,
 `adoption/phase1/REPORT.md` and `adoption/phase0/BASELINE.md`.
 
 This plan evaluates patterns found in the sibling checkout at
@@ -164,6 +164,9 @@ Exit gate: crash injection always leaves a complete old or complete new generati
 mixed pair.
 
 ## Phase 3 - Webhook and API resource protection
+
+Status: closed locally against `29a27b3ee45d4a9bf80889a992df11e0bb4ee06f`; see
+`adoption/phase3/DESIGN.md` and `adoption/phase3/REPORT.md`.
 
 Apply shared, endpoint-specific Axum/Tower controls to admin/editor, authentication, webhook,
 HTTP-in, Copilot, WebSocket, and health routes.

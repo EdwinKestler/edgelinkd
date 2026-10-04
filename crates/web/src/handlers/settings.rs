@@ -24,7 +24,8 @@ pub async fn update_user_settings(
     Extension(_state): Extension<Arc<WebState>>,
     Json(payload): Json<Value>,
 ) -> Result<Json<Value>, StatusCode> {
-    log::debug!("Updating user settings: {payload:?}");
+    let fields = payload.as_object().map_or(0, serde_json::Map::len);
+    log::debug!("Updating user settings fields={fields}");
 
     // In actual implementation, this should save the settings
     Ok(Json(payload))

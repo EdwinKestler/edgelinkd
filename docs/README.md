@@ -12,6 +12,8 @@ operations and security procedures that need more detail than the overview.
 
 - [Outbound egress policy](security/egress-policy.md): inventory outbound connections, build an
   allowlist, enable enforcement, validate it, and roll back safely.
+- [Inbound API and webhook protection](security/ingress-protection.md): configure endpoint-class
+  body, header, rate, concurrency, timeout, proxy-trust, response, and rollback boundaries.
 
 Implementation decisions, measured resource costs, test evidence, and phase boundaries are kept
 separately under [`adoption/`](../adoption/).

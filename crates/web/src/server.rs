@@ -16,6 +16,7 @@ use crate::handlers::auth::AdminAuth;
 use crate::handlers::fleet::Fleet;
 use crate::handlers::{FlowEngineRestartCallback, WebRuntimeServices, WebState};
 use crate::models::*;
+use crate::protection::{ApiProtection, protect_static_request};
 
 pub struct WebServer {
     pub static_dir: PathBuf,
@@ -52,13 +53,15 @@ impl WebServer {
             .unwrap_or_else(|err| panic!("fleet configuration is not valid: {err}"));
         let credentials = CredentialStore::from_config(Some(cfg))
             .unwrap_or_else(|err| panic!("credential storage configuration is not valid: {err}"));
+        let protection = ApiProtection::load(Some(cfg))
+            .unwrap_or_else(|err| panic!("api protection configuration is not valid: {err}"));
         let web_state = WebState::assemble_with_egress(
             args,
             static_dir.into(),
             Some(cancel_token.clone()),
             auth,
             fleet,
-            WebRuntimeServices { egress, credentials },
+            WebRuntimeServices { egress, credentials, protection },
             config_editor_enabled,
         );
 
@@ -131,11 +134,12 @@ impl WebServer {
         // Use trait object for Extension so handlers using Extension<Arc<dyn WebStateCore + Send + Sync>> work
         Router::new()
             .merge(api_routes)
+            .fallback_service(static_service)
+            .layer(axum::middleware::from_fn(protect_static_request))
             .layer(Extension(self.state.clone()))
             .layer(Extension(
                 self.state.clone() as Arc<dyn edgelink_core::web::web_state_trait::WebStateCore + Send + Sync>
             ))
-            .fallback_service(static_service)
     }
 
     /// Start the web server and return a JoinHandle
@@ -149,16 +153,15 @@ impl WebServer {
         self.state.record_listen(bound).await;
         let router = self.router();
         Ok(tokio::spawn(async move {
-            let server = serve(listener, router);
-            tokio::select! {
-                result = server => {
-                    if let Err(e) = result {
-                        log::error!("Web server error: {e}");
-                    }
-                }
-                _ = cancel_token.cancelled() => {
-                    log::info!("Web server shutting down gracefully...");
-                }
+            let shutdown = async move {
+                cancel_token.cancelled().await;
+                log::info!("Web server shutting down gracefully...");
+            };
+            if let Err(e) = serve(listener, router.into_make_service_with_connect_info::<std::net::SocketAddr>())
+                .with_graceful_shutdown(shutdown)
+                .await
+            {
+                log::error!("Web server error: {e}");
             }
         }))
     }

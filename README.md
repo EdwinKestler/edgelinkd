@@ -209,6 +209,19 @@ successfully with the older runtime.
 The complete migration, rotation, recovery, and downgrade procedure is in the
 [credential lifecycle operations manual](docs/operations/credential-lifecycle.md).
 
+### Inbound API and webhook protection
+
+Editor/admin, authentication, WebSocket, health, static, Flow Copilot, fleet, and `http in`
+traffic have independent finite budgets under `[api_protection]`. Defaults cover request bodies
+and headers, per-principal/client rate, global and class concurrency, queue and execution
+deadlines, and response size. Forwarded client addresses are ignored unless the direct peer is in
+the explicit `trusted_proxies` list. An optional `webhook_bearer_env` requires every `http in`
+request to authenticate without placing the token in a configuration file.
+
+Use one class's `mode = "observe"` as a temporary compatibility fallback; the other classes remain
+enforced. The [inbound protection runbook](docs/security/ingress-protection.md) lists route classes,
+defaults, proxy rules, status codes, acceptance checks, and the configuration-only rollback.
+
 ### Outbound network policy
 
 `[egress] mode = "off"` preserves the existing outbound behavior. Use `"observe"` first to

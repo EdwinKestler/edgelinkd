@@ -366,6 +366,7 @@ mod tests {
             WebRuntimeServices {
                 egress,
                 credentials: edgelink_core::runtime::credential_storage::CredentialStore::default(),
+                protection: crate::protection::ApiProtection::default(),
             },
             true,
         );
