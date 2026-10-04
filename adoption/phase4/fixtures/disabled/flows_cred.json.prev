@@ -1,0 +1,13 @@
+{
+  "2000000000000001": {
+    "user": "fixture-mqtt-user-previous",
+    "password": "fixture-mqtt-previous-not-a-secret"
+  },
+  "2000000000000002": {
+    "apiKey": "fixture-ai-previous-not-a-secret"
+  },
+  "3000000000000001": {
+    "user": "fixture-http-user-previous",
+    "password": "fixture-http-previous-not-a-secret"
+  }
+}

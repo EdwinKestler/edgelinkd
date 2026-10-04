@@ -134,6 +134,9 @@ rumqttc = { version = "0.25.1" }
 # JSONata expression evaluation. `default-features = false` drops the `simd` feature: we
 # convert through serde_json, so simd-json would only add weight to the binary.
 jsonata-core = { version = "2.2", default-features = false }
+# Optional operational history (`history_sqlite`). `bundled` builds a pinned SQLite so embedded
+# targets need no system library; default features (statement cache, etc.) are not needed.
+rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
 
 [dependencies]
 clap.workspace = true
@@ -196,3 +199,6 @@ nodes_ai = ["edgelink-core/nodes_ai", "edgelink-web/nodes_ai"]
 admin_bcrypt = ["edgelink-web/admin_bcrypt"]
 # Versioned XChaCha20-Poly1305 credential envelopes and migration CLI.
 credential_encryption = ["edgelink-core/credential_encryption", "edgelink-web/credential_encryption"]
+# Optional SQLite operational history (deploy, node health, Copilot, fleet). Off by default and
+# not part of `full`; see docs/operations/history.md.
+history_sqlite = ["edgelink-core/history_sqlite", "edgelink-web/history_sqlite"]

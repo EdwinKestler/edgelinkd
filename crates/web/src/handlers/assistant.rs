@@ -110,25 +110,34 @@ pub async fn post_assistant_draft(
     headers: HeaderMap,
     Json(request): Json<DraftRequest>,
 ) -> Response {
+    let actor = state.auth.actor_from_headers(&headers);
+    state.history.record_copilot_requested(&actor.username);
+
     if request.prompt.trim().is_empty() || request.prompt.chars().count() > MAX_PROMPT_CHARS {
+        state.history.record_copilot_rejected(&actor.username, "invalid_prompt");
         return api_error(StatusCode::BAD_REQUEST, "invalid_prompt", "prompt is empty or too long");
     }
     if request.flows.len() > MAX_FLOW_ELEMENTS {
+        state.history.record_copilot_rejected(&actor.username, "flow_too_large");
         return api_error(StatusCode::PAYLOAD_TOO_LARGE, "flow_too_large", "editor flow is too large");
     }
     if !workspace_exists(&request.flows, &request.workspace_id) {
+        state.history.record_copilot_rejected(&actor.username, "unknown_workspace");
         return api_error(StatusCode::BAD_REQUEST, "unknown_workspace", "active workspace is not in the editor flow");
     }
 
     let sanitized = redact_for_model(&Value::Array(request.flows.clone()));
     let Ok(flow_json) = serde_json::to_string(&sanitized) else {
+        state.history.record_copilot_rejected(&actor.username, "invalid_flows");
         return api_error(StatusCode::BAD_REQUEST, "invalid_flows", "editor flow is not valid JSON");
     };
     if flow_json.len() > MAX_FLOW_BYTES {
+        state.history.record_copilot_rejected(&actor.username, "flow_too_large");
         return api_error(StatusCode::PAYLOAD_TOO_LARGE, "flow_too_large", "editor flow is too large");
     }
 
     let Some(registry) = state.registry.read().await.clone() else {
+        state.history.record_copilot_rejected(&actor.username, "runtime_unavailable");
         return api_error(StatusCode::SERVICE_UNAVAILABLE, "runtime_unavailable", "node registry is not available");
     };
     let mut allowed_types: Vec<String> = registry
@@ -142,6 +151,7 @@ pub async fn post_assistant_draft(
     let allowed: HashSet<String> = allowed_types.iter().cloned().collect();
 
     let Some(engine) = state.engine.read().await.clone() else {
+        state.history.record_copilot_rejected(&actor.username, "runtime_unavailable");
         return api_error(StatusCode::SERVICE_UNAVAILABLE, "runtime_unavailable", "flow engine is not available");
     };
 
@@ -165,20 +175,28 @@ pub async fn post_assistant_draft(
         Ok(reply) => reply,
         Err(err) => {
             log::warn!("Flow Copilot provider request failed: {err}");
+            state.history.record_copilot_rejected(&actor.username, "provider_error");
             return api_error(StatusCode::BAD_GATEWAY, "provider_error", "AI provider request failed");
         }
     };
     if reply.len() > MAX_PROVIDER_RESPONSE_BYTES {
+        state.history.record_copilot_rejected(&actor.username, "provider_response_too_large");
         return api_error(StatusCode::BAD_GATEWAY, "provider_response_too_large", "AI provider response is too large");
     }
 
     let draft = match parse_model_draft(&reply) {
         Ok(draft) => draft,
-        Err(message) => return api_error(StatusCode::UNPROCESSABLE_ENTITY, "invalid_ai_draft", &message),
+        Err(message) => {
+            state.history.record_copilot_rejected(&actor.username, "invalid_ai_draft");
+            return api_error(StatusCode::UNPROCESSABLE_ENTITY, "invalid_ai_draft", &message);
+        }
     };
     let nodes = match materialize_draft(&draft, &request.workspace_id, &request.flows, &allowed) {
         Ok(nodes) => nodes,
-        Err(message) => return api_error(StatusCode::UNPROCESSABLE_ENTITY, "invalid_ai_draft", &message),
+        Err(message) => {
+            state.history.record_copilot_rejected(&actor.username, "invalid_ai_draft");
+            return api_error(StatusCode::UNPROCESSABLE_ENTITY, "invalid_ai_draft", &message);
+        }
     };
 
     let mut candidate = request.flows.clone();
@@ -188,6 +206,7 @@ pub async fn post_assistant_draft(
             Ok(stored) => flow_credentials::merge_into(&mut candidate, &stored),
             Err(err) => {
                 log::error!("Failed to read credential sidecar while validating a Flow Copilot draft: {err}");
+                state.history.record_copilot_rejected(&actor.username, "validation_failed");
                 return api_error(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "validation_failed",
@@ -197,10 +216,11 @@ pub async fn post_assistant_draft(
         }
     }
     if let Err(err) = Engine::prepare_flows(&Value::Array(candidate), &registry, None) {
+        state.history.record_copilot_rejected(&actor.username, "invalid_ai_draft");
         return api_error(StatusCode::UNPROCESSABLE_ENTITY, "invalid_ai_draft", &err.to_string());
     }
 
-    let actor = state.auth.actor_from_headers(&headers);
+    state.history.record_copilot_produced(&actor.username, nodes.len());
     let detail = format!("{} nodes", nodes.len());
     let _ = state.audit.record(&actor.username, "assistant.draft", Some(&detail)).await;
     Json(DraftResponse {

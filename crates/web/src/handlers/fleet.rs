@@ -357,7 +357,7 @@ pub async fn post_push(Extension(state): Extension<Arc<WebState>>, headers: Head
         Ok(flows) => flows,
         Err(err) => return api_error(StatusCode::INTERNAL_SERVER_ERROR, "unexpected_error", &err),
     };
-    finish_remote(&state, &headers, "fleet.push", state.fleet.push(&input.device, flows).await).await
+    finish_remote(&state, &headers, "fleet.push", &input.device, state.fleet.push(&input.device, flows).await).await
 }
 
 #[derive(Deserialize)]
@@ -374,25 +374,37 @@ pub async fn post_promote(Extension(state): Extension<Arc<WebState>>, headers: H
         Ok(input) => input,
         Err(_) => return api_error(StatusCode::BAD_REQUEST, "bad_request", "fleet promote is not valid"),
     };
-    finish_remote(&state, &headers, "fleet.promote", state.fleet.promote(&input.from, &input.to).await).await
+    let target = format!("{}->{}", input.from, input.to);
+    finish_remote(&state, &headers, "fleet.promote", &target, state.fleet.promote(&input.from, &input.to).await).await
 }
 
 async fn finish_remote(
     state: &WebState,
     headers: &HeaderMap,
     event: &str,
+    target: &str,
     result: Result<(StatusCode, Value), String>,
 ) -> Response {
+    let actor = state.auth.actor_from_headers(headers);
     match result {
         Ok((status, body)) => {
-            let actor = state.auth.actor_from_headers(headers);
-            let rev = body.get("rev").and_then(Value::as_str).map(str::to_string);
-            let _ = state.audit.record(&actor.username, event, rev.as_deref()).await;
+            let rev = body.get("rev").and_then(Value::as_str);
+            if event == "fleet.push" {
+                state.history.record_fleet_push(&actor.username, target, status.as_u16(), rev);
+            } else if event == "fleet.promote" {
+                state.history.record_fleet_promote(&actor.username, target, status.as_u16(), rev);
+            }
+            let _ = state.audit.record(&actor.username, event, rev).await;
             (status, axum::Json(body)).into_response()
         }
         Err(err) => {
             let code = if err.contains("was not found") { "not_found" } else { "not_available" };
             let status = if code == "not_found" { StatusCode::NOT_FOUND } else { StatusCode::BAD_GATEWAY };
+            if event == "fleet.push" {
+                state.history.record_fleet_push(&actor.username, target, status.as_u16(), None);
+            } else if event == "fleet.promote" {
+                state.history.record_fleet_promote(&actor.username, target, status.as_u16(), None);
+            }
             api_error(status, code, &err)
         }
     }

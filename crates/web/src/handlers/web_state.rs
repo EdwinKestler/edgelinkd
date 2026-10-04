@@ -32,6 +32,7 @@ pub struct WebRuntimeServices {
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
     pub protection: ApiProtection,
+    pub history: edgelink_core::runtime::history::HistoryHandle,
 }
 
 /// Application state for storing system configuration
@@ -53,6 +54,7 @@ pub struct WebState {
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
     pub protection: ApiProtection,
+    pub history: edgelink_core::runtime::history::HistoryHandle,
     pub config_editor_enabled: bool,
     /// The environment-specific overlay edited by the configuration pane.
     pub config_file_path: RwLock<Option<PathBuf>>,
@@ -146,6 +148,7 @@ impl WebState {
             egress: services.egress,
             credentials: services.credentials,
             protection: services.protection,
+            history: services.history,
             config_editor_enabled,
             config_file_path: RwLock::new(None),
             applied_config_rev: RwLock::new(String::new()),
@@ -204,6 +207,7 @@ impl WebState {
             if let Err(err) = self.fleet.load_home(parent.to_path_buf()).await {
                 panic!("fleet configuration is not valid: {err}");
             }
+            self.history.set_home(parent.to_path_buf());
         }
         let mut f = self.flows_file_path.write().await;
         *f = Some(path);

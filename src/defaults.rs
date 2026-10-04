@@ -264,6 +264,18 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # Fleet push is off until enabled. Devices can also live in fleet.json beside flows.json.
 # [fleet]
 # enabled = false
+
+# Bounded operational history. Off by default and compiled only with the `history_sqlite` feature.
+# [history]
+# enabled = false
+# path = "history.sqlite3"
+# queue_capacity = 1024
+# batch_max = 256
+# retention_days = 30
+# max_db_bytes = 16777216
+# shutdown_drain_ms = 2000
+# node_error_interval_ms = 1000
+# migrate = false
 "#;
 
     fs::write(&config_path, default_config)?;

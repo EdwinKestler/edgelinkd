@@ -509,15 +509,21 @@ pub enum StatusFill {
     Blue,
 }
 
+impl StatusFill {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            StatusFill::Red => "red",
+            StatusFill::Green => "green",
+            StatusFill::Yellow => "yellow",
+            StatusFill::Grey => "grey",
+            StatusFill::Blue => "blue",
+        }
+    }
+}
+
 impl fmt::Display for StatusFill {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            StatusFill::Red => write!(f, "red"),
-            StatusFill::Green => write!(f, "green"),
-            StatusFill::Yellow => write!(f, "yellow"),
-            StatusFill::Grey => write!(f, "grey"),
-            StatusFill::Blue => write!(f, "blue"),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -531,12 +537,18 @@ pub enum StatusShape {
     Dot,
 }
 
+impl StatusShape {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            StatusShape::Ring => "ring",
+            StatusShape::Dot => "dot",
+        }
+    }
+}
+
 impl fmt::Display for StatusShape {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            StatusShape::Ring => write!(f, "ring"),
-            StatusShape::Dot => write!(f, "dot"),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 

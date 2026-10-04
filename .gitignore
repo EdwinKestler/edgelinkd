@@ -16,6 +16,12 @@ __pycache__
 /fleet.json
 /audit.log
 /build-out
+/history.sqlite3
+/history.sqlite3-wal
+/history.sqlite3-shm
+/history.db
+/history.db-wal
+/history.db-shm
 
 # Scratch directory the context-storage specs create and remove
 /tests/resources/context

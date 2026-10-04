@@ -35,6 +35,8 @@ credential_encryption = ["edgelink-core/credential_encryption"]
 nodes_modbus = ["edgelink-core/nodes_modbus"]
 runtime_scan = ["edgelink-core/runtime_scan"]
 nodes_ai = ["edgelink-core/nodes_ai"]
+# Adds the `/history` query route and `/status` history health.
+history_sqlite = ["edgelink-core/history_sqlite"]
 
 [dev-dependencies]
 tokio-tungstenite = { workspace = true }

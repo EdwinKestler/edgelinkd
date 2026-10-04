@@ -76,14 +76,21 @@ pub async fn get_status(Extension(state): Extension<Arc<WebState>>) -> Response 
         (0, Vec::new(), Vec::new())
     };
 
-    Json(json!({
+    #[allow(unused_mut)]
+    let mut status_json = json!({
         "rev": rev,
         "uptimeMs": uptime_ms,
         "errors": errors,
         "contextAges": context_ages,
         "links": links,
-    }))
-    .into_response()
+    });
+
+    #[cfg(feature = "history_sqlite")]
+    {
+        status_json["history"] = serde_json::to_value(state.history.health()).unwrap_or(Value::Null);
+    }
+
+    Json(status_json).into_response()
 }
 
 fn unix_ms() -> i64 {

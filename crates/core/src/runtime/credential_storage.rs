@@ -1040,17 +1040,22 @@ impl Drop for CredentialFileLock {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "credential_encryption")]
     use super::*;
+    #[cfg(feature = "credential_encryption")]
     use serde_json::json;
 
+    #[cfg(feature = "credential_encryption")]
     struct TempDir(PathBuf);
 
+    #[cfg(feature = "credential_encryption")]
     impl Drop for TempDir {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
         }
     }
 
+    #[cfg(feature = "credential_encryption")]
     fn temp() -> TempDir {
         let path = std::env::temp_dir().join(format!("edgelink-credential-storage-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&path).unwrap();

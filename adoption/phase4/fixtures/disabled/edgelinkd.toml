@@ -1,0 +1,26 @@
+[runtime]
+
+[runtime.engine]
+
+[runtime.context]
+default = "memory"
+
+[runtime.context.stores]
+memory = { provider = "memory" }
+
+[runtime.flow]
+node_msg_queue_capacity = 16
+
+[runtime.scan]
+period_ms = 0
+
+[ui-host]
+host = "127.0.0.1"
+port = 19888
+
+[history]
+enabled = false
+path = "history.db"
+max_db_bytes = 10485760
+retention_days = 30
+queue_capacity = 1024

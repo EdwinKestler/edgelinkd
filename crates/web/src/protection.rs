@@ -201,6 +201,7 @@ pub fn classify(path: &str) -> EndpointClass {
         "/settings",
         "/status",
         "/audit",
+        "/history",
         "/runtime",
         "/context",
         "/inject",
@@ -743,6 +744,7 @@ mod tests {
                 egress: EgressPolicyHandle::default(),
                 credentials: CredentialStore::default(),
                 protection,
+                ..Default::default()
             },
             false,
         )

@@ -55,13 +55,15 @@ impl WebServer {
             .unwrap_or_else(|err| panic!("credential storage configuration is not valid: {err}"));
         let protection = ApiProtection::load(Some(cfg))
             .unwrap_or_else(|err| panic!("api protection configuration is not valid: {err}"));
+        let history = edgelink_core::runtime::history::HistoryHandle::from_config(Some(cfg))
+            .unwrap_or_else(|err| panic!("history configuration is not valid: {err}"));
         let web_state = WebState::assemble_with_egress(
             args,
             static_dir.into(),
             Some(cancel_token.clone()),
             auth,
             fleet,
-            WebRuntimeServices { egress, credentials, protection },
+            WebRuntimeServices { egress, credentials, protection, history },
             config_editor_enabled,
         );
 
@@ -152,6 +154,7 @@ impl WebServer {
         let bound = listener.local_addr()?;
         self.state.record_listen(bound).await;
         let router = self.router();
+        let state = self.state.clone();
         Ok(tokio::spawn(async move {
             let shutdown = async move {
                 cancel_token.cancelled().await;
@@ -163,6 +166,7 @@ impl WebServer {
             {
                 log::error!("Web server error: {e}");
             }
+            state.history.shutdown();
         }))
     }
 }

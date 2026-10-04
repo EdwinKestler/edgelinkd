@@ -64,6 +64,8 @@ pub async fn post_flows(
 
     let _deploy = state.deploy.lock().await;
     let actor = state.auth.actor_from_headers(&headers);
+    let deployed_count = parsed_payload.flows.len();
+    state.history.record_deploy_proposed(&actor.username, parsed_payload.rev.as_deref(), "full", deployed_count);
     if let Some(offered) = parsed_payload.rev.as_deref() {
         let current = deploy::revision_on_disk(&flows_path).await.map_err(|err| {
             log::error!("Failed to read the current flows revision: {err}");
@@ -71,23 +73,30 @@ pub async fn post_flows(
         })?;
         if offered != current {
             let _ = state.audit.record(&actor.username, "flows.deploy.rejected", Some(offered)).await;
+            state.history.record_deploy_rejected(&actor.username, Some(offered), "full", "version_mismatch");
             return Ok(api_error(StatusCode::CONFLICT, "version_mismatch", "version mismatch"));
         }
     }
 
-    let deployed_count = parsed_payload.flows.len();
     match deploy::commit(&state, &flows_path, parsed_payload.flows).await {
         Ok((_, revision)) => {
             log::info!("Flows saved to file: {}", flows_path.display());
             state.comms.send_deploy_notification(true, Some(&revision)).await;
             state.comms.send_notification("success", &format!("Successfully deployed {deployed_count} flows")).await;
             let _ = state.audit.record(&actor.username, "flows.deploy", Some(&revision)).await;
+            state.history.record_deploy_accepted(&actor.username, &revision, "full", deployed_count);
             Ok(Json(serde_json::json!({ "rev": revision })).into_response())
         }
         Err(err) => {
             state.comms.send_deploy_notification(false, Some("0")).await;
             state.comms.send_notification("error", "Failed to deploy flows").await;
             let _ = state.audit.record(&actor.username, "flows.deploy.rejected", None).await;
+            state.history.record_deploy_rejected(
+                &actor.username,
+                parsed_payload.rev.as_deref(),
+                "full",
+                "commit_failed",
+            );
             Ok(err.into_response())
         }
     }
@@ -107,14 +116,18 @@ pub async fn post_flows_rollback(
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     };
     let _deploy = state.deploy.lock().await;
+    let actor = state.auth.actor_from_headers(&headers);
     match deploy::rollback_pair(&state, &flows_path).await {
         Ok(revision) => {
-            let actor = state.auth.actor_from_headers(&headers);
             let _ = state.audit.record(&actor.username, "flows.rollback", Some(&revision)).await;
+            state.history.record_deploy_rollback(&actor.username, Some(&revision), true, None);
             state.comms.send_deploy_notification(true, Some(&revision)).await;
             Ok(Json(serde_json::json!({ "rev": revision })).into_response())
         }
-        Err(err) => Ok(err.into_response()),
+        Err(err) => {
+            state.history.record_deploy_rollback(&actor.username, None, false, Some("rollback_failed"));
+            Ok(err.into_response())
+        }
     }
 }
 

@@ -77,6 +77,9 @@ fn create_node_red_api_routes() -> Router {
         .route("/assistant/skills", get(get_assistant_skills))
         .route("/assistant/draft", post(post_assistant_draft));
 
+    #[cfg(feature = "history_sqlite")]
+    let router = router.route("/history", get(crate::handlers::history::get_history));
+
     router
 }
 

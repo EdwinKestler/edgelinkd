@@ -504,6 +504,9 @@ pub fn permission_for(method: &Method, path: &str) -> Option<&'static str> {
     if path.starts_with("/status") {
         return Some("status.read");
     }
+    if path.starts_with("/history") {
+        return Some("history.read");
+    }
     if path.starts_with("/credentials") {
         let write = !matches!(*method, Method::GET | Method::HEAD);
         return Some(if write { "credentials.write" } else { "credentials.read" });
@@ -515,6 +518,8 @@ pub fn permission_for(method: &Method, path: &str) -> Option<&'static str> {
         "context"
     } else if path.starts_with("/plugins") {
         "plugins"
+    } else if path.starts_with("/history") {
+        "history"
     } else {
         "flows"
     };
@@ -526,6 +531,7 @@ fn read_permission(resource: &str) -> &'static str {
         "nodes" => "nodes.read",
         "context" => "context.read",
         "plugins" => "plugins.read",
+        "history" => "history.read",
         _ => "flows.read",
     }
 }

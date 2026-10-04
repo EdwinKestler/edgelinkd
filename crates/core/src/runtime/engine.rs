@@ -11,6 +11,7 @@ use super::context::{Context, ContextManager, ContextManagerBuilder};
 use super::debug_channel::DebugChannel;
 use super::egress::EgressPolicyHandle;
 use super::engine_events::{EngineEvent, EngineEventBus};
+use super::history::HistoryHandle;
 use super::http_registry::HttpResponseRegistry;
 use super::model::json::{RedFlowConfig, RedGlobalNodeConfig};
 use super::model::*;
@@ -78,6 +79,7 @@ struct InnerEngine {
     /// (the web deploy path) reuses this instead of silently falling back to the defaults.
     elcfg: Option<config::Config>,
     egress: EgressPolicyHandle,
+    history: HistoryHandle,
     envs: RedEnvs,
     context_manager: Arc<ContextManager>,
     context: Context,
@@ -170,6 +172,7 @@ impl Engine {
         }
         let context_manager = ctx_builder.build()?;
         let egress = EgressPolicyHandle::load(elcfg.as_ref())?;
+        let history = HistoryHandle::from_config(elcfg.as_ref())?;
 
         // let context_manager = Arc::new(ContextManager::default());
         let context = context_manager.new_global_context();
@@ -192,6 +195,7 @@ impl Engine {
                 _args: EngineArgs::load(elcfg.as_ref())?,
                 elcfg: elcfg.clone(),
                 egress,
+                history,
                 context_manager,
                 context,
                 http_response_registry: Arc::new(HttpResponseRegistry::new()),
@@ -226,6 +230,11 @@ impl Engine {
     /// Shared outbound-network policy used by nodes and web adapters.
     pub fn egress_policy(&self) -> &EgressPolicyHandle {
         &self.inner.egress
+    }
+
+    /// Operational history handle.
+    pub fn history(&self) -> &HistoryHandle {
+        &self.inner.history
     }
 
     pub async fn with_flows_file(
@@ -406,6 +415,8 @@ impl Engine {
 
         *shutdown_lock = false;
 
+        self.inner.history.record_runtime_started(env!("CARGO_PKG_VERSION"), super::history::SCHEMA_VERSION);
+
         log::info!("-- All flows started.");
         Ok(())
     }
@@ -432,6 +443,8 @@ impl Engine {
 
         // 发布停止事件
         self.publish_event(EngineEvent::EngineStopped);
+
+        self.inner.history.record_runtime_stopped(env!("CARGO_PKG_VERSION"), super::history::SCHEMA_VERSION);
 
         //drop(self.stopped_tx);
         log::info!("-- Engine flows stopped.");
@@ -686,14 +699,22 @@ impl Engine {
 
     pub fn report_node_status(&self, from: ElementId, status: StatusObject) {
         let type_name = self.node_type_name(from);
-        self.inner.node_status.insert(from, (type_name, status.text.clone()));
+        self.inner.node_status.insert(from, (type_name.clone(), status.text.clone()));
+        self.inner.history.record_node_status(
+            from,
+            &type_name,
+            status.fill.as_ref().map(|f| f.as_str()),
+            status.shape.as_ref().map(|s| s.as_str()),
+        );
         let to_send = StatusMessage { sender_id: from, status };
         self.inner.status_channel.send(to_send);
     }
 
     pub fn note_node_error(&self, id: ElementId) {
+        let type_name = self.node_type_name(id);
         self.inner.error_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.inner.node_errors.entry(id).and_modify(|count| *count += 1).or_insert(1);
+        self.inner.history.record_node_error(id, &type_name);
     }
 
     pub fn error_count(&self) -> u64 {
@@ -838,6 +859,7 @@ impl Engine {
             .collect();
         self.inner.node_status.retain(|id, _| active.contains(id));
         self.inner.node_errors.retain(|id, _| active.contains(id));
+        self.inner.history.reset_node_filters();
     }
 
     pub async fn redeploy_flows(

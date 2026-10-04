@@ -7,6 +7,8 @@ operations and security procedures that need more detail than the overview.
 
 - [Credential lifecycle](operations/credential-lifecycle.md): inspect, migrate, rotate, recover,
   export, validate, and roll back encrypted flow credentials.
+- [Operational history](operations/history.md): optional SQLite deploy, node, Copilot, and
+  fleet history behind `history_sqlite`.
 
 ## Security
 

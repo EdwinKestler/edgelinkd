@@ -8,6 +8,8 @@ pub mod credentials;
 pub mod deploy;
 pub mod fleet;
 pub mod flows;
+#[cfg(feature = "history_sqlite")]
+pub mod history;
 pub mod library;
 pub mod locales;
 pub mod nodes;

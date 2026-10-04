@@ -1,0 +1,36 @@
+[
+  {
+    "id": "1000000000000001",
+    "type": "tab",
+    "label": "Phase 0 fixture"
+  },
+  {
+    "id": "2000000000000001",
+    "type": "mqtt-broker",
+    "name": "fixture MQTT",
+    "broker": "127.0.0.1",
+    "port": 1883,
+    "protocolVersion": 4,
+    "autoConnect": false,
+    "cleansession": true
+  },
+  {
+    "id": "2000000000000002",
+    "type": "ai-provider",
+    "name": "fixture AI",
+    "provider": "openai",
+    "baseUrl": "https://api.example.invalid/v1",
+    "defaultModel": "fixture-model"
+  },
+  {
+    "id": "3000000000000001",
+    "z": "1000000000000001",
+    "type": "http request",
+    "name": "dormant fixture HTTP",
+    "method": "GET",
+    "ret": "txt",
+    "url": "https://example.invalid/phase0",
+    "authType": "basic",
+    "wires": [[]]
+  }
+]

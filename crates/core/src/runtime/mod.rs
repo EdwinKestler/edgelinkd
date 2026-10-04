@@ -8,6 +8,7 @@ pub mod eval;
 pub mod flow;
 pub mod flow_credentials;
 pub mod group;
+pub mod history;
 pub mod http_registry;
 pub mod ingress;
 pub mod model;
