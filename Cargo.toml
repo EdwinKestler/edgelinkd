@@ -137,6 +137,8 @@ jsonata-core = { version = "2.2", default-features = false }
 # Optional operational history (`history_sqlite`). `bundled` builds a pinned SQLite so embedded
 # targets need no system library; default features (statement cache, etc.) are not needed.
 rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
+tokio-postgres = { version = "0.7", default-features = false, features = ["runtime"] }
+redis = { version = "0.27", default-features = false, features = ["aio", "tokio-comp"] }
 
 [dependencies]
 clap.workspace = true
@@ -182,6 +184,9 @@ default = [
     "nodes_ai",
     "admin_bcrypt",
     "credential_encryption",
+    "history_sqlite",
+    "nodes_postgres",
+    "nodes_redis",
 ]
 core = ["edgelink-core/core"]
 js = ["edgelink-core/js"]
@@ -199,6 +204,9 @@ nodes_ai = ["edgelink-core/nodes_ai", "edgelink-web/nodes_ai"]
 admin_bcrypt = ["edgelink-web/admin_bcrypt"]
 # Versioned XChaCha20-Poly1305 credential envelopes and migration CLI.
 credential_encryption = ["edgelink-core/credential_encryption", "edgelink-web/credential_encryption"]
-# Optional SQLite operational history (deploy, node health, Copilot, fleet). Off by default and
-# not part of `full`; see docs/operations/history.md.
+# SQLite operational history (deploy, node health, Copilot, fleet). In the default app build;
+# omit with --no-default-features. See docs/operations/history.md.
 history_sqlite = ["edgelink-core/history_sqlite", "edgelink-web/history_sqlite"]
+# PostgreSQL and Redis clients. In the default app build; omit with --no-default-features.
+nodes_postgres = ["edgelink-core/nodes_postgres", "edgelink-web/nodes_postgres"]
+nodes_redis = ["edgelink-core/nodes_redis", "edgelink-web/nodes_redis"]

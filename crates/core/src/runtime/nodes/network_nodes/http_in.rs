@@ -57,8 +57,10 @@ impl HttpMethod {
     }
 }
 
+crate::node_hints!("http in", caps = ["network"]);
+
 #[derive(Debug)]
-#[flow_node("http in", red_name = "httpin")]
+#[flow_node("http in", red_name = "httpin", inputs = 0, outputs = 1)]
 struct HttpInNode {
     base: BaseFlowNodeState,
     config: HttpInNodeConfig,

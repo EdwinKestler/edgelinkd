@@ -65,6 +65,7 @@ Where scope decisions are declared:
 | Task | Command |
 |---|---|
 | Build everything (including the Python extension) | `cargo build --all` |
+| Default `cargo run -- run` | includes `nodes_ai`, `history_sqlite`, `nodes_postgres`, `nodes_redis`, `admin_bcrypt`. `nodes_modbus` and `runtime_scan` stay off. Drop shipped features with `--no-default-features`. |
 | Rust tests | `cargo test -p edgelink-core` while iterating, `cargo test --workspace --features full` for the full set |
 | Node-RED spec tests (pytest) | `pytest ./tests -v` — needs `cargo build --all` first |
 | Format check (CI gate) | `cargo fmt --check` |

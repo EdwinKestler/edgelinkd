@@ -72,6 +72,8 @@ pub struct ProxyConfig {
     pub no_proxy_domains: HashSet<String>,
 }
 
+crate::node_hints!("http proxy", secrets = ["username", "password"], caps = ["network"]);
+
 #[derive(Debug)]
 #[global_node("http proxy", red_name = "httpproxy", module = "node-red")]
 #[allow(dead_code)]

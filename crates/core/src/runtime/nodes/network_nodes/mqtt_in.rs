@@ -153,7 +153,9 @@ struct DynamicSubscription {
     datatype: MqttDataType,
 }
 
-#[flow_node("mqtt in", red_name = "mqtt")]
+crate::node_hints!("mqtt in", refs = ["broker" => "mqtt-broker"], caps = ["network"]);
+
+#[flow_node("mqtt in", red_name = "mqtt", inputs = 0, outputs = 1)]
 struct MqttInNode {
     base: BaseFlowNodeState,
     config: MqttInNodeConfig,

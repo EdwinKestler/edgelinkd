@@ -54,7 +54,7 @@ enum DataType {
 }
 
 #[derive(Debug)]
-#[flow_node("udp in", red_name = "udp")]
+#[flow_node("udp in", red_name = "udp", inputs = 0, outputs = 1)]
 struct UdpInNode {
     base: BaseFlowNodeState,
     config: UdpInNodeConfig,

@@ -100,6 +100,10 @@ async fn generate_nodes_html(static_dir: &std::path::Path, allowed: &HashSet<Str
     append_bundled_editor("scan", "scan-editor/80-scan.html", allowed, &mut html_content);
     append_bundled_editor("ai-provider", "ai-editor/90-ai-provider.html", allowed, &mut html_content);
     append_bundled_editor("ai-chat", "ai-editor/91-ai-chat.html", allowed, &mut html_content);
+    append_bundled_editor("postgres-config", "db-editor/92-postgres-config.html", allowed, &mut html_content);
+    append_bundled_editor("postgres", "db-editor/93-postgres.html", allowed, &mut html_content);
+    append_bundled_editor("redis-config", "db-editor/94-redis-config.html", allowed, &mut html_content);
+    append_bundled_editor("redis", "db-editor/95-redis.html", allowed, &mut html_content);
 
     if html_content.is_empty() {
         return get_fallback_nodes_html(allowed);
@@ -710,6 +714,26 @@ mod tests {
             assert!(json_types.contains("ai-provider"));
             assert!(json_types.contains("ai-chat"));
         }
+        #[cfg(not(feature = "nodes_postgres"))]
+        {
+            assert!(!json_types.contains("postgres"));
+            assert!(!json_types.contains("postgres-config"));
+        }
+        #[cfg(feature = "nodes_postgres")]
+        {
+            assert!(json_types.contains("postgres"));
+            assert!(json_types.contains("postgres-config"));
+        }
+        #[cfg(not(feature = "nodes_redis"))]
+        {
+            assert!(!json_types.contains("redis"));
+            assert!(!json_types.contains("redis-config"));
+        }
+        #[cfg(feature = "nodes_redis")]
+        {
+            assert!(json_types.contains("redis"));
+            assert!(json_types.contains("redis-config"));
+        }
 
         let html_response = router
             .oneshot(Request::builder().uri("/nodes").header("accept", "text/html").body(Body::empty()).unwrap())
@@ -742,6 +766,26 @@ mod tests {
         {
             assert!(html_types.iter().any(|kind| kind == "ai-provider"));
             assert!(html_types.iter().any(|kind| kind == "ai-chat"));
+        }
+        #[cfg(not(feature = "nodes_postgres"))]
+        {
+            assert!(!html_types.iter().any(|kind| kind == "postgres"));
+            assert!(!html_types.iter().any(|kind| kind == "postgres-config"));
+        }
+        #[cfg(feature = "nodes_postgres")]
+        {
+            assert!(html_types.iter().any(|kind| kind == "postgres"));
+            assert!(html_types.iter().any(|kind| kind == "postgres-config"));
+        }
+        #[cfg(not(feature = "nodes_redis"))]
+        {
+            assert!(!html_types.iter().any(|kind| kind == "redis"));
+            assert!(!html_types.iter().any(|kind| kind == "redis-config"));
+        }
+        #[cfg(feature = "nodes_redis")]
+        {
+            assert!(html_types.iter().any(|kind| kind == "redis"));
+            assert!(html_types.iter().any(|kind| kind == "redis-config"));
         }
     }
 }

@@ -33,7 +33,7 @@ enum DataMode {
 }
 
 #[derive(Debug)]
-#[flow_node("tcp in", red_name = "tcpin")]
+#[flow_node("tcp in", red_name = "tcpin", inputs = 0, outputs = 1)]
 struct TcpInNode {
     base: BaseFlowNodeState,
     config: TcpInNodeConfig,

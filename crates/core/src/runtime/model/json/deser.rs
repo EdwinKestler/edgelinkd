@@ -575,6 +575,74 @@ impl RedPropertyType {
     }
 }
 
+/// Node-RED optional numbers are often `""` in the editor JSON (http response `statusCode`).
+pub fn str_to_option_u16<'de, D>(deserializer: D) -> Result<Option<u16>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct U16Visitor;
+
+    impl<'de> de::Visitor<'de> for U16Visitor {
+        type Value = Option<u16>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a u16, a string containing a u16, or an empty string")
+        }
+
+        fn visit_none<E>(self) -> Result<Option<u16>, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Option<u16>, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Option<u16>, E>
+        where
+            E: de::Error,
+        {
+            u16::try_from(value).map(Some).map_err(|_| de::Error::invalid_value(de::Unexpected::Unsigned(value), &self))
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Option<u16>, E>
+        where
+            E: de::Error,
+        {
+            u16::try_from(value).map(Some).map_err(|_| de::Error::invalid_value(de::Unexpected::Signed(value), &self))
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Option<u16>, E>
+        where
+            E: de::Error,
+        {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                trimmed
+                    .parse::<u16>()
+                    .map(Some)
+                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(value), &self))
+            }
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<Option<u16>, E>
+        where
+            E: de::Error,
+        {
+            self.visit_str(&value)
+        }
+    }
+
+    deserializer.deserialize_any(U16Visitor)
+}
+
 pub fn str_to_option_u64<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
 where
     D: Deserializer<'de>,
@@ -696,25 +764,6 @@ where
     }
 
     deserializer.deserialize_any(F64Visitor)
-}
-
-pub fn str_to_option_u16<'de, D>(deserializer: D) -> Result<Option<u16>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: Option<String> = Option::deserialize(deserializer)?;
-    match value {
-        Some(s) => {
-            if s.is_empty() {
-                Ok(None)
-            } else {
-                s.parse::<u16>()
-                    .map(Some)
-                    .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&s), &"An invalid u16"))
-            }
-        }
-        None => Ok(None),
-    }
 }
 
 pub fn str_to_ipaddr<'de, D>(deserializer: D) -> Result<Option<IpAddr>, D::Error>

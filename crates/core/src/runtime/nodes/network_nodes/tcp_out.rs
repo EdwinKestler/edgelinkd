@@ -24,7 +24,7 @@ enum TcpOutMode {
 }
 
 #[derive(Debug)]
-#[flow_node("tcp out", red_name = "tcpin")]
+#[flow_node("tcp out", red_name = "tcpin", inputs = 1, outputs = 0)]
 struct TcpOutNode {
     base: BaseFlowNodeState,
     config: TcpOutNodeConfig,

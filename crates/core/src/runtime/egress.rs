@@ -78,6 +78,8 @@ pub enum EgressPurpose {
     Tcp,
     Udp,
     Modbus,
+    Postgres,
+    Redis,
 }
 
 impl fmt::Display for EgressPurpose {
@@ -96,6 +98,8 @@ impl fmt::Display for EgressPurpose {
                 Self::Tcp => "tcp",
                 Self::Udp => "udp",
                 Self::Modbus => "modbus",
+                Self::Postgres => "postgres",
+                Self::Redis => "redis",
             }
         )
     }

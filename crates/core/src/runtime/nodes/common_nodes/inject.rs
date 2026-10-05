@@ -43,7 +43,7 @@ struct InjectNodeConfig {
 }
 
 #[derive(Debug)]
-#[flow_node("inject", red_name = "inject")]
+#[flow_node("inject", red_name = "inject", inputs = 0, outputs = 1)]
 struct InjectNode {
     base: BaseFlowNodeState,
     config: InjectNodeConfig,

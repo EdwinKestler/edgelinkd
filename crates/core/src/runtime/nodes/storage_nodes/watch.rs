@@ -33,8 +33,10 @@ struct WatchNodeState {
     event_rx: Option<mpsc::UnboundedReceiver<FileEvent>>,
 }
 
+crate::node_hints!("watch", caps = ["filesystem"]);
+
 #[derive(Debug)]
-#[flow_node("watch", red_name = "storage")]
+#[flow_node("watch", red_name = "storage", inputs = 0, outputs = 1)]
 pub struct WatchNode {
     base: BaseFlowNodeState,
     config: WatchNodeConfig,

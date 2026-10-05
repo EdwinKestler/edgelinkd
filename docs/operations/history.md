@@ -1,9 +1,8 @@
 # Operational History
 
 EdgeLinkd can keep a bounded SQLite record of deploys, node status and throttled node errors,
-Flow Copilot draft outcomes, fleet push/promote, and runtime start/stop. It is optional,
-fail-open, and compiled only with `--features history_sqlite`. Default and `full` builds do
-not include SQLite.
+Flow Copilot draft outcomes, fleet push/promote, and runtime start/stop. It is fail-open.
+The default app build includes `history_sqlite`. Recording stays off until `[history] enabled = true`.
 
 `flows.json` and `flows_cred.json` remain the flow and credential source of truth. `audit.log`
 remains the security and operator audit log. History never stores message payloads, flow
@@ -11,12 +10,13 @@ bodies, credentials, tokens, prompts, or provider completions.
 
 ## Enable
 
-Build with the feature, then set `[history] enabled = true` in the home overlay:
+The default `cargo run -- run` binary already includes SQLite history. Set `[history] enabled = true` in the home overlay:
 
 ```bash
-cargo build --features history_sqlite
-EDGELINK_HOME="$PWD" target/debug/edgelinkd run
+EDGELINK_HOME="$PWD" cargo run -- run
 ```
+
+A minimal binary can omit it with `--no-default-features` (and the features you still need).
 
 ```toml
 [history]
@@ -50,7 +50,8 @@ drop metrics.
 
 ## Disable and rollback
 
-Set `enabled = false` and restart, or run a binary without `history_sqlite`. The database
+Set `enabled = false` and restart, or run a binary built without `history_sqlite`
+(`--no-default-features` plus the features you still need). The database
 file is left in place. Deleting it only removes history; it does not change flows,
 credentials, or audit logs.
 

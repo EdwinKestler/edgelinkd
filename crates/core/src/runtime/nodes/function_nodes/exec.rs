@@ -165,8 +165,10 @@ impl Default for ExecNodeConfig {
     }
 }
 
+crate::node_hints!("exec", caps = ["process"]);
+
 #[derive(Debug)]
-#[flow_node("exec", red_name = "exec")]
+#[flow_node("exec", red_name = "exec", inputs = 1, outputs = 3)]
 pub struct ExecNode {
     base: BaseFlowNodeState,
     config: ExecNodeConfig,

@@ -32,5 +32,6 @@ Constraints:
 - `ref` is unique and uses only letters, digits, `_`, and `-`.
 - `type` must exactly match a supplied runtime-catalog type.
 - `config` contains ordinary Node-RED node properties. It must not contain `id`, `type`, `z`, `x`, `y`, `wires`, or `credentials`.
-- `wires` contains at most 128 connections. `from` must name a new-node `ref`. `output` is a zero-based output port. `to` is a new-node `ref` or an existing node ID from the active workspace.
+- `wires` contains at most 128 connections. `from` must name a new-node `ref`. `output` is a zero-based output port and must be less than that type's `outputs` (unless `dynamicOutputs`). `to` is a new-node `ref` or an existing node ID from the active workspace.
+- Required `configRefs` (for example `broker` → `mqtt-broker`) must reuse an existing configuration node id from the live catalog. Do not invent credentials or new config nodes.
 - Omit prose, Markdown fences, comments, and trailing text outside the JSON object.

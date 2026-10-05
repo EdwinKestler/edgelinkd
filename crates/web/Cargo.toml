@@ -29,7 +29,7 @@ reqwest = { workspace = true }
 edgelink-core = { path = "../core" }
 
 [features]
-default = ["admin_bcrypt", "credential_encryption"]
+default = ["admin_bcrypt", "credential_encryption", "history_sqlite", "nodes_postgres", "nodes_redis"]
 admin_bcrypt = ["dep:bcrypt"]
 credential_encryption = ["edgelink-core/credential_encryption"]
 nodes_modbus = ["edgelink-core/nodes_modbus"]
@@ -37,6 +37,8 @@ runtime_scan = ["edgelink-core/runtime_scan"]
 nodes_ai = ["edgelink-core/nodes_ai"]
 # Adds the `/history` query route and `/status` history health.
 history_sqlite = ["edgelink-core/history_sqlite"]
+nodes_postgres = ["edgelink-core/nodes_postgres"]
+nodes_redis = ["edgelink-core/nodes_redis"]
 
 [dev-dependencies]
 tokio-tungstenite = { workspace = true }

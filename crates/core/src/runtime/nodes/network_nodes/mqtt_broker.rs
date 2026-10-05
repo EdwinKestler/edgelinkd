@@ -1505,6 +1505,8 @@ fn incoming_v5(publish: rumqttc::v5::mqttbytes::v5::Publish) -> IncomingPublish 
     }
 }
 
+crate::node_hints!("mqtt-broker", secrets = ["user", "password"], caps = ["network"]);
+
 #[global_node("mqtt-broker", red_name = "mqtt-broker", module = "node-red")]
 pub struct MqttBrokerNode {
     base: BaseGlobalNodeState,

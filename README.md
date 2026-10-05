@@ -387,6 +387,8 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
             - [x] Flow Copilot add-and-connect draft/validate/apply; review and Deploy stay manual
             - [ ] Flow Copilot update/delete/install tools
             - [ ] `ai-agent` bounded tool loop
+        - [x] PostgreSQL (`nodes_postgres`, included by default; disable with `--no-default-features`): `postgres-config` + `postgres` query. TLS and bound parameters are rejected.
+        - [x] Redis (`nodes_redis`, included by default; disable with `--no-default-features`): `redis-config` + PING/GET/SET/DEL. TLS is rejected.
         - [x] Scan (`runtime_scan`, off by default)
             - [x] One task writes `flow.scan` (`seq`, `period`, `duration`, `overrun`). Nodes read it
             - [x] `runtime.scan.period_ms` in `edgelinkd.toml` is the period in milliseconds. Absent or `0` leaves the task off. A period below 10 ms is an error at start

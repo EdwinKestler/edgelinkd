@@ -24,7 +24,7 @@ enum WebSocketOutType {
 }
 
 #[derive(Debug)]
-#[flow_node("websocket out", red_name = "websocket")]
+#[flow_node("websocket out", red_name = "websocket", inputs = 1, outputs = 0)]
 struct WebSocketOutNode {
     base: BaseFlowNodeState,
     config: WebSocketOutConfig,

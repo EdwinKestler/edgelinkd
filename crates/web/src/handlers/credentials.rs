@@ -33,6 +33,8 @@ const TLS_CONFIG: &[(&str, FieldKind)] = &[
 ];
 const HTTP_PROXY: &[(&str, FieldKind)] = &[("username", FieldKind::Text), ("password", FieldKind::Password)];
 const AI_PROVIDER: &[(&str, FieldKind)] = &[("apiKey", FieldKind::Password)];
+const POSTGRES_CONFIG: &[(&str, FieldKind)] = &[("user", FieldKind::Text), ("password", FieldKind::Password)];
+const REDIS_CONFIG: &[(&str, FieldKind)] = &[("user", FieldKind::Text), ("password", FieldKind::Password)];
 
 fn fields_for(node_type: &str) -> Option<&'static [(&'static str, FieldKind)]> {
     match node_type {
@@ -41,6 +43,8 @@ fn fields_for(node_type: &str) -> Option<&'static [(&'static str, FieldKind)]> {
         "tls-config" => Some(TLS_CONFIG),
         "http proxy" | "http-proxy" => Some(HTTP_PROXY),
         "ai-provider" => Some(AI_PROVIDER),
+        "postgres-config" => Some(POSTGRES_CONFIG),
+        "redis-config" => Some(REDIS_CONFIG),
         _ => None,
     }
 }

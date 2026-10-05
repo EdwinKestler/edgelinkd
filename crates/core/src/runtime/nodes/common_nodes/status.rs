@@ -10,7 +10,7 @@ struct StatusNodeConfig {
     scope: FlowNodeScope,
 }
 
-#[flow_node("status", red_name = "status")]
+#[flow_node("status", red_name = "status", inputs = 0, outputs = 1)]
 pub struct StatusNode {
     base: BaseFlowNodeState,
 

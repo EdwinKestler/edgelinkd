@@ -92,6 +92,8 @@ impl<'de> serde::Deserialize<'de> for AuthType {
     }
 }
 
+crate::node_hints!("http request", secrets = ["user", "password"], caps = ["network"]);
+
 #[derive(Debug)]
 #[flow_node("http request", red_name = "httprequest")]
 struct HttpRequestNode {

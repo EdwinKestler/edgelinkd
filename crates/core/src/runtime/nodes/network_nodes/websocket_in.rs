@@ -24,7 +24,7 @@ enum WebSocketClientType {
 }
 
 #[derive(Debug)]
-#[flow_node("websocket in", red_name = "websocket")]
+#[flow_node("websocket in", red_name = "websocket", inputs = 0, outputs = 1)]
 struct WebSocketInNode {
     base: BaseFlowNodeState,
     config: WebSocketInConfig,

@@ -27,12 +27,25 @@ use edgelink_core::web::web_state_trait::WebStateCore;
 /// Callback type for restarting the flow engine
 pub type FlowEngineRestartCallback = Arc<dyn Fn(PathBuf) -> tokio::task::JoinHandle<()> + Send + Sync>;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct WebRuntimeServices {
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
     pub protection: ApiProtection,
     pub history: edgelink_core::runtime::history::HistoryHandle,
+    pub copilot_strict_metadata: bool,
+}
+
+impl Default for WebRuntimeServices {
+    fn default() -> Self {
+        Self {
+            egress: EgressPolicyHandle::default(),
+            credentials: CredentialStore::default(),
+            protection: ApiProtection::default(),
+            history: edgelink_core::runtime::history::HistoryHandle::default(),
+            copilot_strict_metadata: true,
+        }
+    }
 }
 
 /// Application state for storing system configuration
@@ -56,6 +69,7 @@ pub struct WebState {
     pub protection: ApiProtection,
     pub history: edgelink_core::runtime::history::HistoryHandle,
     pub config_editor_enabled: bool,
+    pub copilot_strict_metadata: bool,
     /// The environment-specific overlay edited by the configuration pane.
     pub config_file_path: RwLock<Option<PathBuf>>,
     /// Full-file revision whose egress policy is currently active.
@@ -149,6 +163,7 @@ impl WebState {
             credentials: services.credentials,
             protection: services.protection,
             history: services.history,
+            copilot_strict_metadata: services.copilot_strict_metadata,
             config_editor_enabled,
             config_file_path: RwLock::new(None),
             applied_config_rev: RwLock::new(String::new()),

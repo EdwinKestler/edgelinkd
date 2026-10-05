@@ -1,8 +1,8 @@
 # z8run Adoption Plan for EdgeLinkd
 
-Status: Phases 0-3 complete on 2026-10-03; phases 4-7 have not started. Phase 3
-evidence is in `adoption/phase3/REPORT.md`; earlier evidence is in `adoption/phase2/REPORT.md`,
-`adoption/phase1/REPORT.md` and `adoption/phase0/BASELINE.md`.
+Status: Phases 0-5 complete; phase 6 is next. Evidence is in
+`adoption/phase5/REPORT.md`, `adoption/phase4/REPORT.md`, `adoption/phase3/REPORT.md`,
+`adoption/phase2/REPORT.md`, `adoption/phase1/REPORT.md` and `adoption/phase0/BASELINE.md`.
 
 This plan evaluates patterns found in the sibling checkout at
 `/media/kestl/andor/github/z8run`, reviewed at commit
@@ -214,7 +214,7 @@ Suggested events:
 
 Required behavior:
 
-- Feature such as `history_sqlite`, disabled in minimal builds.
+- Feature such as `history_sqlite`, in the default app build and droppable in `--no-default-features` minimal builds.
 - Versioned migrations, bounded asynchronous writer, retention, and database-size limits.
 - Redacted structured data and health metrics for failed/dropped events.
 - Flow execution must not depend on history availability.
@@ -238,6 +238,8 @@ Exit gate: a corrupt or full history database cannot stop active flows or corrup
 files.
 
 ## Phase 5 - Typed metadata for Flow Copilot
+
+Status: closed locally; see `adoption/phase5/DESIGN.md` and `adoption/phase5/REPORT.md`.
 
 Extend the runtime registry with versioned metadata for ports, configuration, secrets,
 capabilities, feature availability, and advisory message types.

@@ -7,11 +7,14 @@ use serde_json::Value;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::http_registry::HttpResponse;
+use crate::runtime::model::json::deser::str_to_option_u16;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
 
+crate::node_hints!("http response", caps = ["network"]);
+
 #[derive(Debug)]
-#[flow_node("http response", red_name = "httpin")]
+#[flow_node("http response", red_name = "httpin", inputs = 1, outputs = 0)]
 struct HttpOutNode {
     base: BaseFlowNodeState,
     config: HttpOutNodeConfig,
@@ -32,8 +35,8 @@ impl HttpOutNode {
 
 #[derive(Deserialize, Debug, Clone)]
 struct HttpOutNodeConfig {
-    /// Default status code
-    #[serde(rename = "statusCode")]
+    /// Default status code. Node-RED stores an empty string when the node uses `msg.statusCode`.
+    #[serde(default, rename = "statusCode", deserialize_with = "str_to_option_u16")]
     status_code: Option<u16>,
 
     /// Default headers
@@ -307,5 +310,41 @@ impl FlowNodeBehavior for HttpOutNode {
         }
 
         log::info!("HTTP out: Node stopped");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn empty_status_code_string_is_absent() {
+        let cfg = HttpOutNodeConfig::deserialize(json!({ "statusCode": "", "headers": {} })).unwrap();
+        assert_eq!(cfg.status_code, None);
+        let cfg = HttpOutNodeConfig::deserialize(json!({ "statusCode": "201" })).unwrap();
+        assert_eq!(cfg.status_code, Some(201));
+        let cfg = HttpOutNodeConfig::deserialize(json!({ "statusCode": 204 })).unwrap();
+        assert_eq!(cfg.status_code, Some(204));
+        let cfg = HttpOutNodeConfig::deserialize(json!({})).unwrap();
+        assert_eq!(cfg.status_code, None);
+        assert!(HttpOutNodeConfig::deserialize(json!({ "statusCode": "nope" })).is_err());
+    }
+
+    #[test]
+    fn editor_http_response_json_loads() {
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            {
+                "id": "1",
+                "z": "100",
+                "type": "http response",
+                "name": "Return dashboard data",
+                "statusCode": "",
+                "headers": {},
+                "wires": []
+            }
+        ]);
+        crate::runtime::engine::build_test_engine(flows).unwrap();
     }
 }

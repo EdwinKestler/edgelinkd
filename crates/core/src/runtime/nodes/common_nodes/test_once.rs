@@ -4,7 +4,7 @@ use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
 
-#[flow_node("test-once", red_name = "test-once", module = "edgelink_core")]
+#[flow_node("test-once", red_name = "test-once", module = "edgelink_core", inputs = 1, outputs = 0)]
 struct TestOnceNode {
     base: BaseFlowNodeState,
 }

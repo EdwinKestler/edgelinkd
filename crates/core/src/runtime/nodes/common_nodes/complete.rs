@@ -14,7 +14,7 @@ struct CompleteNodeConfig {
 }
 
 #[derive(Debug)]
-#[flow_node("complete", red_name = "complete")]
+#[flow_node("complete", red_name = "complete", inputs = 0, outputs = 1)]
 #[allow(dead_code)]
 pub struct CompleteNode {
     base: BaseFlowNodeState,

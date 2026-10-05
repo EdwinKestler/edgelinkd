@@ -52,7 +52,10 @@ pub struct LinkState {
 }
 
 fn is_link_type(type_name: &str) -> bool {
-    matches!(type_name, "mqtt-broker" | "mqtt in" | "mqtt out" | "modbus")
+    matches!(
+        type_name,
+        "mqtt-broker" | "mqtt in" | "mqtt out" | "modbus" | "postgres" | "postgres-config" | "redis" | "redis-config"
+    )
 }
 
 #[derive(Debug, Clone)]

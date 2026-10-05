@@ -7,8 +7,10 @@ operations and security procedures that need more detail than the overview.
 
 - [Credential lifecycle](operations/credential-lifecycle.md): inspect, migrate, rotate, recover,
   export, validate, and roll back encrypted flow credentials.
-- [Operational history](operations/history.md): optional SQLite deploy, node, Copilot, and
-  fleet history behind `history_sqlite`.
+- [Operational history](operations/history.md): SQLite deploy, node, Copilot, and fleet
+  history (`history_sqlite` is in the default app build; recording is `[history] enabled`).
+
+Implementation decisions for Flow Copilot metadata are in [`adoption/phase5/DESIGN.md`](../adoption/phase5/DESIGN.md).
 
 ## Security
 

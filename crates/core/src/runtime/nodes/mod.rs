@@ -34,6 +34,9 @@ mod network_nodes;
 #[cfg(feature = "nodes_ai")]
 pub(crate) mod ai_nodes;
 
+#[cfg(any(feature = "nodes_postgres", feature = "nodes_redis"))]
+mod db_nodes;
+
 #[cfg(all(feature = "nodes_modbus", not(feature = "nodes_network")))]
 #[path = "network_nodes/modbus.rs"]
 mod modbus;
@@ -83,6 +86,43 @@ pub enum NodeFactory {
     Flow(FlowNodeFactoryFn),
 }
 
+/// Copilot/schema version for [`MetaNode`] ports and [`NodeHints`].
+pub const NODE_METADATA_VERSION: u32 = 1;
+
+/// Structural ports for Flow Copilot. `dynamic_outputs` allows 0..=15 like switch.
+#[derive(Debug, Clone, Copy)]
+pub struct NodePorts {
+    pub inputs: u8,
+    pub outputs: u8,
+    pub dynamic_outputs: bool,
+}
+
+/// Optional hints submitted beside a node. Secret **names** only.
+#[derive(Debug, Clone, Copy)]
+pub struct NodeHints {
+    pub type_: &'static str,
+    pub config_refs: &'static [(&'static str, &'static str)],
+    pub secret_fields: &'static [&'static str],
+    pub capabilities: &'static [&'static str],
+}
+
+inventory::collect!(NodeHints);
+
+/// Submit Copilot hints next to a node registration. Secret names only, never values.
+#[macro_export]
+macro_rules! node_hints {
+    ($type:literal $(, refs = [$($prop:literal => $refty:literal),* $(,)?])? $(, secrets = [$($sec:literal),* $(,)?])? $(, caps = [$($cap:literal),* $(,)?])?) => {
+        inventory::submit! {
+            $crate::runtime::nodes::NodeHints {
+                type_: $type,
+                config_refs: &[$($(($prop, $refty)),*)?],
+                secret_fields: &[$($($sec),*)?],
+                capabilities: &[$($($cap),*)?],
+            }
+        }
+    };
+}
+
 #[derive(Debug)]
 pub struct MetaNode {
     /// The tag of the element
@@ -96,6 +136,7 @@ pub struct MetaNode {
     pub(crate) version: &'static str,  // Like"4.0.9"
     pub(crate) local: bool,            // Default: false
     pub(crate) user: bool,             // Default: false
+    pub(crate) ports: NodePorts,
 }
 
 impl MetaNode {
@@ -110,8 +151,22 @@ impl MetaNode {
         version: &'static str,
         local: bool,
         user: bool,
+        inputs: u8,
+        outputs: u8,
+        dynamic_outputs: bool,
     ) -> Self {
-        Self { kind, type_, factory, red_id, red_name, module, version, local, user }
+        Self {
+            kind,
+            type_,
+            factory,
+            red_id,
+            red_name,
+            module,
+            version,
+            local,
+            user,
+            ports: NodePorts { inputs, outputs, dynamic_outputs },
+        }
     }
 
     pub const fn kind(&self) -> NodeKind {
@@ -148,6 +203,10 @@ impl MetaNode {
 
     pub const fn user(&self) -> bool {
         self.user
+    }
+
+    pub const fn ports(&self) -> NodePorts {
+        self.ports
     }
 }
 

@@ -13,7 +13,7 @@ use edgelink_macro::*;
 #[cfg(test)]
 mod tests;
 
-#[flow_node("switch", red_name = "switch")]
+#[flow_node("switch", red_name = "switch", inputs = 1, outputs = 1, dynamic_outputs = true)]
 #[derive(Debug)]
 struct SwitchNode {
     base: BaseFlowNodeState,

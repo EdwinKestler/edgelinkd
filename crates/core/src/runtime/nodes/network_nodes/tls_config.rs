@@ -100,6 +100,8 @@ pub struct TlsCertificates {
     pub passphrase: Option<String>,
 }
 
+crate::node_hints!("tls-config", secrets = ["key", "cert", "ca", "passphrase"], caps = ["network"]);
+
 #[derive(Debug)]
 #[global_node("tls-config", red_name = "tls", module = "node-red")]
 #[allow(dead_code)]

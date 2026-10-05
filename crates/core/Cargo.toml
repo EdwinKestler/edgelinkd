@@ -76,6 +76,8 @@ reqwest = { workspace = true, optional = true }
 axum.workspace = true
 jsonata-core = { optional = true, workspace = true }
 rusqlite = { optional = true, workspace = true }
+tokio-postgres = { optional = true, workspace = true }
+redis = { optional = true, workspace = true }
 
 # The exec node delivers a real SIGTERM/SIGINT on Unix. Windows has no equivalent (Node.js
 # terminates the process there whatever signal is named), so this is Unix-only.
@@ -116,5 +118,9 @@ nodes_modbus = []
 # OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Off unless a build asks for it.
 nodes_ai = ["reqwest"]
 credential_encryption = ["dep:chacha20poly1305", "dep:zeroize", "dep:fs2"]
-# Optional SQLite operational history. Off unless a build asks for it.
+# SQLite operational history. The app default enables this; omit from a minimal core build.
 history_sqlite = ["dep:rusqlite"]
+# PostgreSQL query node. The app default enables this; omit from a minimal core build.
+nodes_postgres = ["dep:tokio-postgres"]
+# Redis GET/SET/DEL/PING. The app default enables this; omit from a minimal core build.
+nodes_redis = ["dep:redis"]

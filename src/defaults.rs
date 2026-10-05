@@ -265,7 +265,11 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # [fleet]
 # enabled = false
 
-# Bounded operational history. Off by default and compiled only with the `history_sqlite` feature.
+# Flow Copilot structural checks. Disable to use type-only draft validation.
+# [copilot]
+# strict_metadata = true
+
+# Bounded operational history. Compiled into the default app build. Recording stays off until enabled.
 # [history]
 # enabled = false
 # path = "history.sqlite3"

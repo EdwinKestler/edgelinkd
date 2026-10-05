@@ -131,7 +131,9 @@ struct MqttOutNodeConfig {
     user_properties: String,
 }
 
-#[flow_node("mqtt out", red_name = "mqtt")]
+crate::node_hints!("mqtt out", refs = ["broker" => "mqtt-broker"], caps = ["network"]);
+
+#[flow_node("mqtt out", red_name = "mqtt", inputs = 1, outputs = 0)]
 struct MqttOutNode {
     base: BaseFlowNodeState,
     config: MqttOutNodeConfig,

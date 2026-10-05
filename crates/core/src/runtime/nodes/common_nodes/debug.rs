@@ -86,7 +86,7 @@ where
 }
 
 #[derive(Debug)]
-#[flow_node("debug", red_name = "debug")]
+#[flow_node("debug", red_name = "debug", inputs = 1, outputs = 0)]
 struct DebugNode {
     base: BaseFlowNodeState,
     _config: DebugNodeConfig,

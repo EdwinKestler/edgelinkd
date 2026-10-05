@@ -13,6 +13,8 @@ use edgelink_macro::*;
 
 use super::adapter::{ProviderKind, ProviderSettings};
 
+crate::node_hints!("ai-provider", secrets = ["apiKey"], caps = ["ai", "network"]);
+
 #[global_node("ai-provider", red_name = "ai-provider")]
 pub struct AiProviderNode {
     base: BaseGlobalNodeState,

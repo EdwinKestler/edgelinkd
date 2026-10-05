@@ -143,6 +143,7 @@ fn build_static_files() {
         // The Modbus palette entry exists only when the runtime registers the node.
         copy_modbus_editor(&static_dir);
         copy_ai_editor(&static_dir);
+        copy_db_editor(&static_dir);
 
         // Copy Node-RED core nodes lib directories to static/
         if node_red_nodes_dir.exists() {
@@ -221,6 +222,34 @@ fn copy_ai_editor(static_dir: &Path) {
         let src = PathBuf::from("crates/web/ai-editor").join(name);
         if src.exists() {
             std::fs::copy(&src, dest_dir.join(name)).expect("Failed to copy the AI editor");
+        }
+    }
+}
+
+fn copy_db_editor(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=crates/web/db-editor/92-postgres-config.html");
+    println!("cargo:rerun-if-changed=crates/web/db-editor/93-postgres.html");
+    println!("cargo:rerun-if-changed=crates/web/db-editor/94-redis-config.html");
+    println!("cargo:rerun-if-changed=crates/web/db-editor/95-redis.html");
+    let dest_dir = static_dir.join("nodes/core/storage");
+    let _ = std::fs::create_dir_all(&dest_dir);
+    let postgres = cfg!(feature = "nodes_postgres");
+    let redis = cfg!(feature = "nodes_redis");
+    for (feature, name) in [
+        ("postgres", "92-postgres-config.html"),
+        ("postgres", "93-postgres.html"),
+        ("redis", "94-redis-config.html"),
+        ("redis", "95-redis.html"),
+    ] {
+        let dest = dest_dir.join(name);
+        let enabled = (feature == "postgres" && postgres) || (feature == "redis" && redis);
+        if enabled {
+            let src = PathBuf::from("crates/web/db-editor").join(name);
+            if src.exists() {
+                let _ = std::fs::copy(&src, &dest);
+            }
+        } else if dest.exists() {
+            let _ = std::fs::remove_file(dest);
         }
     }
 }

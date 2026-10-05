@@ -27,7 +27,7 @@ struct LinkOutNodeConfig {
 }
 
 #[derive(Debug)]
-#[flow_node("link out", red_name = "link")]
+#[flow_node("link out", red_name = "link", inputs = 1, outputs = 0)]
 struct LinkOutNode {
     base: BaseFlowNodeState,
     mode: LinkOutMode,

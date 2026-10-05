@@ -63,7 +63,13 @@ impl WebServer {
             Some(cancel_token.clone()),
             auth,
             fleet,
-            WebRuntimeServices { egress, credentials, protection, history },
+            WebRuntimeServices {
+                egress,
+                credentials,
+                protection,
+                history,
+                copilot_strict_metadata: cfg.get_bool("copilot.strict_metadata").unwrap_or(true),
+            },
             config_editor_enabled,
         );
 

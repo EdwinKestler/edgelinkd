@@ -5,7 +5,7 @@ use crate::runtime::nodes::*;
 use edgelink_macro::*;
 
 #[derive(Debug)]
-#[flow_node("link in", red_name = "link")]
+#[flow_node("link in", red_name = "link", inputs = 0, outputs = 1)]
 struct LinkInNode {
     base: BaseFlowNodeState,
 }

@@ -6,7 +6,7 @@ use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use edgelink_macro::*;
 
-#[flow_node("catch", red_name = "catch")]
+#[flow_node("catch", red_name = "catch", inputs = 0, outputs = 1)]
 #[derive(Debug)]
 pub struct CatchNode {
     base: BaseFlowNodeState,

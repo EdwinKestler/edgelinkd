@@ -44,7 +44,7 @@ enum UdpIpV {
 }
 
 #[derive(Debug)]
-#[flow_node("udp out", red_name = "udp")]
+#[flow_node("udp out", red_name = "udp", inputs = 1, outputs = 0)]
 struct UdpOutNode {
     base: BaseFlowNodeState,
     config: UdpOutNodeConfig,

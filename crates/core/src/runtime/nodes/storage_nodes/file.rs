@@ -124,6 +124,8 @@ fn default_create_dir() -> RedBool {
     RedBool(false)
 }
 
+crate::node_hints!("file", caps = ["filesystem"]);
+
 #[derive(Debug)]
 #[flow_node("file", red_name = "file")]
 pub struct FileNode {

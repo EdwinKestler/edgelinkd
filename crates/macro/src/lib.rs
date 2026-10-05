@@ -15,6 +15,9 @@ struct NodeArgs {
     version: Option<String>,
     local: Option<bool>,
     user: Option<bool>,
+    inputs: Option<u8>,
+    outputs: Option<u8>,
+    dynamic_outputs: Option<bool>,
 }
 
 impl Parse for NodeArgs {
@@ -42,6 +45,9 @@ impl Parse for NodeArgs {
         let mut version = None;
         let mut local = None;
         let mut user = None;
+        let mut inputs = None;
+        let mut outputs = None;
+        let mut dynamic_outputs = None;
 
         // 解析可选的命名参数
         while !input.is_empty() {
@@ -74,13 +80,35 @@ impl Parse for NodeArgs {
                     let value: syn::LitBool = input.parse()?;
                     user = Some(value.value());
                 }
+                "inputs" => {
+                    let value: syn::LitInt = input.parse()?;
+                    inputs = Some(value.base10_parse()?);
+                }
+                "outputs" => {
+                    let value: syn::LitInt = input.parse()?;
+                    outputs = Some(value.base10_parse()?);
+                }
+                "dynamic_outputs" => {
+                    let value: syn::LitBool = input.parse()?;
+                    dynamic_outputs = Some(value.value());
+                }
                 _ => {
                     return Err(syn::Error::new(param_name.span(), format!("Unknown parameter: {param_name}")));
                 }
             }
         }
 
-        Ok(NodeArgs { node_type: node_type.value(), red_name: red_name.value(), module, version, local, user })
+        Ok(NodeArgs {
+            node_type: node_type.value(),
+            red_name: red_name.value(),
+            module,
+            version,
+            local,
+            user,
+            inputs,
+            outputs,
+            dynamic_outputs,
+        })
     }
 }
 
@@ -99,6 +127,9 @@ pub fn flow_node(attr: TokenStream, item: TokenStream) -> TokenStream {
     let version = args.version.as_deref().unwrap_or("0.0.1");
     let local = args.local.unwrap_or(false);
     let user = args.user.unwrap_or(false);
+    let inputs = args.inputs.unwrap_or(1);
+    let outputs = args.outputs.unwrap_or(1);
+    let dynamic_outputs = args.dynamic_outputs.unwrap_or(false);
 
     // 验证参数不为空
     if node_type.trim().is_empty() {
@@ -163,6 +194,9 @@ pub fn flow_node(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #version,
                 #local,
                 #user,
+                #inputs,
+                #outputs,
+                #dynamic_outputs,
             )
         }
     }; // quote!
@@ -185,6 +219,9 @@ pub fn global_node(attr: TokenStream, item: TokenStream) -> TokenStream {
     let version = args.version.as_deref().unwrap_or("0.0.1");
     let local = args.local.unwrap_or(false);
     let user = args.user.unwrap_or(false);
+    let inputs = args.inputs.unwrap_or(0);
+    let outputs = args.outputs.unwrap_or(0);
+    let dynamic_outputs = args.dynamic_outputs.unwrap_or(false);
 
     // 验证参数不为空
     if node_type.trim().is_empty() {
@@ -250,6 +287,9 @@ pub fn global_node(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #version,
                 #local,
                 #user,
+                #inputs,
+                #outputs,
+                #dynamic_outputs,
             )
         }
 

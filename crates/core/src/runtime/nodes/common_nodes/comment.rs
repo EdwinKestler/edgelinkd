@@ -5,7 +5,7 @@ use edgelink_macro::*;
 use std::sync::Arc;
 
 #[derive(Debug)]
-#[flow_node("comment", red_name = "comment")]
+#[flow_node("comment", red_name = "comment", inputs = 0, outputs = 0)]
 pub struct CommentNode {
     base: BaseFlowNodeState,
 }

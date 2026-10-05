@@ -68,6 +68,8 @@ fn default_send_error() -> bool {
     true
 }
 
+crate::node_hints!("file in", caps = ["filesystem"]);
+
 #[derive(Debug)]
 #[flow_node("file in", red_name = "file")]
 pub struct FileInNode {

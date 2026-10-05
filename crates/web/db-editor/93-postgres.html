@@ -1,0 +1,30 @@
+<script type="text/html" data-template-name="postgres">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-postgres"><i class="fa fa-database"></i> Server</label>
+        <input type="text" id="node-input-postgres">
+    </div>
+    <div class="form-row">
+        <label for="node-input-query"><i class="fa fa-code"></i> Query</label>
+        <input type="text" id="node-input-query" placeholder="msg.query or msg.payload">
+    </div>
+    <div class="form-tips">Runs a single SQL statement. Rows are written to <code>msg.payload</code> as an array of objects. Use <code>msg.query</code> when Query is empty.</div>
+</script>
+<script type="text/javascript">
+    RED.nodes.registerType("postgres", {
+        category: "storage",
+        color: "#336791",
+        defaults: {
+            name: {value: ""},
+            postgres: {value: "", type: "postgres-config", required: true},
+            query: {value: ""}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-database",
+        label: function () { return this.name || "postgres"; }
+    });
+</script>
