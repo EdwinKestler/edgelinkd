@@ -7,6 +7,7 @@ operations and security procedures that need more detail than the overview.
 
 - [Credential lifecycle](operations/credential-lifecycle.md): inspect, migrate, rotate, recover,
   export, validate, and roll back encrypted flow credentials.
+- [WASM plugins](operations/wasm-plugins.md): optional Wasmi host (`nodes_wasm`).
 - [Operational history](operations/history.md): SQLite deploy, node, Copilot, and fleet
   history (`history_sqlite` is in the default app build; recording is `[history] enabled`).
 

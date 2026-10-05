@@ -362,6 +362,8 @@ impl Flow {
                 meta_node
             } else if node_config.type_name.starts_with("subflow:") {
                 reg.get("subflow").expect("The `subflow` node must be existed")
+            } else if crate::runtime::nodes::is_wasm_plugin_type(&node_config.type_name) {
+                crate::runtime::wasm::resolve_plugin_meta(engine, &node_config.type_name)?
             } else if crate::runtime::nodes::edgelink_owned_node_type(&node_config.type_name) {
                 return Err(crate::runtime::nodes::missing_owned_node_type(&node_config.type_name));
             } else {

@@ -72,6 +72,24 @@ pub fn missing_owned_node_type(type_name: &str) -> EdgelinkError {
     EdgelinkError::NotSupported(format!("node type '{type_name}' is not compiled in this build"))
 }
 
+/// Third-party WASM plugin types (`wasm-<publisher>-<name>`). Always reserved so a missing
+/// plugin cannot become the silent `unknown` node.
+pub fn is_wasm_plugin_type(type_name: &str) -> bool {
+    type_name.starts_with("wasm-")
+}
+
+/// A `wasm-*` type used as a config (global) node. Plugins provide flow nodes only.
+pub fn missing_wasm_plugin_type(type_name: &str) -> EdgelinkError {
+    #[cfg(not(feature = "nodes_wasm"))]
+    {
+        crate::runtime::wasm::unavailable_plugin_error(type_name)
+    }
+    #[cfg(feature = "nodes_wasm")]
+    {
+        EdgelinkError::NotSupported(format!("node type '{type_name}': WASM plugins provide flow nodes only"))
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum NodeState {
     Starting = 0,

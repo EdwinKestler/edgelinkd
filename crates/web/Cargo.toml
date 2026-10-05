@@ -42,6 +42,7 @@ nodes_ai_agent = ["edgelink-core/nodes_ai_agent"]
 history_sqlite = ["edgelink-core/history_sqlite"]
 nodes_postgres = ["edgelink-core/nodes_postgres"]
 nodes_redis = ["edgelink-core/nodes_redis"]
+nodes_wasm = ["edgelink-core/nodes_wasm"]
 
 [dev-dependencies]
 tokio-tungstenite = { workspace = true }

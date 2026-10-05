@@ -78,6 +78,8 @@ jsonata-core = { optional = true, workspace = true }
 rusqlite = { optional = true, workspace = true }
 tokio-postgres = { optional = true, workspace = true }
 redis = { optional = true, workspace = true }
+wasmi = { optional = true, workspace = true }
+edgelink-eve = { path = "../eve", optional = true }
 
 # The exec node delivers a real SIGTERM/SIGINT on Unix. Windows has no equivalent (Node.js
 # terminates the process there whatever signal is named), so this is Unix-only.
@@ -88,6 +90,7 @@ libc.workspace = true
 # Enable test-utilities in dev mode only. This is mostly for tests.
 tokio = { workspace = true, features = ["test-util"] }
 log4rs.workspace = true
+wat = "1"
 ctor.workspace = true
 futures.workspace = true
 
@@ -127,3 +130,5 @@ history_sqlite = ["dep:rusqlite"]
 nodes_postgres = ["dep:tokio-postgres"]
 # Redis GET/SET/DEL/PING. The app default enables this; omit from a minimal core build.
 nodes_redis = ["dep:redis"]
+# Optional WASM plugin host. Off in default and full.
+nodes_wasm = ["dep:wasmi", "dep:edgelink-eve"]

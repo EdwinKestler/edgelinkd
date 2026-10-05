@@ -139,6 +139,8 @@ jsonata-core = { version = "2.2", default-features = false }
 rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
 tokio-postgres = { version = "0.7", default-features = false, features = ["runtime"] }
 redis = { version = "0.27", default-features = false, features = ["aio", "tokio-comp"] }
+# Optional WASM plugin host (`nodes_wasm`, ADR-0002). Exact pin: a bump reruns the hostile tests.
+wasmi = { version = "=2.0.0", default-features = false, features = ["std", "stable", "validate", "auto-dispatch"] }
 
 [dependencies]
 clap.workspace = true
@@ -218,3 +220,5 @@ history_sqlite = ["edgelink-core/history_sqlite", "edgelink-web/history_sqlite"]
 # PostgreSQL and Redis clients. In the default app build; omit with --no-default-features.
 nodes_postgres = ["edgelink-core/nodes_postgres", "edgelink-web/nodes_postgres"]
 nodes_redis = ["edgelink-core/nodes_redis", "edgelink-web/nodes_redis"]
+# Optional WASM plugin host. Off in default and full.
+nodes_wasm = ["edgelink-core/nodes_wasm", "edgelink-web/nodes_wasm"]

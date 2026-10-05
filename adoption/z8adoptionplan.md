@@ -1,7 +1,8 @@
 # z8run Adoption Plan for EdgeLinkd
 
-Status: Phases 0-6 implemented locally; see `adoption/phase6/REPORT.md`. Phase 7 design gate:
-`adoption/phase7/ADR-0002-wasm-node-sdk.md` (accepted) and `adoption/phase7/DESIGN.md`. Evidence is in
+Status: Phases 0-6 implemented locally; Phase 7 is a partial prototype behind `nodes_wasm`
+(no plugin store yet, G1 device run outstanding), see `adoption/phase7/REPORT.md`. Design: `adoption/phase7/ADR-0002-wasm-node-sdk.md` and
+`adoption/phase7/DESIGN.md`. Earlier evidence: `adoption/phase6/REPORT.md`,
 `adoption/phase5/REPORT.md`, `adoption/phase4/REPORT.md`, `adoption/phase3/REPORT.md`,
 `adoption/phase2/REPORT.md`, `adoption/phase1/REPORT.md` and `adoption/phase0/BASELINE.md`.
 
@@ -311,9 +312,10 @@ opt-in live acceptance procedure.
 
 ## Phase 7 - Optional WASM node SDK
 
-Status: ADR-0002 accepted 2026-10-05, no product code yet. Wasmtime is a no-go on the measured
-budget, ARM tiers and MSRV; an opt-in Wasmi 2.0 prototype is designed in
-`adoption/phase7/DESIGN.md`, gated on one ARM device run (G1). Where this section says Wasmtime, read "the WASM runtime" (ADR-0002 §12).
+Status: partial prototype behind `nodes_wasm` (host, flow node, limits; no plugin store, editor
+or Copilot integration); see `adoption/phase7/REPORT.md`. Wasmtime is a no-go on the measured
+budget, ARM tiers and MSRV; the Wasmi 2.0 design is `adoption/phase7/DESIGN.md`. The G1 ARM
+device run is still outstanding and gates merging the execution code to `master`. Where this section says Wasmtime, read "the WASM runtime" (ADR-0002 §12).
 
 Prototype a versioned component interface behind `nodes_wasm`, disabled by default and absent
 from minimal builds.

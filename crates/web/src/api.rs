@@ -81,6 +81,9 @@ fn create_node_red_api_routes() -> Router {
     #[cfg(feature = "history_sqlite")]
     let router = router.route("/history", get(crate::handlers::history::get_history));
 
+    #[cfg(feature = "nodes_wasm")]
+    let router = router.route("/wasm/plugins", get(crate::handlers::wasm_plugins::list_plugins));
+
     router
 }
 

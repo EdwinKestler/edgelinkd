@@ -121,6 +121,11 @@ struct InnerEngine {
     #[cfg(feature = "nodes_ai_agent")]
     agent_slots: std::sync::Arc<tokio::sync::Semaphore>,
 
+    #[cfg(feature = "nodes_wasm")]
+    wasm_plugins: Option<std::sync::Arc<crate::runtime::wasm::ActivePlugins>>,
+    #[cfg(feature = "nodes_wasm")]
+    wasm_runtime: std::sync::Arc<crate::runtime::wasm::WasmRuntime>,
+
     #[cfg(any(test, feature = "pymod"))]
     final_msgs_rx: MsgUnboundedReceiverHolder,
 
@@ -173,6 +178,7 @@ impl Engine {
         json: serde_json::Value,
         elcfg: Option<config::Config>,
     ) -> crate::Result<Engine> {
+        super::wasm::reject_enabled_without_feature(elcfg.as_ref())?;
         let json_values = json::deser::load_flows_json_value(json.clone()).map_err(|e| {
             log::error!("Failed to load NodeRED JSON value: {e}");
             e
@@ -231,6 +237,13 @@ impl Engine {
                 #[cfg(feature = "nodes_ai_agent")]
                 agent_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
 
+                #[cfg(feature = "nodes_wasm")]
+                wasm_plugins: reg.wasm().cloned(),
+                #[cfg(feature = "nodes_wasm")]
+                wasm_runtime: std::sync::Arc::new(crate::runtime::wasm::WasmRuntime::new(
+                    crate::runtime::wasm::WasmSettings::from_config(elcfg.as_ref())?,
+                )),
+
                 #[cfg(any(test, feature = "pymod"))]
                 final_msgs_rx: MsgUnboundedReceiverHolder::new(final_msgs_channel.1),
 
@@ -259,6 +272,28 @@ impl Engine {
     #[cfg(feature = "nodes_ai_agent")]
     pub(crate) fn agent_slots(&self) -> std::sync::Arc<tokio::sync::Semaphore> {
         self.inner.agent_slots.clone()
+    }
+
+    #[cfg(feature = "nodes_wasm")]
+    pub(crate) fn wasm_plugins(&self) -> Option<std::sync::Arc<crate::runtime::wasm::ActivePlugins>> {
+        self.inner.wasm_plugins.clone()
+    }
+
+    #[cfg(feature = "nodes_wasm")]
+    pub(crate) fn wasm_runtime(&self) -> std::sync::Arc<crate::runtime::wasm::WasmRuntime> {
+        self.inner.wasm_runtime.clone()
+    }
+
+    #[cfg(feature = "nodes_wasm")]
+    pub(crate) fn wasm_meta(&self, type_name: &str) -> crate::Result<&'static crate::runtime::nodes::MetaNode> {
+        if !self.inner.wasm_runtime.settings().enabled {
+            return Err(crate::runtime::wasm::unavailable_plugin_error(type_name));
+        }
+        self.inner
+            .wasm_plugins
+            .as_ref()
+            .and_then(|set| set.meta(type_name))
+            .ok_or_else(|| crate::runtime::wasm::not_active_error(type_name))
     }
 
     pub async fn with_flows_file(
@@ -344,6 +379,8 @@ impl Engine {
             let node_type_name = global_config.type_name.as_str();
             let meta_node = if let Some(meta_node) = reg.get(node_type_name) {
                 meta_node
+            } else if crate::runtime::nodes::is_wasm_plugin_type(node_type_name) {
+                return Err(crate::runtime::nodes::missing_wasm_plugin_type(node_type_name));
             } else if crate::runtime::nodes::edgelink_owned_node_type(node_type_name) {
                 return Err(crate::runtime::nodes::missing_owned_node_type(node_type_name));
             } else {
@@ -848,6 +885,8 @@ impl Engine {
         self.inner.flows.clear();
         self.inner.all_flow_nodes.clear();
         self.inner.global_nodes.clear();
+        #[cfg(feature = "nodes_wasm")]
+        self.inner.wasm_runtime.reset_admission();
     }
 
     async fn load_into(

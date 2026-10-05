@@ -18,6 +18,8 @@ pub mod runtime_config;
 pub mod settings;
 pub mod static_resources;
 pub mod status;
+#[cfg(feature = "nodes_wasm")]
+pub mod wasm_plugins;
 pub mod web_state;
 
 #[cfg(feature = "nodes_ai")]

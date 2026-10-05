@@ -5,6 +5,7 @@ use crate::cliargs::CliArgs;
 
 pub mod credentials;
 pub mod list;
+pub mod plugin;
 pub mod run;
 
 /// Trait for defining commands that can be executed by the CLI

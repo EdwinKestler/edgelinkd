@@ -1,0 +1,16 @@
+;; Logs a warning, sets a status, then fails the message.
+(module
+  (import "edgelink:node/v1" "log" (func $log (param i32 i32 i32) (result i32)))
+  (import "edgelink:node/v1" "status" (func $status (param i32 i32 i32 i32) (result i32)))
+  (import "edgelink:node/v1" "fail" (func $fail (param i32 i32) (result i32)))
+  (memory (export "memory") 1 1)
+  (data (i32.const 0) "hello")
+  (data (i32.const 16) "bad row")
+  (data (i32.const 32) "ok")
+  (func (export "el_abi_version") (result i32) i32.const 1)
+  (func (export "el_alloc") (param i32) (result i32) i32.const 1024)
+  (func (export "el_on_input") (param i32 i32) (result i32)
+    (drop (call $log (i32.const 2) (i32.const 0) (i32.const 5)))
+    (drop (call $status (i32.const 1) (i32.const 1) (i32.const 32) (i32.const 2)))
+    (drop (call $fail (i32.const 16) (i32.const 7)))
+    i32.const 0))

@@ -68,6 +68,17 @@ pub enum Commands {
         #[command(subcommand)]
         command: CredentialCommand,
     },
+    /// Manage WASM plugins (offline; the runtime must be stopped)
+    Plugin {
+        #[command(subcommand)]
+        command: PluginCommand,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum PluginCommand {
+    /// List staged, quarantined, and active plugins
+    List,
 }
 
 #[derive(Subcommand, Debug, Clone)]

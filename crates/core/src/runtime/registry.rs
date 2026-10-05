@@ -10,6 +10,8 @@ pub trait Registry: 'static + Send + Sync {
     fn all(&self) -> &HashMap<&'static str, &'static MetaNode>;
     fn get(&self, type_name: &str) -> Option<&'static MetaNode>;
     fn hints(&self, type_name: &str) -> Option<&'static crate::runtime::nodes::NodeHints>;
+    #[cfg(feature = "nodes_wasm")]
+    fn wasm(&self) -> Option<&Arc<crate::runtime::wasm::ActivePlugins>>;
 }
 
 #[derive(Debug, Clone)]
@@ -26,6 +28,8 @@ impl Deref for RegistryHandle {
 struct RegistryImpl {
     meta_nodes: Arc<HashMap<&'static str, &'static MetaNode>>,
     hints: Arc<HashMap<&'static str, &'static crate::runtime::nodes::NodeHints>>,
+    #[cfg(feature = "nodes_wasm")]
+    wasm: Option<Arc<crate::runtime::wasm::ActivePlugins>>,
 }
 
 #[derive(Debug)]
@@ -66,9 +70,30 @@ impl RegistryBuilder {
             hints.insert(hint.type_, hint);
         }
 
-        let result =
-            RegistryHandle(Arc::new(RegistryImpl { meta_nodes: Arc::new(self.meta_nodes), hints: Arc::new(hints) }));
+        let result = RegistryHandle(Arc::new(RegistryImpl {
+            meta_nodes: Arc::new(self.meta_nodes),
+            hints: Arc::new(hints),
+            #[cfg(feature = "nodes_wasm")]
+            wasm: None,
+        }));
         Ok(result)
+    }
+}
+
+impl RegistryHandle {
+    #[cfg(feature = "nodes_wasm")]
+    pub fn with_wasm(&self, plugins: Arc<crate::runtime::wasm::ActivePlugins>) -> RegistryHandle {
+        let mut hints = HashMap::new();
+        for name in self.all().keys() {
+            if let Some(hint) = self.hints(name) {
+                hints.insert(*name, hint);
+            }
+        }
+        RegistryHandle(Arc::new(RegistryImpl {
+            meta_nodes: Arc::new(self.all().clone()),
+            hints: Arc::new(hints),
+            wasm: Some(plugins),
+        }))
     }
 }
 
@@ -85,6 +110,11 @@ impl Registry for RegistryImpl {
 
     fn hints(&self, type_name: &str) -> Option<&'static crate::runtime::nodes::NodeHints> {
         self.hints.get(type_name).copied()
+    }
+
+    #[cfg(feature = "nodes_wasm")]
+    fn wasm(&self) -> Option<&Arc<crate::runtime::wasm::ActivePlugins>> {
+        self.wasm.as_ref()
     }
 }
 
@@ -137,5 +167,10 @@ mod tests {
         #[cfg(not(feature = "nodes_ai_agent"))]
         assert!(registry.get("ai-agent").is_none());
         assert!(!crate::runtime::nodes::edgelink_owned_node_type("nodered-foo"));
+        for name in registry.all().keys() {
+            assert!(!name.starts_with("wasm-"), "built-in type {name} uses the reserved wasm- prefix");
+        }
+        assert!(crate::runtime::nodes::is_wasm_plugin_type("wasm-acme-csvparse"));
+        assert!(!crate::runtime::nodes::is_wasm_plugin_type("function"));
     }
 }

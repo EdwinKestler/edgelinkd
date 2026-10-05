@@ -269,6 +269,10 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # [copilot]
 # strict_metadata = true
 
+# Optional WASM plugins. Off even when the binary is built with --features nodes_wasm.
+# [runtime.wasm]
+# enabled = false
+
 # Bounded operational history. Compiled into the default app build. Recording stays off until enabled.
 # [history]
 # enabled = false

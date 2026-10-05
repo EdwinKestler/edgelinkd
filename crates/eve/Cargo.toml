@@ -1,0 +1,14 @@
+[package]
+name = "edgelink-eve"
+version = "0.3.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "EVE/1 message encoding for EdgeLinkd WASM plugins"
+publish = false
+
+[lib]
+name = "edgelink_eve"
+
+[dependencies]
+
+[dev-dependencies]
