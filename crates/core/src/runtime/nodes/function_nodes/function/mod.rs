@@ -38,6 +38,10 @@ struct FunctionNodeConfig {
 
     #[serde(default, rename = "outputs")]
     output_count: usize,
+
+    /// Node-RED extra modules (`require('os')`, etc.). The sandbox is QuickJS and cannot load them.
+    #[serde(default)]
+    libs: Vec<serde_json::Value>,
 }
 
 #[derive(Debug)]
@@ -149,6 +153,9 @@ impl FunctionNode {
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let mut function_config = FunctionNodeConfig::deserialize(&config.rest)?;
+        if !function_config.libs.is_empty() {
+            return Err(EdgelinkError::NotSupported("function extra modules (libs) are not supported".to_owned()));
+        }
         if function_config.output_count == 0 {
             function_config.output_count = 1;
         }
@@ -509,5 +516,32 @@ mod tests {
         assert_eq!(msgs[0]["plain"], "foo".into());
         assert_eq!(msgs[0]["braced"], "undefined".into());
         assert_eq!(msgs[0]["evaluated"], "foo".into());
+    }
+
+    #[test]
+    fn extra_modules_are_not_supported() {
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            {
+                "id": "1",
+                "z": "100",
+                "type": "function",
+                "func": "return msg;",
+                "libs": [{ "var": "os", "module": "os" }],
+                "wires": [[]]
+            }
+        ]);
+        let err = crate::runtime::engine::build_test_engine(flows).unwrap_err();
+        assert!(err.to_string().contains("not supported"), "{err}");
+        assert!(err.to_string().contains("libs"), "{err}");
+    }
+
+    #[test]
+    fn empty_libs_list_still_deploys() {
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "function", "func": "return msg;", "libs": [], "wires": [[]] }
+        ]);
+        crate::runtime::engine::build_test_engine(flows).unwrap();
     }
 }

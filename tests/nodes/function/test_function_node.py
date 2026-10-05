@@ -1029,3 +1029,25 @@ class TestFunctionNode:
     @pytest.mark.describe('init function')
     class TestInitFunction:
         pass
+
+    @pytest.mark.describe('externalModules')
+    class TestExternalModules:
+        @pytest.mark.skip(reason="function extra modules (libs) are out of scope: the sandbox is QuickJS and cannot load Node.js modules")
+        @pytest.mark.it('should fail if using OS module with functionExternalModules set to false')
+        def test_should_fail_if_using_os_module_with_functionexternalmodules_set_to_false(self):
+            pass
+
+        @pytest.mark.skip(reason="function extra modules (libs) are out of scope: the sandbox is QuickJS and cannot load Node.js modules")
+        @pytest.mark.it('should fail if using OS module without it listed in libs')
+        def test_should_fail_if_using_os_module_without_it_listed_in_libs(self):
+            pass
+
+        @pytest.mark.skip(reason="function extra modules (libs) are out of scope: the sandbox is QuickJS and cannot load Node.js modules")
+        @pytest.mark.it('should require the OS module')
+        def test_should_require_the_os_module(self):
+            pass
+
+        @pytest.mark.skip(reason="function extra modules (libs) are out of scope: the sandbox is QuickJS and cannot load Node.js modules")
+        @pytest.mark.it('should fail if module variable name clashes with sandbox builtin')
+        def test_should_fail_if_module_variable_name_clashes_with_sandbox_builtin(self):
+            pass
