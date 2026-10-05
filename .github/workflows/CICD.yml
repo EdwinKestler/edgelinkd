@@ -75,6 +75,7 @@ jobs:
           cargo check -p edgelink-core --no-default-features --features core
           cargo check -p edgelink-core --no-default-features --features core,js
           cargo check -p edgelink-core --no-default-features --features core,jsonata
+          cargo check -p edgelink-core --no-default-features --features core,nodes_ai_text
 
   build-and-test-windows:
     name: Build and Test on Windows
@@ -159,6 +160,9 @@ jobs:
       - name: Run Rust tests
         run: cargo test --workspace --no-fail-fast --features full --target ${{ matrix.target }} --profile ci
 
+      - name: Run agent feature tests
+        run: cargo test -p edgelink-core --all-features --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
+
   build-and-test-linux:
     name: Build and Test on Linux (x86-64)
     needs: [fmt-and-check, clippy]
@@ -225,6 +229,9 @@ jobs:
 
       - name: Run Rust tests
         run: cargo test --workspace --no-fail-fast --features full --target ${{ matrix.target }} --profile ci
+
+      - name: Run agent feature tests
+        run: cargo test -p edgelink-core --all-features --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
 
       - name: Run Python tests
         env:

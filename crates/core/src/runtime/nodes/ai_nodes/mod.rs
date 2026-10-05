@@ -1,22 +1,47 @@
-//! AI provider config and chat nodes. Compiled only with `nodes_ai`.
+//! AI nodes. Submodules are feature-gated so `nodes_ai_text` does not pull `reqwest`.
 
+#[cfg(feature = "nodes_ai")]
 mod adapter;
+#[cfg(feature = "nodes_ai")]
 mod chat;
+#[cfg(feature = "nodes_ai")]
 mod provider;
 
+#[cfg(feature = "nodes_ai_text")]
+mod schema;
+#[cfg(feature = "nodes_ai_text")]
+mod split;
+#[cfg(feature = "nodes_ai_text")]
+mod structured;
+
+#[cfg(feature = "nodes_ai_embeddings")]
+mod embed;
+
+#[cfg(feature = "nodes_ai_agent")]
+mod agent;
+#[cfg(feature = "nodes_ai_agent")]
+mod tools;
+
+#[cfg(feature = "nodes_ai")]
 use std::time::Duration;
 
+#[cfg(feature = "nodes_ai")]
 use crate::EdgelinkError;
+#[cfg(feature = "nodes_ai")]
 use crate::runtime::engine::Engine;
+#[cfg(feature = "nodes_ai")]
 use crate::runtime::model::ElementId;
 
+#[cfg(feature = "nodes_ai")]
 use self::adapter::{ChatMessage, ChatRequest, complete_with_policy};
+#[cfg(feature = "nodes_ai")]
 use self::provider::AiProviderNode;
 
 /// Complete one server-side prompt with a deployed `ai-provider` configuration.
 ///
 /// The caller receives model text only. Provider settings and credentials never cross the crate
 /// boundary and must not be logged by callers.
+#[cfg(feature = "nodes_ai")]
 pub(crate) async fn complete_for_engine(
     engine: &Engine,
     provider_id: &str,
@@ -40,8 +65,6 @@ pub(crate) async fn complete_for_engine(
         model: model.to_owned(),
         messages: vec![ChatMessage { role: "user".to_owned(), content: prompt.to_owned() }],
         system: Some(system.to_owned()),
-        // Leave sampling at the provider/model default. Some reasoning models reject the
-        // temperature parameter even when it is set to zero.
         temperature: None,
         max_tokens: Some(max_tokens),
         timeout,
@@ -51,7 +74,7 @@ pub(crate) async fn complete_for_engine(
     Ok(response.text)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "nodes_ai"))]
 mod tests {
     use super::*;
     use axum::routing::post;

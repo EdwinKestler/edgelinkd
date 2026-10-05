@@ -212,16 +212,32 @@ fn copy_modbus_editor(static_dir: &Path) {
     }
 }
 
-#[cfg(feature = "nodes_ai")]
 fn copy_ai_editor(static_dir: &Path) {
     println!("cargo:rerun-if-changed=crates/web/ai-editor/90-ai-provider.html");
     println!("cargo:rerun-if-changed=crates/web/ai-editor/91-ai-chat.html");
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/96-ai-split.html");
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/97-ai-structured.html");
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/98-ai-embed.html");
+    println!("cargo:rerun-if-changed=crates/web/ai-editor/99-ai-agent.html");
     let dest_dir = static_dir.join("nodes/core/function");
-    std::fs::create_dir_all(&dest_dir).expect("Failed to create the AI editor directory");
-    for name in ["90-ai-provider.html", "91-ai-chat.html"] {
-        let src = PathBuf::from("crates/web/ai-editor").join(name);
-        if src.exists() {
-            std::fs::copy(&src, dest_dir.join(name)).expect("Failed to copy the AI editor");
+    let _ = std::fs::create_dir_all(&dest_dir);
+    let files = [
+        (cfg!(feature = "nodes_ai"), "90-ai-provider.html"),
+        (cfg!(feature = "nodes_ai"), "91-ai-chat.html"),
+        (cfg!(feature = "nodes_ai_text"), "96-ai-split.html"),
+        (cfg!(feature = "nodes_ai_text"), "97-ai-structured.html"),
+        (cfg!(feature = "nodes_ai_embeddings"), "98-ai-embed.html"),
+        (cfg!(feature = "nodes_ai_agent"), "99-ai-agent.html"),
+    ];
+    for (enabled, name) in files {
+        let dest = dest_dir.join(name);
+        if enabled {
+            let src = PathBuf::from("crates/web/ai-editor").join(name);
+            if src.exists() {
+                let _ = std::fs::copy(&src, &dest);
+            }
+        } else if dest.exists() {
+            let _ = std::fs::remove_file(dest);
         }
     }
 }
@@ -249,19 +265,6 @@ fn copy_db_editor(static_dir: &Path) {
                 let _ = std::fs::copy(&src, &dest);
             }
         } else if dest.exists() {
-            let _ = std::fs::remove_file(dest);
-        }
-    }
-}
-
-#[cfg(not(feature = "nodes_ai"))]
-fn copy_ai_editor(static_dir: &Path) {
-    println!("cargo:rerun-if-changed=crates/web/ai-editor/90-ai-provider.html");
-    println!("cargo:rerun-if-changed=crates/web/ai-editor/91-ai-chat.html");
-    let dest_dir = static_dir.join("nodes/core/function");
-    for name in ["90-ai-provider.html", "91-ai-chat.html"] {
-        let dest = dest_dir.join(name);
-        if dest.exists() {
             let _ = std::fs::remove_file(dest);
         }
     }

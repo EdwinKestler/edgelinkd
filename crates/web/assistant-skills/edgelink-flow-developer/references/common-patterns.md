@@ -22,6 +22,54 @@ Use these properties when the corresponding type appears in the supplied runtime
 
 `repeat` is seconds. Three minutes is `180`.
 
+## Local text split
+
+```json
+{
+  "type": "ai-split",
+  "config": {
+    "chunkSize": 512,
+    "overlap": 0,
+    "separator": "",
+    "maxChunks": 256,
+    "property": "payload"
+  }
+}
+```
+
+Empty `separator` is character windows. Do not invent a tokenizer.
+
+## Structured JSON
+
+```json
+{
+  "type": "ai-structured",
+  "config": {
+    "property": "payload",
+    "schemaSource": "node",
+    "schema": {"type": "object"},
+    "output": "payload"
+  }
+}
+```
+
+Do not use `$ref`, `pattern`, or `allOf`.
+
+## Embeddings
+
+```json
+{
+  "type": "ai-embed",
+  "config": {
+    "provider": "EXISTING_AI_PROVIDER_ID",
+    "model": "text-embedding-3-small",
+    "property": "payload"
+  }
+}
+```
+
+`model` is required. Reuse an existing `ai-provider`. Do not use the chat `defaultModel`.
+
 ## MQTT publish and subscribe
 
 ```json

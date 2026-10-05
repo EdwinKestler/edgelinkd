@@ -117,6 +117,9 @@ runtime_scan = []
 nodes_modbus = []
 # OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Off unless a build asks for it.
 nodes_ai = ["reqwest"]
+nodes_ai_text = []
+nodes_ai_embeddings = ["nodes_ai"]
+nodes_ai_agent = ["nodes_ai"]
 credential_encryption = ["dep:chacha20poly1305", "dep:zeroize", "dep:fs2"]
 # SQLite operational history. The app default enables this; omit from a minimal core build.
 history_sqlite = ["dep:rusqlite"]

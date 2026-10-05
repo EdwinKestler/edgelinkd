@@ -124,4 +124,18 @@ mod tests {
         assert_eq!(hints.config_refs, &[("broker", "mqtt-broker")]);
         assert!(registry.hints("mqtt-broker").unwrap().secret_fields.contains(&"password"));
     }
+
+    #[test]
+    fn owned_feature_gated_types_are_listed() {
+        let registry = RegistryBuilder::default().build().unwrap();
+        for name in registry.all().keys() {
+            if name.starts_with("ai-") || matches!(*name, "postgres" | "postgres-config" | "redis" | "redis-config") {
+                assert!(crate::runtime::nodes::edgelink_owned_node_type(name), "{name}");
+            }
+        }
+        assert!(crate::runtime::nodes::edgelink_owned_node_type("ai-agent"));
+        #[cfg(not(feature = "nodes_ai_agent"))]
+        assert!(registry.get("ai-agent").is_none());
+        assert!(!crate::runtime::nodes::edgelink_owned_node_type("nodered-foo"));
+    }
 }

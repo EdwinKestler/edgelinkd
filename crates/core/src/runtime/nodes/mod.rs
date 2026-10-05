@@ -31,7 +31,12 @@ mod storage_nodes;
 #[cfg(feature = "nodes_network")]
 mod network_nodes;
 
-#[cfg(feature = "nodes_ai")]
+#[cfg(any(
+    feature = "nodes_ai",
+    feature = "nodes_ai_text",
+    feature = "nodes_ai_embeddings",
+    feature = "nodes_ai_agent"
+))]
 pub(crate) mod ai_nodes;
 
 #[cfg(any(feature = "nodes_postgres", feature = "nodes_redis"))]
@@ -44,6 +49,27 @@ mod modbus;
 pub mod wellknown_names {
     pub const UNKNOWN_GLOBAL_NODE: &str = "unknown.global";
     pub const UNKNOWN_FLOW_NODE: &str = "unknown";
+}
+
+/// EdgeLinkd-owned types that must not fall back to `unknown` when the feature is off.
+pub fn edgelink_owned_node_type(type_name: &str) -> bool {
+    matches!(
+        type_name,
+        "ai-provider"
+            | "ai-chat"
+            | "ai-split"
+            | "ai-structured"
+            | "ai-embed"
+            | "ai-agent"
+            | "postgres"
+            | "postgres-config"
+            | "redis"
+            | "redis-config"
+    )
+}
+
+pub fn missing_owned_node_type(type_name: &str) -> EdgelinkError {
+    EdgelinkError::NotSupported(format!("node type '{type_name}' is not compiled in this build"))
 }
 
 #[derive(Debug, Clone, Copy)]

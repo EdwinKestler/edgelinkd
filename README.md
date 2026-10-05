@@ -386,7 +386,10 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
             - [x] `ai-chat` one-shot and `msg.messages` conversations. Keys stay in `flows_cred.json`
             - [x] Flow Copilot add-and-connect draft/validate/apply; review and Deploy stay manual
             - [ ] Flow Copilot update/delete/install tools
-            - [ ] `ai-agent` bounded tool loop
+            - [x] `ai-split` Unicode character windows / separator pack (`nodes_ai_text`)
+            - [x] `ai-structured` local JSON Schema subset (`nodes_ai_text`)
+            - [ ] `ai-embed` OpenAI/xAI embeddings (`nodes_ai_embeddings`; experimental until live OpenAI and xAI runs)
+            - [ ] `ai-agent` bounded tool loop (`--features nodes_ai_agent`; opt-in, two concurrent loops)
         - [x] PostgreSQL (`nodes_postgres`, included by default; disable with `--no-default-features`): `postgres-config` + `postgres` query. TLS and bound parameters are rejected.
         - [x] Redis (`nodes_redis`, included by default; disable with `--no-default-features`): `redis-config` + PING/GET/SET/DEL. TLS is rejected.
         - [x] Scan (`runtime_scan`, off by default)

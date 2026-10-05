@@ -1,0 +1,47 @@
+<script type="text/html" data-template-name="ai-structured">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-ellipsis-h"></i> Property</label>
+        <input type="text" id="node-input-property" placeholder="payload">
+    </div>
+    <div class="form-row">
+        <label for="node-input-schemaSource"><i class="fa fa-cog"></i> Schema source</label>
+        <select id="node-input-schemaSource">
+            <option value="node">node</option>
+            <option value="msg">msg</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-schema"><i class="fa fa-code"></i> Schema</label>
+        <input type="text" id="node-input-schema" placeholder='{"type":"object"}'>
+    </div>
+    <div class="form-row">
+        <label for="node-input-output"><i class="fa fa-sign-out"></i> Output</label>
+        <input type="text" id="node-input-output" placeholder="payload">
+    </div>
+    <div class="form-tips">
+        Validates JSON against a Draft-07 subset. Unknown keywords are rejected.
+        <code>$ref</code>, <code>pattern</code>, and <code>allOf</code> are not supported.
+    </div>
+</script>
+<script type="text/javascript">
+    RED.nodes.registerType("ai-structured", {
+        category: "function",
+        color: "#E6E0F8",
+        defaults: {
+            name: {value: ""},
+            property: {value: "payload"},
+            schemaSource: {value: "node"},
+            schema: {value: ""},
+            output: {value: "payload"}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-check",
+        label: function () { return this.name || "ai-structured"; },
+        labelStyle: function () { return this.name ? "node_label_italic" : ""; }
+    });
+</script>

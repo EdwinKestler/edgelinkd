@@ -100,6 +100,10 @@ async fn generate_nodes_html(static_dir: &std::path::Path, allowed: &HashSet<Str
     append_bundled_editor("scan", "scan-editor/80-scan.html", allowed, &mut html_content);
     append_bundled_editor("ai-provider", "ai-editor/90-ai-provider.html", allowed, &mut html_content);
     append_bundled_editor("ai-chat", "ai-editor/91-ai-chat.html", allowed, &mut html_content);
+    append_bundled_editor("ai-split", "ai-editor/96-ai-split.html", allowed, &mut html_content);
+    append_bundled_editor("ai-structured", "ai-editor/97-ai-structured.html", allowed, &mut html_content);
+    append_bundled_editor("ai-embed", "ai-editor/98-ai-embed.html", allowed, &mut html_content);
+    append_bundled_editor("ai-agent", "ai-editor/99-ai-agent.html", allowed, &mut html_content);
     append_bundled_editor("postgres-config", "db-editor/92-postgres-config.html", allowed, &mut html_content);
     append_bundled_editor("postgres", "db-editor/93-postgres.html", allowed, &mut html_content);
     append_bundled_editor("redis-config", "db-editor/94-redis-config.html", allowed, &mut html_content);
@@ -714,6 +718,24 @@ mod tests {
             assert!(json_types.contains("ai-provider"));
             assert!(json_types.contains("ai-chat"));
         }
+        #[cfg(feature = "nodes_ai_text")]
+        {
+            assert!(json_types.contains("ai-split"));
+            assert!(json_types.contains("ai-structured"));
+        }
+        #[cfg(not(feature = "nodes_ai_text"))]
+        {
+            assert!(!json_types.contains("ai-split"));
+            assert!(!json_types.contains("ai-structured"));
+        }
+        #[cfg(feature = "nodes_ai_embeddings")]
+        assert!(json_types.contains("ai-embed"));
+        #[cfg(not(feature = "nodes_ai_embeddings"))]
+        assert!(!json_types.contains("ai-embed"));
+        #[cfg(feature = "nodes_ai_agent")]
+        assert!(json_types.contains("ai-agent"));
+        #[cfg(not(feature = "nodes_ai_agent"))]
+        assert!(!json_types.contains("ai-agent"));
         #[cfg(not(feature = "nodes_postgres"))]
         {
             assert!(!json_types.contains("postgres"));
@@ -767,6 +789,15 @@ mod tests {
             assert!(html_types.iter().any(|kind| kind == "ai-provider"));
             assert!(html_types.iter().any(|kind| kind == "ai-chat"));
         }
+        #[cfg(feature = "nodes_ai_text")]
+        {
+            assert!(html_types.iter().any(|kind| kind == "ai-split"));
+            assert!(html_types.iter().any(|kind| kind == "ai-structured"));
+        }
+        #[cfg(feature = "nodes_ai_embeddings")]
+        assert!(html_types.iter().any(|kind| kind == "ai-embed"));
+        #[cfg(feature = "nodes_ai_agent")]
+        assert!(html_types.iter().any(|kind| kind == "ai-agent"));
         #[cfg(not(feature = "nodes_postgres"))]
         {
             assert!(!html_types.iter().any(|kind| kind == "postgres"));

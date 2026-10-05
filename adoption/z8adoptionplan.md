@@ -1,6 +1,6 @@
 # z8run Adoption Plan for EdgeLinkd
 
-Status: Phases 0-5 complete; phase 6 is next. Evidence is in
+Status: Phases 0-6 implemented locally; see `adoption/phase6/REPORT.md`. Phase 7 is next. Evidence is in
 `adoption/phase5/REPORT.md`, `adoption/phase4/REPORT.md`, `adoption/phase3/REPORT.md`,
 `adoption/phase2/REPORT.md`, `adoption/phase1/REPORT.md` and `adoption/phase0/BASELINE.md`.
 
@@ -274,6 +274,8 @@ Rollback:
 Exit gate: golden prompts generate valid drafts without inventing nodes, ports, or credentials.
 
 ## Phase 6 - Selective AI nodes
+
+Status: implemented locally; see `adoption/phase6/DESIGN.md` and `adoption/phase6/REPORT.md`.
 
 Implement in increasing order of external and operational risk:
 

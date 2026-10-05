@@ -1,0 +1,51 @@
+<script type="text/html" data-template-name="ai-embed">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-provider"><i class="fa fa-cloud"></i> Provider</label>
+        <input type="text" id="node-input-provider">
+    </div>
+    <div class="form-row">
+        <label for="node-input-model"><i class="fa fa-cube"></i> Model</label>
+        <input type="text" id="node-input-model" placeholder="text-embedding-3-small">
+    </div>
+    <div class="form-row">
+        <label for="node-input-dimensions"><i class="fa fa-arrows-h"></i> Dimensions</label>
+        <input type="number" id="node-input-dimensions" min="1" max="4096" style="width: 100px" placeholder="provider default">
+    </div>
+    <div class="form-row">
+        <label for="node-input-timeoutMs"><i class="fa fa-clock-o"></i> Timeout</label>
+        <input type="number" id="node-input-timeoutMs" min="100" max="120000" style="width: 100px">
+        <span>ms</span>
+    </div>
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-ellipsis-h"></i> Property</label>
+        <input type="text" id="node-input-property" placeholder="payload">
+    </div>
+    <div class="form-tips">
+        Model is required and is an embedding id, not the chat default.
+        OpenAI and xAI only. Anthropic and Cortex are rejected at deploy.
+        Dimensions are OpenAI-only.
+    </div>
+</script>
+<script type="text/javascript">
+    RED.nodes.registerType("ai-embed", {
+        category: "function",
+        color: "#E6E0F8",
+        defaults: {
+            name: {value: ""},
+            provider: {value: "", type: "ai-provider", required: true},
+            model: {value: "", required: true},
+            dimensions: {value: ""},
+            timeoutMs: {value: 30000},
+            property: {value: "payload"}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-vector-square",
+        label: function () { return this.name || "ai-embed"; },
+        labelStyle: function () { return this.name ? "node_label_italic" : ""; }
+    });
+</script>

@@ -1,0 +1,65 @@
+<script type="text/html" data-template-name="ai-agent">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-provider"><i class="fa fa-cloud"></i> Provider</label>
+        <input type="text" id="node-input-provider">
+    </div>
+    <div class="form-row">
+        <label for="node-input-model"><i class="fa fa-cube"></i> Model</label>
+        <input type="text" id="node-input-model" placeholder="provider default">
+    </div>
+    <div class="form-row">
+        <label for="node-input-system"><i class="fa fa-comment"></i> System</label>
+        <input type="text" id="node-input-system">
+    </div>
+    <div class="form-row">
+        <label for="node-input-tools"><i class="fa fa-wrench"></i> Tools</label>
+        <input type="text" id="node-input-tools" placeholder='["context_get","context_set"]'>
+    </div>
+    <div class="form-row">
+        <label for="node-input-maxTurns"><i class="fa fa-repeat"></i> Max turns</label>
+        <input type="number" id="node-input-maxTurns" min="1" max="8" value="4" style="width: 80px">
+    </div>
+    <div class="form-row">
+        <label for="node-input-maxToolCalls"><i class="fa fa-list"></i> Max tool calls</label>
+        <input type="number" id="node-input-maxToolCalls" min="1" max="16" value="8" style="width: 80px">
+    </div>
+    <div class="form-row">
+        <label for="node-input-timeoutMs"><i class="fa fa-clock-o"></i> Timeout</label>
+        <input type="number" id="node-input-timeoutMs" min="100" max="120000" style="width: 100px">
+        <span>ms (whole loop)</span>
+    </div>
+    <div class="form-tips">
+        Opt-in node (<code>--features nodes_ai_agent</code>). Tools are <code>context_get</code>
+        and <code>context_set</code> only. Default context store must be memory.
+        At most two agent loops run at once.
+    </div>
+</script>
+<script type="text/javascript">
+    RED.nodes.registerType("ai-agent", {
+        category: "function",
+        color: "#E6E0F8",
+        defaults: {
+            name: {value: ""},
+            provider: {value: "", type: "ai-provider", required: true},
+            model: {value: ""},
+            system: {value: ""},
+            tools: {value: ["context_get", "context_set"]},
+            maxTurns: {value: 4},
+            maxToolCalls: {value: 8},
+            timeoutMs: {value: 30000},
+            maxTokens: {value: 1024},
+            maxContextChars: {value: 8000},
+            maxToolResultChars: {value: 1024},
+            temperature: {value: ""}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "font-awesome/fa-cogs",
+        label: function () { return this.name || "ai-agent"; },
+        labelStyle: function () { return this.name ? "node_label_italic" : ""; }
+    });
+</script>

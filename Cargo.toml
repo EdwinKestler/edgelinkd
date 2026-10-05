@@ -182,6 +182,8 @@ default = [
     "nodes_network",
     "nodes_storage",
     "nodes_ai",
+    "nodes_ai_text",
+    "nodes_ai_embeddings",
     "admin_bcrypt",
     "credential_encryption",
     "history_sqlite",
@@ -200,6 +202,12 @@ runtime_scan = ["edgelink-core/runtime_scan"]
 nodes_modbus = ["edgelink-core/nodes_modbus"]
 # OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Included in the application by default.
 nodes_ai = ["edgelink-core/nodes_ai", "edgelink-web/nodes_ai"]
+# Local splitter and structured-output validator. In the default app build.
+nodes_ai_text = ["edgelink-core/nodes_ai_text", "edgelink-web/nodes_ai_text"]
+# Embeddings through ai-provider. In the default app build; README stays experimental until live runs.
+nodes_ai_embeddings = ["nodes_ai", "edgelink-core/nodes_ai_embeddings", "edgelink-web/nodes_ai_embeddings"]
+# Bounded agent/tool loop. Opt-in; off in default and full.
+nodes_ai_agent = ["nodes_ai", "edgelink-core/nodes_ai_agent", "edgelink-web/nodes_ai_agent"]
 # Node-RED-compatible bcrypt password verification. Default-on, but removable from minimal builds.
 admin_bcrypt = ["edgelink-web/admin_bcrypt"]
 # Versioned XChaCha20-Poly1305 credential envelopes and migration CLI.

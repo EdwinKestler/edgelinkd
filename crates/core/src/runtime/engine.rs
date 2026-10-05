@@ -54,7 +54,17 @@ pub struct LinkState {
 fn is_link_type(type_name: &str) -> bool {
     matches!(
         type_name,
-        "mqtt-broker" | "mqtt in" | "mqtt out" | "modbus" | "postgres" | "postgres-config" | "redis" | "redis-config"
+        "mqtt-broker"
+            | "mqtt in"
+            | "mqtt out"
+            | "modbus"
+            | "postgres"
+            | "postgres-config"
+            | "redis"
+            | "redis-config"
+            | "ai-provider"
+            | "ai-embed"
+            | "ai-agent"
     )
 }
 
@@ -107,6 +117,9 @@ struct InnerEngine {
     /// Cancelled by `stop` and replaced on the next scan spawn, so a restart arms a new task.
     #[cfg(feature = "runtime_scan")]
     scan_cancel: std::sync::Mutex<CancellationToken>,
+
+    #[cfg(feature = "nodes_ai_agent")]
+    agent_slots: std::sync::Arc<tokio::sync::Semaphore>,
 
     #[cfg(any(test, feature = "pymod"))]
     final_msgs_rx: MsgUnboundedReceiverHolder,
@@ -215,6 +228,9 @@ impl Engine {
                 #[cfg(feature = "runtime_scan")]
                 scan_cancel: std::sync::Mutex::new(CancellationToken::new()),
 
+                #[cfg(feature = "nodes_ai_agent")]
+                agent_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+
                 #[cfg(any(test, feature = "pymod"))]
                 final_msgs_rx: MsgUnboundedReceiverHolder::new(final_msgs_channel.1),
 
@@ -238,6 +254,11 @@ impl Engine {
     /// Operational history handle.
     pub fn history(&self) -> &HistoryHandle {
         &self.inner.history
+    }
+
+    #[cfg(feature = "nodes_ai_agent")]
+    pub(crate) fn agent_slots(&self) -> std::sync::Arc<tokio::sync::Semaphore> {
+        self.inner.agent_slots.clone()
     }
 
     pub async fn with_flows_file(
@@ -323,6 +344,8 @@ impl Engine {
             let node_type_name = global_config.type_name.as_str();
             let meta_node = if let Some(meta_node) = reg.get(node_type_name) {
                 meta_node
+            } else if crate::runtime::nodes::edgelink_owned_node_type(node_type_name) {
+                return Err(crate::runtime::nodes::missing_owned_node_type(node_type_name));
             } else {
                 log::warn!(
                     "Unknown global configuration node type: (id=`{}`, type=`{}`, name='{}')",
@@ -979,6 +1002,26 @@ mod tests {
         assert!(rendered.contains("global_nodes:"), "{rendered}");
         assert!(rendered.contains("flows_rev:"), "{rendered}");
         assert!(!rendered.contains("elcfg"), "{rendered}");
+    }
+
+    #[cfg(not(feature = "nodes_ai_agent"))]
+    #[test]
+    fn owned_ai_agent_without_the_feature_is_not_supported() {
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "ai-agent", "provider": "b1", "tools": ["context_get"], "wires": [[]] }
+        ]);
+        let err = build_test_engine(flows).unwrap_err();
+        assert!(err.to_string().contains("not compiled"), "{err}");
+    }
+
+    #[test]
+    fn a_third_party_type_still_maps_to_unknown() {
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "nodered-foo", "wires": [[]] }
+        ]);
+        build_test_engine(flows).unwrap();
     }
 
     fn make_simple_flows_json() -> serde_json::Value {

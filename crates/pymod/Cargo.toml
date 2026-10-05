@@ -19,7 +19,7 @@ log4rs.workspace = true
 log.workspace = true
 
 edgelink-core = { path = "../../crates/core", default-features = true, features = [
-    "pymod", "default"
+    "pymod", "default", "nodes_ai", "nodes_ai_text"
 ] }
 # Node plug-ins:
 edgelink-nodes-dummy = { path = "../../node-plugins/edgelink-nodes-dummy" }
