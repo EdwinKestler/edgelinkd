@@ -1,0 +1,4 @@
+{"feature":"none","target":"armv7-unknown-linux-gnueabihf","stripped_bytes":285808,"build_s":1}
+{"feature":"wasmi","target":"armv7-unknown-linux-gnueabihf","stripped_bytes":1137776,"build_s":13}
+{"feature":"wt36-pulley","target":"armv7-unknown-linux-gnueabihf","stripped_bytes":3411304,"build_s":30}
+{"feature":"wt36","target":"armv7-unknown-linux-gnueabihf","stripped_bytes":3407208,"build_s":30}

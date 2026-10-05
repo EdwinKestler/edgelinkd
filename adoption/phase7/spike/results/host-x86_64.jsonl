@@ -1,0 +1,83 @@
+{"feature":"none","target":"host","stripped_bytes":290320,"build_s":2}
+{"feature":"none","idle_rss_median_kib":1932}
+{"feature":"wasmi","target":"host","stripped_bytes":1298536,"build_s":13}
+{"feature":"wasmi","idle_rss_median_kib":2568}
+{"rt":"wasmi-2.0.0","mode":"load","rss_kib":4692,"hwm_kib":4692,"n":16,"rss_before_kib":2460,"rss_after_compile_kib":3352,"per_instance_kib":83,"compile_upper_us":247,"compile_bulk_us":11641,"instantiate_us":56}
+{"rt":"wasmi-2.0.0","mode":"bench","rss_kib":2880,"hwm_kib":2880,"calls":2000,"median_ns":9286,"p95_ns":11135}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":39.1,"error":"fuel budget 50000000 exhausted"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":0.5,"error":"trap: growth operation limited"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.0,"error":"host call failed: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.0,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.0,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":0.0,"error":"compile: configuration disallows start functions but found one"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":100.5,"error":"deadline 100 ms exceeded after 136000000 fuel"}
+{"feature":"wt36","target":"host","stripped_bytes":4952152,"build_s":43}
+{"feature":"wt36","idle_rss_median_kib":4384}
+{"rt":"wasmtime-36.0.17","mode":"load","rss_kib":15508,"hwm_kib":15508,"n":16,"rss_before_kib":4484,"rss_after_compile_kib":15440,"per_instance_kib":4,"compile_upper_us":1925,"compile_bulk_us":189998,"instantiate_us":3}
+{"rt":"wasmtime-36.0.17","mode":"bench","rss_kib":6188,"hwm_kib":6188,"calls":2000,"median_ns":5498,"p95_ns":5964}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":37.8,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":1.0,"error":"trap: error while executing at wasm backtrace:     0:     0x6f - <unknown>!<wasm function 2>: forcing trap when growing memory to 1114112 bytes"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.8,"error":"trap: error while executing at wasm backtrace:     0:     0x97 - <unknown>!<wasm function 3>: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.7,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.7,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":16.4,"error":"instantiate: error while executing at wasm backtrace:     0:     0x68 - <unknown>!start: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":101.1,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}
+{"feature":"wt36-pulley","target":"host","stripped_bytes":5021896,"build_s":41}
+{"feature":"wt36-pulley","idle_rss_median_kib":4396}
+{"rt":"wasmtime-36.0.17-pulley","mode":"load","rss_kib":14144,"hwm_kib":14144,"n":16,"rss_before_kib":4240,"rss_after_compile_kib":14024,"per_instance_kib":7,"compile_upper_us":4519,"compile_bulk_us":188797,"instantiate_us":5}
+{"rt":"wasmtime-36.0.17-pulley","mode":"bench","rss_kib":6220,"hwm_kib":6220,"calls":2000,"median_ns":41895,"p95_ns":69948}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":101.2,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":1.0,"error":"trap: error while executing at wasm backtrace:     0:     0x6f - <unknown>!<wasm function 2>: forcing trap when growing memory to 1114112 bytes"}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.8,"error":"trap: error while executing at wasm backtrace:     0:     0x97 - <unknown>!<wasm function 3>: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.7,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.9,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":98.0,"error":"instantiate: error while executing at wasm backtrace:     0:     0x68 - <unknown>!start: wasm trap: interrupt"}
+{"rt":"wasmtime-36.0.17-pulley","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":101.1,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}
+{"feature":"wt36","target":"host","stripped_bytes":4952152,"build_s":0}
+{"feature":"wt36","idle_rss_median_kib":4384}
+{"rt":"wasmtime-36.0.17","mode":"load","rss_kib":15528,"hwm_kib":15528,"n":16,"rss_before_kib":4484,"rss_after_compile_kib":15460,"per_instance_kib":4,"compile_upper_us":6331,"compile_bulk_us":200924,"instantiate_us":3}
+{"rt":"wasmtime-36.0.17","mode":"bench","rss_kib":6396,"hwm_kib":6396,"calls":2000,"median_ns":5910,"p95_ns":6614}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":29.0,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":0.9,"error":"trap: error while executing at wasm backtrace:     0:     0x6f - <unknown>!<wasm function 2>: forcing trap when growing memory to 1114112 bytes"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.8,"error":"trap: error while executing at wasm backtrace:     0:     0x97 - <unknown>!<wasm function 3>: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.7,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.7,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":15.1,"error":"instantiate: error while executing at wasm backtrace:     0:     0x68 - <unknown>!start: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":101.8,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}
+{"feature":"wt36-runtime-only","target":"host","stripped_bytes":831000,"build_s":10}
+{"feature":"wt36-runtime-only","idle_rss_median_kib":2484}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"load","rss_kib":3780,"hwm_kib":4372,"n":16,"rss_before_kib":2412,"rss_after_compile_kib":3648,"per_instance_kib":8,"compile_upper_us":259,"compile_bulk_us":2729,"instantiate_us":18}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"bench","rss_kib":2616,"hwm_kib":2616,"calls":2000,"median_ns":2140,"p95_ns":7101}
+{"feature":"wt36","target":"host","stripped_bytes":4952248,"build_s":21}
+{"feature":"wt36","idle_rss_median_kib":4344}
+{"rt":"wasmtime-36.0.17","mode":"load","rss_kib":15616,"hwm_kib":15924,"n":16,"rss_before_kib":4348,"rss_after_compile_kib":15548,"per_instance_kib":4,"compile_upper_us":6090,"compile_bulk_us":195544,"instantiate_us":4}
+{"rt":"wasmtime-36.0.17","mode":"bench","rss_kib":6280,"hwm_kib":6280,"calls":2000,"median_ns":5890,"p95_ns":6055}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":33.0,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":0.9,"error":"trap: error while executing at wasm backtrace:     0:     0x6f - <unknown>!<wasm function 2>: forcing trap when growing memory to 1114112 bytes"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.8,"error":"trap: error while executing at wasm backtrace:     0:     0x97 - <unknown>!<wasm function 3>: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.7,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.7,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":14.2,"error":"instantiate: error while executing at wasm backtrace:     0:     0x68 - <unknown>!start: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":101.2,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}
+{"feature":"wt36-runtime-only","target":"host","stripped_bytes":831000,"build_s":3}
+{"feature":"wt36-runtime-only","idle_rss_median_kib":2508}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"load","rss_kib":3752,"hwm_kib":4352,"n":16,"rss_before_kib":2400,"rss_after_compile_kib":3620,"per_instance_kib":8,"compile_upper_us":288,"compile_bulk_us":3539,"instantiate_us":40}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"bench","rss_kib":2664,"hwm_kib":2664,"calls":2000,"median_ns":7061,"p95_ns":8416}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":28.0,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":0.1,"error":"trap: error while executing at wasm backtrace:     0:     0x6f - <unknown>!<wasm function 2>: forcing trap when growing memory to 1114112 bytes"}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.0,"error":"trap: error while executing at wasm backtrace:     0:     0x97 - <unknown>!<wasm function 3>: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.0,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.0,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":13.7,"error":"instantiate: error while executing at wasm backtrace:     0:     0x68 - <unknown>!start: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-36.0.17-runtime-only","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":100.9,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}
+{"feature":"wt48","target":"host","stripped_bytes":5764256,"build_s":50}
+{"feature":"wt48","idle_rss_median_kib":4840}
+{"rt":"wasmtime-48.0.5","mode":"load","rss_kib":15840,"hwm_kib":16716,"n":16,"rss_before_kib":4760,"rss_after_compile_kib":15772,"per_instance_kib":4,"compile_upper_us":5848,"compile_bulk_us":203938,"instantiate_us":4}
+{"rt":"wasmtime-48.0.5","mode":"bench","rss_kib":6876,"hwm_kib":6876,"calls":2000,"median_ns":2446,"p95_ns":5573}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":34.4,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":1.2,"error":"trap: error while executing at wasm backtrace:     0:     0x6f - <unknown>!<wasm function 2>: forcing trap when growing memory to 1114112 bytes"}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":1.0,"error":"trap: error while executing at wasm backtrace:     0:     0x97 - <unknown>!<wasm function 3>: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":1.0,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.8,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":17.0,"error":"instantiate: error while executing at wasm backtrace:     0:     0x68 - <unknown>!start: wasm trap: all fuel consumed by WebAssembly"}
+{"rt":"wasmtime-48.0.5","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":100.7,"error":"trap: error while executing at wasm backtrace:     0:     0x6c - <unknown>!<wasm function 2>: wasm trap: interrupt"}

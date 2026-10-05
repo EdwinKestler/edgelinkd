@@ -1,0 +1,35 @@
+# Phase 7 measurement spike. Not a workspace member and not shipped: it exists only to
+# produce the size/RSS/enforcement evidence in `adoption/phase7/ADR-0002-wasm-node-sdk.md`.
+# Build exactly one runtime feature at a time (see `run.sh`).
+[package]
+name = "edgelink-wasm-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[features]
+default = []
+# Each feature selects one runtime; `none` is the size/RSS baseline skeleton.
+none = []
+wasmi = ["dep:wasmi"]
+wt36 = ["dep:wasmtime36"]
+wt36-pulley = ["wt36", "wasmtime36/pulley"]
+wt36-runtime-only = ["dep:wasmtime36-rt"]
+wt48 = ["dep:wasmtime48"]
+
+[dependencies]
+wasmi = { version = "=2.0.0", optional = true, default-features = false, features = ["std", "stable", "validate", "auto-dispatch"] }
+# Wasmtime 36 LTS is the only supported line whose MSRV (1.86) fits EdgeLinkd's 1.88.
+wasmtime36 = { package = "wasmtime", version = "=36.0.17", optional = true, default-features = false, features = ["runtime", "cranelift"] }
+wasmtime36-rt = { package = "wasmtime", version = "=36.0.17", optional = true, default-features = false, features = ["runtime", "std"] }
+# Wasmtime 48 LTS (MSRV 1.95) for comparison only.
+wasmtime48 = { package = "wasmtime", version = "=48.0.5", optional = true, default-features = false, features = ["runtime", "cranelift"] }
+
+# Same size profile as the EdgeLinkd `ci`/`release` profiles.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+
+[workspace]

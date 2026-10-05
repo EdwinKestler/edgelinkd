@@ -1,0 +1,12 @@
+# Converts the spike's WAT guests to .wasm. Separate package so `wat` never links into the
+# measured binaries.
+[package]
+name = "edgelink-wasm-spike-guestgen"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+wat = "=1.261.0"
+
+[workspace]
