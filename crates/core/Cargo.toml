@@ -3,7 +3,7 @@ name = "n2link-core"
 version = "0.3.0"
 edition = "2024"
 readme = "README.md"
-authors = ["Li Wei <oldrev@gmail.com>"]
+authors = ["The n2link contributors", "Li Wei and the EdgeLinkd contributors"]
 
 [lib]
 name = "n2link_core"

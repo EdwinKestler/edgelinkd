@@ -2,7 +2,7 @@
 
 This project is a Rust-based backend implementation compatible with Node-RED, and reuses the Node-RED UI. Maintaining Node-RED compatibility is very important. The Node-RED source code repository is located at `3rd-party/node-red`.
 
-# EdgeLinkd Coding Guidelines
+# n2link Coding Guidelines
 
 ## PRIME DIRECTIVE
 - Avoid working on more than one file at a time.

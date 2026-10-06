@@ -2,7 +2,7 @@
 
 Upstream: `3rd-party/node-red/test/unit/@node-red/runtime/lib/nodes/context/localfilesystem_spec.js`
 (v4.0.9). The upstream spec drives the store object directly rather than through a flow, so these
-tests go through the `edgelink.ContextStore` bridge in `crates/pymod/src/context.rs`, which
+tests go through the `n2link.ContextStore` bridge in `crates/pymod/src/context.rs`, which
 exposes the very same `ContextStore` the runtime uses.
 
 Like the upstream spec, every test works inside one scratch directory under `tests/resources`
@@ -55,7 +55,7 @@ def make_options(directory, **extra):
 
 
 async def open_store(options):
-    store = edgelink.ContextStore.create('localfilesystem', 'file', options)
+    store = n2link.ContextStore.create('localfilesystem', 'file', options)
     await store.open()
     return store
 
@@ -569,7 +569,7 @@ class TestLocalFileSystem:
         @pytest.mark.asyncio
         @pytest.mark.it('should use NODE_RED_HOME')
         async def test_0003(self, store, resources, monkeypatch):
-            # `N2LINK_HOME` is EdgeLinkd's `NODE_RED_HOME`.
+            # `N2LINK_HOME` is n2link's `NODE_RED_HOME`.
             monkeypatch.setenv('N2LINK_HOME', str(resources))
             home_context = await open_store({'base': 'contexts2', 'cache': False})
             await home_context.set('node2', 'foo2', 'bar2')

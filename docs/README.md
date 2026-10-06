@@ -1,4 +1,4 @@
-# EdgeLinkd Documentation
+# n2link Documentation
 
 The root [README](../README.md) is the installation and feature overview. These guides cover
 operations and security procedures that need more detail than the overview.

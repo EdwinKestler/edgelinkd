@@ -395,7 +395,7 @@ mod tests {
             {"id": "2", "z": "100", "type": "test-once"},
         ]);
         let msgs_to_inject_json = json!([
-            ["1", {"name": "EdgeLink", "count": 42}],
+            ["1", {"name": "n2link", "count": 42}],
         ]);
 
         let engine = crate::runtime::engine::build_test_engine(flows_json).unwrap();
@@ -409,7 +409,7 @@ mod tests {
         // Check the result field contains parsed JSON
         if let Some(result) = msg.get("result") {
             if let Variant::Object(obj) = result {
-                assert_eq!(obj.get("greeting"), Some(&Variant::String("Hello EdgeLink".to_string())));
+                assert_eq!(obj.get("greeting"), Some(&Variant::String("Hello n2link".to_string())));
                 assert_eq!(obj.get("value"), Some(&Variant::Number(serde_json::Number::from(42))));
             } else {
                 panic!("Expected result to be an object variant");
@@ -429,7 +429,7 @@ mod tests {
             {"id": "2", "z": "100", "type": "test-once"},
         ]);
         let msgs_to_inject_json = json!([
-            ["1", {"name": "EdgeLink", "status": "active"}],
+            ["1", {"name": "n2link", "status": "active"}],
         ]);
 
         let engine = crate::runtime::engine::build_test_engine(flows_json).unwrap();
@@ -443,7 +443,7 @@ mod tests {
         // Check the config field contains parsed YAML
         if let Some(config) = msg.get("config") {
             if let Variant::Object(obj) = config {
-                assert_eq!(obj.get("greeting"), Some(&Variant::String("Hello EdgeLink".to_string())));
+                assert_eq!(obj.get("greeting"), Some(&Variant::String("Hello n2link".to_string())));
                 assert_eq!(obj.get("status"), Some(&Variant::String("active".to_string())));
             } else {
                 panic!("Expected config to be an object variant");

@@ -12,7 +12,7 @@ pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
     let env_home = compat::env_var("HOME").map_err(anyhow::Error::msg)?;
     let env_run_env = compat::env_var("RUN_ENV").map_err(anyhow::Error::msg)?;
     let run_env = cli_args.env.clone().or(env_run_env).unwrap_or("dev".to_owned());
-    let edgelink_home_dir = match cli_args.user_dir.clone().or(cli_args.home.clone()).or(env_home) {
+    let n2link_home_dir = match cli_args.user_dir.clone().or(cli_args.home.clone()).or(env_home) {
         Some(dir) => Some(dir),
         None => Some(
             dirs_next::home_dir()
@@ -24,7 +24,7 @@ pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
     // Only set default flows_path if not specified by any source
     let mut builder = config::Config::builder();
     let mut home_dir_val = None;
-    if let Some(ref hd) = edgelink_home_dir {
+    if let Some(ref hd) = n2link_home_dir {
         home_dir_val = Some(hd.clone());
         builder = builder.set_override("home_dir", hd.clone())?;
         // Add config file paths for logging
@@ -54,7 +54,7 @@ pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
     }
 
     if cli_args.verbose > 0 {
-        if let Some(ref x) = edgelink_home_dir {
+        if let Some(ref x) = n2link_home_dir {
             eprintln!("$N2LINK_HOME={x}");
             eprintln!("Loading config files:");
             for f in &config_files {
@@ -64,7 +64,7 @@ pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
     }
 
     // Ensure the config directory exists and has default config
-    if let Some(ref config_dir) = edgelink_home_dir {
+    if let Some(ref config_dir) = n2link_home_dir {
         create_default_config_file(config_dir)?;
     }
 

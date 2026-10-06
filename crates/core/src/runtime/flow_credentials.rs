@@ -126,7 +126,7 @@ mod tests {
     async fn encrypted_sidecar_is_merged_on_runtime_load() {
         use crate::runtime::credential_storage::{CredentialStore, previous_credential_path};
 
-        let dir = std::env::temp_dir().join(format!("edgelink-encrypted-load-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2link-encrypted-load-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let flows = dir.join("flows.json");
         std::fs::write(&flows, br#"[{"id":"b","type":"mqtt-broker","broker":"localhost"}]"#).unwrap();

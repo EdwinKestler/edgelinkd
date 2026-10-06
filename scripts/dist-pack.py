@@ -66,7 +66,7 @@ def copytree(src, dst):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Package EdgeLinkd for multiple targets")
+    parser = argparse.ArgumentParser(description="Package n2link for multiple targets")
     parser.add_argument(
         "--target",
         default="x86_64-pc-windows-msvc",

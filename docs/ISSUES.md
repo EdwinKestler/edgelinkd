@@ -1,6 +1,6 @@
 # Known Issues
 
-Known problems and limitations of EdgeLinkd with their workarounds. EdgeLinkd is alpha
+Known problems and limitations of n2link with their workarounds. n2link is alpha
 software; deliberate scope decisions (for example, Node-RED features we do not offer) are in the
 root [README](../README.md) and the spec coverage report
 ([`tests/REDNODES-SPECS-DIFF.md`](../tests/REDNODES-SPECS-DIFF.md)), not here. Measured evidence

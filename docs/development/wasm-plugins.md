@@ -1,7 +1,7 @@
 # Writing WASM plugins
 
 A WASM plugin is a third-party flow node compiled to `wasm32-unknown-unknown`, installed into a
-running EdgeLinkd without rebuilding it, and run in the Wasmi sandbox. This manual is for plugin
+running n2link without rebuilding it, and run in the Wasmi sandbox. This manual is for plugin
 authors. Installing and operating plugins is in
 [`docs/operations/wasm-plugins.md`](../operations/wasm-plugins.md); the design record is in
 [`adoption/phase7/`](../../adoption/phase7/).
@@ -287,7 +287,7 @@ The host decodes with depth ≤ 32, ≤ 65,536 values and the `max_input_kib` si
 - `std::time`, randomness and file APIs trap on `wasm32-unknown-unknown`; a trap is a fault.
 - A panic aborts the call (fault). Return `Err` for bad input instead.
 - One instance serves one node, one message at a time. Plugins share `max_concurrent` permits.
-- Do not wire a node's output back into its own input: EdgeLinkd rejects wire loops at deploy.
+- Do not wire a node's output back into its own input: n2link rejects wire loops at deploy.
   Use a second node (as the TOFSense query example does).
 - After activating a new version, reload the editor to see palette changes.
 

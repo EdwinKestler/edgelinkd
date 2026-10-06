@@ -27,7 +27,7 @@ File naming: `test_<node>_node.py` in the category directory matching the Rust c
 
 ```python
 import pytest
-from tests import *                 # brings in the helpers, pytest, TEST_EDGELINLKD_CONFIG
+from tests import *                 # brings in the helpers, pytest, TEST_N2LINKD_CONFIG
 
 @pytest.mark.describe('range Node')          # == describe('range Node', ...) in the JS spec
 class TestRangeNode:
@@ -173,7 +173,7 @@ Notes:
   into several Python tests (keep the titles identical to the ones you split).
 - `timeout` defaults to 3 s and `pytest.ini` sets `pytest-timeout` to 5 s — keep every
   test comfortably inside that, and prefer event-driven assertions over `sleep`.
-- `TEST_EDGELINLKD_CONFIG` (defined in `tests/__init__.py`) is passed to every run; it
+- `TEST_N2LINKD_CONFIG` (defined in `tests/__init__.py`) is passed to every run; it
   declares the memory context stores `memory`, `memory0`, `memory1`, `memory2` so
   `context.get('#:(memory1)::x')` style tests work.
 - The node JSON you pass is deep-copied and gets `id`/`z`/`wires` filled in, so upstream

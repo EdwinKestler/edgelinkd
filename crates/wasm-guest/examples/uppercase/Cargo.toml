@@ -18,5 +18,5 @@ codegen-units = 1
 panic = "abort"
 debug = false
 
-# Built on its own for wasm32-unknown-unknown; not a member of the EdgeLinkd workspace.
+# Built on its own for wasm32-unknown-unknown; not a member of the n2link workspace.
 [workspace]

@@ -3,7 +3,7 @@ name = "n2link-wasm-guest"
 version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "Guest SDK for EdgeLinkd WASM plugins"
+description = "Guest SDK for n2link WASM plugins"
 publish = false
 
 [lib]

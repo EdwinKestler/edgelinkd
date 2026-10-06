@@ -1,12 +1,12 @@
 ---
 name: port-node-red-node
-description: "Port a Node-RED node into EdgeLinkd the way this repo does it: implement the node in Rust under crates/core/src/runtime/nodes, mirror Node-RED's mocha spec as pytest tests under tests/, register the pair in scripts/specs_diff.json, then prove it with scripts/specs_diff.py. Also use it to finish, extend or debug an existing node, or to report which Node-RED spec tests are still missing."
-whenToUse: "A task asks to implement, port, complete or debug a Node-RED node in EdgeLinkd; to translate a Node-RED *_spec.js into the pytest suite; or to report and triage missing spec tests (tests/REDNODES-SPECS-DIFF.md)."
+description: "Port a Node-RED node into n2link the way this repo does it: implement the node in Rust under crates/core/src/runtime/nodes, mirror Node-RED's mocha spec as pytest tests under tests/, register the pair in scripts/specs_diff.json, then prove it with scripts/specs_diff.py. Also use it to finish, extend or debug an existing node, or to report which Node-RED spec tests are still missing."
+whenToUse: "A task asks to implement, port, complete or debug a Node-RED node in n2link; to translate a Node-RED *_spec.js into the pytest suite; or to report and triage missing spec tests (tests/REDNODES-SPECS-DIFF.md)."
 ---
 
-# Port a Node-RED node into EdgeLinkd
+# Port a Node-RED node into n2link
 
-EdgeLinkd re-implements Node-RED nodes in Rust, and mirrors Node-RED's own mocha
+n2link re-implements Node-RED nodes in Rust, and mirrors Node-RED's own mocha
 spec suite as pytest tests. For the behaviour we support, a node is only **done** when all
 three artifacts exist and the coverage checker agrees:
 
@@ -16,7 +16,7 @@ three artifacts exist and the coverage checker agrees:
 | 2 | Ported spec tests (one pytest test per upstream `it()`, skipped with a reason when out of scope) | `tests/nodes/<category>/test_<name>_node.py` |
 | 3 | Audit entry mapping the two | `scripts/specs_diff.json` |
 
-EdgeLinkd is embedded-first, so a node may deliberately support only part of its upstream
+n2link is embedded-first, so a node may deliberately support only part of its upstream
 behaviour. Behaviour we support must match Node-RED exactly; out-of-scope behaviour is still
 ported as a title and marked `@pytest.mark.skip(reason=...)` (see step 4). Never ship a
 half-working option that looks supported — see the design philosophy in `AGENTS.md`.

@@ -10,7 +10,7 @@ import pytest
 import importlib.util
 import shutil
 
-TEST_EDGELINLKD_CONFIG = {
+TEST_N2LINKD_CONFIG = {
     "runtime": {
         "context": {
             "default": "memory",
@@ -30,10 +30,10 @@ class N2linkError(Exception):
         self.output = output
 
     def __str__(self):
-        return f'EdgeLink Error: {self.message}, output: \n{self.output}'
+        return f'n2link Error: {self.message}, output: \n{self.output}'
 
 
-def load_edgelink_mod():
+def load_n2link_mod():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     target = os.getenv('N2LINK_BUILD_TARGET', '')
@@ -85,15 +85,15 @@ def load_edgelink_mod():
     spec = importlib.util.spec_from_file_location("n2link_pymod", module_path)
     if spec == None:
         raise RuntimeError(f"Bad Python module!")
-    edgelink = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(edgelink)
-    return edgelink
+    n2link = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(n2link)
+    return n2link
 
 
-edgelink = load_edgelink_mod()
+n2link = load_n2link_mod()
 
 """
-async def start_edgelink_process(el_args: list[str]):
+async def start_n2link_process(el_args: list[str]):
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Determine the operating system and choose the appropriate executable name
@@ -125,7 +125,7 @@ async def start_edgelink_process(el_args: list[str]):
         creationflags=createion_flags
     )
     if not process:
-        pytest.exit("Run EdgeLink process failed!")
+        pytest.exit("Run n2link process failed!")
     return process
 
 
@@ -167,14 +167,14 @@ async def read_json_from_process(process, nexpected: int, timeout=5):
                 break
 
 
-async def _run_edgelink_with_stdin(input_data: bytes, nexpected: int, timeout=5) -> tuple[bytes, list[dict]]:
+async def _run_n2link_with_stdin(input_data: bytes, nexpected: int, timeout=5) -> tuple[bytes, list[dict]]:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     el_home_dir = os.path.join(script_dir, 'home')
     el_args = ['-v', '0', '--stdin', '--home', el_home_dir]
     msgs = []
     all_output = bytearray()
     try:
-        process = await start_edgelink_process(el_args)
+        process = await start_n2link_process(el_args)
         process.stdin.write(input_data)
         process.stdin.close()
         async for msg in read_json_from_process(process, nexpected, timeout):
@@ -188,18 +188,18 @@ async def _run_edgelink_with_stdin(input_data: bytes, nexpected: int, timeout=5)
         await process.wait()
 
 
-async def run_edgelink_with_stdin(input_data: bytes, nexpected: int, timeout=5) -> list[dict]:
-    result = await asyncio.wait_for(_run_edgelink_with_stdin(input_data, nexpected, timeout), timeout)
+async def run_n2link_with_stdin(input_data: bytes, nexpected: int, timeout=5) -> list[dict]:
+    result = await asyncio.wait_for(_run_n2link_with_stdin(input_data, nexpected, timeout), timeout)
     return result[1]
 
 
-async def run_edgelink(flows_path: str, nexpected: int, timeout: float = 5) -> list[dict]:
+async def run_n2link(flows_path: str, nexpected: int, timeout: float = 5) -> list[dict]:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     el_home_dir = os.path.join(script_dir, 'home')
     el_args = ['-v', '0', flows_path, '--home', el_home_dir]
     msgs = []
     try:
-        process = await start_edgelink_process(el_args)
+        process = await start_n2link_process(el_args)
         async with asyncio.timeout(timeout):
             async for i in read_json_from_process(process, nexpected, timeout):
                 msgs.append(i)
@@ -277,7 +277,7 @@ async def run_with_single_node_ntimes(payload_type: str | None, payload, node_js
     console_node = {"id": "3", "type": "test-once", "z": "0"}
     final_flows_json = [{"id": "0", "type": "tab"},
                         inject, user_node, console_node]
-    msgs = await edgelink.run_flows_once(nexpected, 3.0, final_flows_json, [], TEST_EDGELINLKD_CONFIG)
+    msgs = await n2link.run_flows_once(nexpected, 3.0, final_flows_json, [], TEST_N2LINKD_CONFIG)
     return msgs
 
 
@@ -293,8 +293,8 @@ async def run_flow_with_msgs_ntimes(flows_obj: list[object],
         else:
             msg_injection = (injectee_node_id, msg)
         msgs_to_inject.append(msg_injection)
-    msgs = await edgelink.run_flows_once(nexpected, timeout, flows_obj, msgs_to_inject,
-                                         TEST_EDGELINLKD_CONFIG if config is None else config)
+    msgs = await n2link.run_flows_once(nexpected, timeout, flows_obj, msgs_to_inject,
+                                         TEST_N2LINKD_CONFIG if config is None else config)
     return msgs
 
 
@@ -347,8 +347,8 @@ async def run_flow_for_seconds_scheduled(flows_obj: list[object], msgs: list[obj
             injected = {key: value for key, value in msg.items() if key != 'delay_ms'}
             msg_injection = (injectee_node_id, injected, msg.get('delay_ms', 0.0))
         msgs_to_inject.append(msg_injection)
-    return await edgelink.run_flows_for_once(
-        seconds, flows_obj, msgs_to_inject, TEST_EDGELINLKD_CONFIG if config is None else config)
+    return await n2link.run_flows_for_once(
+        seconds, flows_obj, msgs_to_inject, TEST_N2LINKD_CONFIG if config is None else config)
 
 
 async def run_single_node_for_seconds(node_json: object, msgs: list[object] | None,

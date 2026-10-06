@@ -1,4 +1,4 @@
-//! Guest SDK for EdgeLinkd WASM plugins (ABI `n2link:node/v1`).
+//! Guest SDK for n2link WASM plugins (ABI `n2link:node/v1`).
 //!
 //! A plugin is a `cdylib` built for `wasm32-unknown-unknown` that implements [`Node`] and calls
 //! [`export_node!`] and [`manifest!`]:

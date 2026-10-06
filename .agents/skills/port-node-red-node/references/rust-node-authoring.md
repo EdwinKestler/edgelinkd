@@ -1,4 +1,4 @@
-# Authoring a Rust node in EdgeLinkd
+# Authoring a Rust node in n2link
 
 Companion to `SKILL.md`. Everything here follows the existing nodes; when in doubt,
 copy the closest existing node (see the "read these nodes" table at the end) instead of

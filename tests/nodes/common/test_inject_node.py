@@ -442,7 +442,7 @@ class TestInjectNode:
         assert msg["y"] == 12
 
     """
-    # EdgeLink doesn't support the msg injection for `inject` node
+    # n2link doesn't support the msg injection for `inject` node
     @pytest.mark.asyncio
     async def test_0209():
         '''should inject custom properties in message'''

@@ -1,4 +1,4 @@
-//! Optional durable operational history for EdgeLinkd.
+//! Optional durable operational history for n2link.
 //!
 //! Stores structured, redacted events in an optional SQLite database behind the
 //! `history_sqlite` feature flag. Best-effort: failures never block flow execution

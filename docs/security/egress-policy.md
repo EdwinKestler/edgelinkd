@@ -1,6 +1,6 @@
 # Outbound Egress Policy Runbook
 
-EdgeLinkd's shared egress policy governs outbound HTTP, AI-provider, OIDC, fleet, MQTT, WebSocket,
+n2link's shared egress policy governs outbound HTTP, AI-provider, OIDC, fleet, MQTT, WebSocket,
 TCP, UDP, and Modbus connections. It is intended to limit server-side request forgery, accidental
 metadata access, DNS rebinding, unbounded responses, and undeclared proxy use without preventing
 embedded installations from reaching explicitly approved private devices.
@@ -19,7 +19,7 @@ rules, zero limits, and unknown fields fail configuration validation.
 ## Staged rollout
 
 1. Back up the active configuration overlay.
-2. Set `mode = "observe"` and restart or use **User Settings -> EdgeLinkd -> Save and apply**.
+2. Set `mode = "observe"` and restart or use **User Settings -> n2link -> Save and apply**.
 3. Exercise every production flow and administrative integration.
 4. Review `egress decision` records. Logs intentionally omit hosts, paths, queries, and secrets, so
    correlate them by purpose, protocol, port, action, and time.
@@ -60,7 +60,7 @@ Governed modes isolate ambient proxy variables. Do not enable `allow_environment
 `observe` or `enforce`; configuration rejects it because the proxy cannot be pinned reliably.
 
 If a proxy is required, configure a credential-free `proxy_url` and an exact allow rule for the
-proxy origin. Treat the proxy as a separate trust boundary: EdgeLinkd pins the proxy socket, but the
+proxy origin. Treat the proxy as a separate trust boundary: n2link pins the proxy socket, but the
 proxy may perform its own destination resolution. Redirect targets are resolved and evaluated on
 every hop, and cross-origin credentials are removed.
 

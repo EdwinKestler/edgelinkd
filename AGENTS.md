@@ -5,7 +5,7 @@ human-facing documents; this is the short version to read before your first edit
 
 ## What this is
 
-EdgeLinkd is a Node-RED compatible flow runtime written in Rust with the Node-RED web
+n2link is a Node-RED compatible flow runtime written in Rust with the Node-RED web
 editor built in. Rust workspace layout:
 
 | Path | Contents |
@@ -22,7 +22,7 @@ editor built in. Rust workspace layout:
 
 ## Design philosophy: embedded-first, compatible where supported
 
-EdgeLinkd targets **embedded and resource-constrained deployments**, not a desktop Node.js
+n2link targets **embedded and resource-constrained deployments**, not a desktop Node.js
 runtime. It is a Node-RED *compatible* runtime, not a Node-RED clone: reproducing every
 Node-RED feature one-to-one is **not** a goal.
 
@@ -41,8 +41,8 @@ The compatibility contract is therefore conditional, and it cuts both ways:
 
 Two consequences for day-to-day work:
 
-1. **The Node-RED editor *is* the EdgeLinkd UI**, and users design their flows directly
-   against EdgeLinkd — the workflow this project optimises for is authoring in the editor and
+1. **The Node-RED editor *is* the n2link UI**, and users design their flows directly
+   against n2link — the workflow this project optimises for is authoring in the editor and
    running immediately, not "design in Node-RED, test there, then copy `flows.json` over".
    Anything the editor can produce must therefore either work, or fail loudly and at once
    (deploy error, node error/status, `N2linkError::NotSupported`). It must never be silently

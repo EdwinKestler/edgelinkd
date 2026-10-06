@@ -731,7 +731,7 @@ class TestJoinNode:
             ],
             1,
         )
-        # though parts.count is 4 and only 3 messages arrived. EdgeLinkd ignores msg.complete
+        # though parts.count is 4 and only 3 messages arrived. n2link ignores msg.complete
         # whenever a count is known, so nothing is ever emitted and this call times out.
         assert isinstance(msgs[0]["payload"], list)
         assert msgs[0]["payload"][0] is None
@@ -841,7 +841,7 @@ class TestJoinNode:
         msgs = await run_flow_with_msgs_ntimes(
             flows, [{"nid": red_id("s1"), "msg": {"payload": [[1, 2, 3], "a\nb\nc", [7, 8, 9]]}}], 1
         )
-        # RUST-GAP: upstream expects the round-tripped payload. EdgeLinkd's split node
+        # RUST-GAP: upstream expects the round-tripped payload. n2link's split node
         # overwrites msg.parts instead of stacking the incoming parts under msg.parts.parts
         # (Node-RED: `msg.parts = { parts: msg.parts }`), so the inner split loses the outer
         # group information; the first join then strips msg.parts and the second join warns

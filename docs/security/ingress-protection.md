@@ -1,6 +1,6 @@
 # Inbound API and Webhook Protection
 
-EdgeLinkd applies finite budgets to the editor API, authentication, WebSockets, Flow Copilot,
+n2link applies finite budgets to the editor API, authentication, WebSockets, Flow Copilot,
 fleet operations, health checks, static assets, and each `http in` listener. Limits are grouped by
 endpoint class so an administrator can relax one compatibility boundary without disabling the
 others.
@@ -48,7 +48,7 @@ WASM plugin administration (`plugins`) accepts one request at a time, six per mi
 
 ## Client addresses and proxies
 
-EdgeLinkd uses the TCP peer address by default and ignores `Forwarded` and `X-Forwarded-For` from
+n2link uses the TCP peer address by default and ignores `Forwarded` and `X-Forwarded-For` from
 all other clients. Add only reverse-proxy addresses or CIDRs you administer:
 
 ```toml
@@ -102,7 +102,7 @@ each incoming message.
    or 504 as appropriate.
 4. If one legitimate workload exceeds a budget, first raise only that class's value. If its exact
    requirement is not yet known, temporarily change only that class to `observe`.
-5. Restart EdgeLinkd and repeat the rejected request. Confirm unrelated classes still reject the
+5. Restart n2link and repeat the rejected request. Confirm unrelated classes still reject the
    same over-budget probes.
 6. Restore `enforce` after measuring a safe bound.
 

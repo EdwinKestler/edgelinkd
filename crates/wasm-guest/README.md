@@ -1,6 +1,6 @@
 # n2link-wasm-guest
 
-Guest SDK for EdgeLinkd WASM plugins (ABI `n2link:node/v1`). Experimental; the host is the
+Guest SDK for n2link WASM plugins (ABI `n2link:node/v1`). Experimental; the host is the
 optional `nodes_wasm` feature. Full author manual (manifest schema, ABI, encoding, versioning):
 `docs/development/wasm-plugins.md`. Operator manual: `docs/operations/wasm-plugins.md`.
 

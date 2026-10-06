@@ -3,7 +3,7 @@ name = "n2link-eve"
 version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "EVE/1 message encoding for EdgeLinkd WASM plugins"
+description = "EVE/1 message encoding for n2link WASM plugins"
 publish = false
 
 [lib]

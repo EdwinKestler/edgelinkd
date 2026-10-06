@@ -1,7 +1,7 @@
 # TOFSense plugin (example)
 
 Decodes the Nooploop TOFSense / TOFSense P / TOFSense PS laser ranging sensor's UART protocol
-(TOFSense User Manual V2.5, §2 and §8) as an EdgeLinkd WASM plugin node, `wasm-nooploop-tofsense`.
+(TOFSense User Manual V2.5, §2 and §8) as an n2link WASM plugin node, `wasm-nooploop-tofsense`.
 
 ## Who does what
 

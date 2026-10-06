@@ -497,7 +497,7 @@ class TestBatchNode:
 @pytest.mark.describe('messaging API')
 class TestBatchMessagingApi:
     async def _mapi_done(self, mode, count, overlap, interval, allow_empty, msg_and_timings):
-        config = copy.deepcopy(TEST_EDGELINLKD_CONFIG)
+        config = copy.deepcopy(TEST_N2LINKD_CONFIG)
         config["runtime"]["flow"] = {"node_message_buffer_max_length": 2}
         flows = [
             {"id": "0", "type": "tab"},

@@ -1,6 +1,6 @@
-# Contributing to EdgeLink
+# Contributing to n2link
 
-Thank you for considering contributing to EdgeLink! We appreciate your interest and effort in helping to improve this project. This document outlines the guidelines and steps to follow when contributing to the project.
+Thank you for considering contributing to n2link! We appreciate your interest and effort in helping to improve this project. This document outlines the guidelines and steps to follow when contributing to the project.
 
 ## Table of Contents
 
@@ -17,13 +17,13 @@ Thank you for considering contributing to EdgeLink! We appreciate your interest 
 
 ## Code of Conduct
 
-By participating in this project, you are expected to uphold our [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior to me: oldrev@gmail.com.
+By participating in this project, you are expected to uphold our [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior by opening an issue at https://github.com/n2link/n2link/issues.
 
 ## How Can I Contribute?
 
 ### Reporting Bugs
 
-Before submitting a bug report, please check the [existing issues](https://github.com/oldrev/edgelink/issues) to see if the problem has already been reported. If it hasn't, you can create a new issue.
+Before submitting a bug report, please check the [existing issues](https://github.com/n2link/n2link/issues) to see if the problem has already been reported. If it hasn't, you can create a new issue.
 
 #### How Do I Submit a Good Bug Report?
 
@@ -69,11 +69,11 @@ To set up your development environment, follow these steps:
 
 1. **Clone the repository**:
    ```
-   git clone https://github.com/oldrev/edgelink.git
+   git clone https://github.com/n2link/n2link.git
    ```
 2. **Install dependencies for Python tests (Optional)**:
    ```
-   cd edgelink
+   cd n2link
    pip -U -r ./tests/requirements.txt
    ```
 3. **Run the CLI program**:
@@ -110,4 +110,4 @@ Feel free to join our community discussions on [Discord](https://discord.gg/TODO
 
 ---
 
-Thank you for contributing to EdgeLink! Your efforts help make this project better for everyone.
+Thank you for contributing to n2link! Your efforts help make this project better for everyone.

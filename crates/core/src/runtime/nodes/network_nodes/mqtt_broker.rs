@@ -1846,8 +1846,8 @@ mod tests {
         if std::env::var("N2LINK_MQTT_LIVE").ok().as_deref() != Some("1") {
             return;
         }
-        live_round_trip(4, "n2linkd/live/v4", "edgelink-live-v4", "ping-v4", None).await;
-        live_round_trip(5, "n2linkd/live/v5", "edgelink-live-v5", "ping-v5", Some("n2linkd/live/v5/reply")).await;
+        live_round_trip(4, "n2linkd/live/v4", "n2link-live-v4", "ping-v4", None).await;
+        live_round_trip(5, "n2linkd/live/v5", "n2link-live-v5", "ping-v5", Some("n2linkd/live/v5/reply")).await;
     }
 
     async fn live_round_trip(protocol: u8, topic: &str, client_id: &str, payload: &str, response_topic: Option<&str>) {

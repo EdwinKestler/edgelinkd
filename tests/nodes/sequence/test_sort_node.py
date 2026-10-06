@@ -279,7 +279,7 @@ class TestSortNode:
         # and expects `sort.too-many` to be reported: once the buffer holds more messages than the
         # limit, the group that has been waiting longest is dropped and the reason is reported on
         # its last message.
-        config = copy.deepcopy(TEST_EDGELINLKD_CONFIG)
+        config = copy.deepcopy(TEST_N2LINKD_CONFIG)
         config["runtime"]["flow"] = {"node_message_buffer_max_length": 2}
         flows = [
             {"id": "100", "type": "tab"},

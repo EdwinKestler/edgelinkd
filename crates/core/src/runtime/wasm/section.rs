@@ -5,7 +5,7 @@
 use crate::N2linkError;
 
 pub(crate) const MANIFEST_SECTION: &str = "n2link.manifest";
-/// The section EdgeLinkd builds used before the rename; such packages get a rebuild hint.
+/// The section n2link builds used before the rename; such packages get a rebuild hint.
 const LEGACY_MANIFEST_SECTION: &str = "edgelink.manifest";
 pub(crate) const MAX_MANIFEST_BYTES: usize = 16 * 1024;
 

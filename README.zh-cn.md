@@ -1,21 +1,23 @@
-# EdgeLinkd：Rust 重新实现的 Node-RED
+# n2link：Rust 重新实现的 Node-RED
 
 [![Build Status]][actions]
-![GitHub Release](https://img.shields.io/github/v/release/oldrev/edgelinkd?include_prereleases)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/oldrev/edgelinkd/total)
+![GitHub Release](https://img.shields.io/github/v/release/n2link/n2link?include_prereleases)
 
-[Build Status]: https://img.shields.io/github/actions/workflow/status/oldrev/edgelinkd/CICD.yml?branch=master
-[actions]: https://github.com/oldrev/edgelinkd/actions?query=branch%3Amaster
+[Build Status]: https://img.shields.io/github/actions/workflow/status/n2link/n2link/CICD.yml?branch=master
+[actions]: https://github.com/n2link/n2link/actions?query=branch%3Amaster
 
-![Node-RED Rust Backend](assets/banner.jpg)
+![n2link](assets/brand/n2link-banner.png)
 
 [English](README.md) | 简中
 
+> n2link 是李维及其他贡献者的 [EdgeLinkd](https://github.com/oldrev/edgelinkd)（Apache-2.0）的分支项目，
+> 与 EdgeLinkd 作者无隶属或背书关系，详见 [NOTICE](NOTICE)。
+
 ## 概述
 
-EdgeLinkd 是一个以 Rust<sub>†</sub> 为底层语言开发的 [Node-RED](https://nodered.org/) 兼容运行时引擎，现已集成完整的 Node-RED Web UI，可独立运行并提供完整的 Web 界面。
+n2link 是一个以 Rust<sub>†</sub> 为底层语言开发的 [Node-RED](https://nodered.org/) 兼容运行时引擎，现已集成完整的 Node-RED Web UI，可独立运行并提供完整的 Web 界面。
 
-**为什么选择 EdgeLinkd？**
+**为什么选择 n2link？**
 - **内存占用降低 90%**: 仅使用 Node-RED 10% 的内存占用
 - **原生性能**: 采用 Rust 零成本抽象，性能卓越
 - **集成 Web 界面**: 内置完整的 Node-RED UI，支持流程设计与管理
@@ -24,7 +26,7 @@ EdgeLinkd 是一个以 Rust<sub>†</sub> 为底层语言开发的 [Node-RED](ht
 - **边缘计算就绪**: 适合资源受限的边缘设备
 - **完整体验**: 一个应用内完成流程设计、部署和执行
 
-EdgeLinkd 现在包含完整的 Node-RED Web 编辑器，允许您直接在浏览器中设计流程，同时在高性能的 Rust 运行时上执行。您还可以在生产环境中以无头模式运行，适用于资源受限的设备。
+n2link 现在包含完整的 Node-RED Web 编辑器，允许您直接在浏览器中设计流程，同时在高性能的 Rust 运行时上执行。您还可以在生产环境中以无头模式运行，适用于资源受限的设备。
 
 仅 `function` 节点使用轻量级的 QuickJS JS 解释器来运行 JavaScript 代码；所有其他功能都用原生 Rust 代码实现，以获得最佳性能。
 
@@ -39,13 +41,13 @@ EdgeLinkd 现在包含完整的 Node-RED Web 编辑器，允许您直接在浏�
 **使用 submodules 的方式克隆代码仓库：**
 
 ```bash
-git clone --recursive https://github.com/oldrev/edgelinkd.git
+git clone --recursive https://github.com/n2link/n2link.git
 ```
 
 或者你只克隆了主仓库，这样可以补救：
 
 ```bash
-git clone https://github.com/oldrev/edgelinkd.git
+git clone https://github.com/n2link/n2link.git
 cd n2linkd
 git submodule update --init --recursive
 ```
@@ -102,7 +104,7 @@ cargo run --release -- run
 ./target/release/n2linkd run ./myflows.json --bind 0.0.0.0:8080
 ```
 
-> EdgeLinkd 现在已集成：Node-RED 的前端 UI，所有数据和配置均存储于 `~/.n2linkd` 目录。
+> n2link 现在已集成：Node-RED 的前端 UI，所有数据和配置均存储于 `~/.n2linkd` 目录。
 
 使用 `--help` 查看所有命令和参数：
 
@@ -156,37 +158,21 @@ py.test
 
 ## 开发路线图
 
-请参见项目的[里程碑页面](https://github.com/oldrev/edgelinkd/milestones)。
+请参见项目的[里程碑页面](https://github.com/n2link/n2link/milestones)。
 
 ## 贡献
 
-![Alt](https://repobeats.axiom.co/api/embed/cd18a784e88be20d79778703bda8858523c4257e.svg "Repobeats analytics image")
 
 欢迎贡献！请阅读 [CONTRIBUTING.md](.github/CONTRIBUTING.md) 获取更多信息。
 
 > 注意：请做出有用的贡献，或者安静地看我表演。通过修改 README 等无实质内容的提交来蹭贡献排行榜的行为不受欢迎。
 
-如果你想支持本项目的开发，可以考虑请我喝杯啤酒：
-
-[![爱发电支持](assets/aifadian.jpg)](https://afdian.com/a/mingshu)
-
 ## 反馈与技术支持
 
-我们欢迎任何反馈！如果你遇到任何技术问题或者 bug，请提交 [issue](https://github.com/edge-link/n2linkd/issues)。
-
-### 社交网络聊天群：
-
-* [EdgeLinkd 开发交流 QQ 群：198723197](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=o3gEbpSHbFB6xjtC1Pm2mu0gZG62JNyr&authKey=D1qG9o0Nm%2FlDM8TQJXjr0aYluQ2TQp52wM9RDbNj83jzOy5OpCbHkwEI96SMMJxd&noverify=0&group_code=198723197)
-
-### 联系作者
-
-- 邮箱：oldrev(at)gmail.com
-- QQ：55431671
-
-> 超巨型广告：没事儿时可以承接网站前端开发/管理系统开发/PCB 画板打样/单片机开发/压水晶头/中老年陪聊/工地打灰等软硬件项目。
+我们欢迎任何反馈！如果你遇到任何技术问题或者 bug，请提交 [issue](https://github.com/n2link/n2link/issues)。
 
 ## 许可证
 
 此项目基于 Apache 2.0 许可证 - 详见 [LICENSE](LICENSE) 文件以获取更多详细信息。
 
-版权所啊 © 李维及其他贡献者，保留所有权利。
+版权所有 © n2link 贡献者。基于 EdgeLinkd，版权所有 © 李维及其他贡献者。

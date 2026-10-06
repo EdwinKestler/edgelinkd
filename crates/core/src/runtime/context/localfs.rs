@@ -566,7 +566,7 @@ mod tests {
         }
 
         async fn with_options(mut options: serde_json::Value) -> Self {
-            let dir = std::env::temp_dir().join(format!("edgelink-localfs-{}", uuid::Uuid::new_v4().simple()));
+            let dir = std::env::temp_dir().join(format!("n2link-localfs-{}", uuid::Uuid::new_v4().simple()));
             options["dir"] = json!(dir.to_string_lossy());
             let options = ContextStoreOptions::from_json_options("localfilesystem", options).unwrap();
             let store = create_context_store("file", &options).unwrap();

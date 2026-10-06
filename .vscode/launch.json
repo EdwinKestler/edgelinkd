@@ -53,17 +53,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'edgelink'",
+            "name": "Debug unit tests in library 'n2link_core'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
                     "--color always",
-                    "--package=edgelink"
+                    "--package=n2link-core"
                 ],
                 "filter": {
-                    "name": "edgelink",
+                    "name": "n2link_core",
                     "kind": "lib"
                 }
             },

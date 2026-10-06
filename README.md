@@ -1,23 +1,24 @@
-# EdgeLinkd: Node-RED Reimplemented in Rust
+# n2link: Node-RED Reimplemented in Rust
 
 [![Build Status]][actions]
 [![GitHub Release]][releases]
-[![GitHub Downloads]][releases]
 
-[Build Status]: https://img.shields.io/github/actions/workflow/status/oldrev/edgelinkd/CICD.yml?branch=master
-[actions]: https://github.com/oldrev/edgelinkd/actions?query=branch%3Amaster
-[GitHub Release]: https://img.shields.io/github/v/release/oldrev/edgelinkd?include_prereleases
-[releases]: https://github.com/oldrev/edgelinkd/releases
-[GitHub Downloads]: https://img.shields.io/github/downloads/oldrev/edgelinkd/total
-![Node-RED Rust Backend](assets/banner.jpg)
+[Build Status]: https://img.shields.io/github/actions/workflow/status/n2link/n2link/CICD.yml?branch=master
+[actions]: https://github.com/n2link/n2link/actions?query=branch%3Amaster
+[GitHub Release]: https://img.shields.io/github/v/release/n2link/n2link?include_prereleases
+[releases]: https://github.com/n2link/n2link/releases
+![n2link](assets/brand/n2link-banner.png)
 
 English | [简中](README.zh-cn.md)
 
+> n2link is a fork of [EdgeLinkd](https://github.com/oldrev/edgelinkd) by Li Wei and contributors
+> (Apache-2.0). It is not affiliated with or endorsed by the EdgeLinkd authors; see [NOTICE](NOTICE).
+
 ## Overview
 
-**EdgeLinkd** is a high-performance, memory-efficient Node-RED compatible runtime engine built from the ground up in Rust, now featuring an integrated web UI for complete standalone operation.
+**n2link** is a high-performance, memory-efficient Node-RED compatible runtime engine built from the ground up in Rust, now featuring an integrated web UI for complete standalone operation.
 
-**Why EdgeLinkd?**
+**Why n2link?**
 - **10x less memory usage** than Node-RED (only 10% of Node-RED's memory footprint)
 - **Native performance** with Rust's zero-cost abstractions
 - **Integrated web interface** - full Node-RED UI built-in for flow design and management
@@ -26,7 +27,7 @@ English | [简中](README.zh-cn.md)
 - **Perfect for edge devices** with limited resources
 - **Node-RED compatibility** - design, deploy, and run flows all in one application
 
-EdgeLinkd now includes the complete Node-RED web editor, allowing you to design flows directly in the browser while executing them with native Rust performance. You can also run it headless for production deployments on resource-constrained devices.
+n2link now includes the complete Node-RED web editor, allowing you to design flows directly in the browser while executing them with native Rust performance. You can also run it headless for production deployments on resource-constrained devices.
 
 Only the `function` node uses the lightweight QuickJS JS interpreter to run JavaScript code; all other functionalities are implemented in native Rust code for maximum performance.
 
@@ -55,13 +56,13 @@ Only the `function` node uses the lightweight QuickJS JS interpreter to run Java
 **Clone the repository with submodules:**
 
 ```bash
-git clone --recursive https://github.com/oldrev/edgelinkd.git
+git clone --recursive https://github.com/n2link/n2link.git
 ```
 
 Or if you've already cloned without submodules:
 
 ```bash
-git clone https://github.com/oldrev/edgelinkd.git
+git clone https://github.com/n2link/n2link.git
 cd n2linkd
 git submodule update --init --recursive
 ```
@@ -90,7 +91,7 @@ cargo build --release
 
 ### 2. Run
 
-**Start EdgeLinkd with integrated web UI (recommended):**
+**Start n2link with integrated web UI (recommended):**
 
 ```bash
 cargo run --release --
@@ -151,7 +152,7 @@ py.test
 
 ## Configuration
 
-EdgeLinkd can be configured through command-line arguments and configuration files.
+n2link can be configured through command-line arguments and configuration files.
 
 ### Web UI Configuration
 
@@ -181,7 +182,7 @@ Encryption is an explicit operation. Preview it first, then provide a new empty 
 ```bash
 N2LINK_HOME="$PWD" cargo run -- credentials status
 N2LINK_HOME="$PWD" cargo run -- credentials migrate --dry-run
-N2LINK_HOME="$PWD" cargo run -- credentials migrate --backup-dir /offline/edgelink-credential-backup
+N2LINK_HOME="$PWD" cargo run -- credentials migrate --backup-dir /offline/n2link-credential-backup
 ```
 
 The default application build uses a versioned XChaCha20-Poly1305 envelope. It generates a
@@ -224,7 +225,7 @@ defaults, proxy rules, status codes, acceptance checks, and the configuration-on
 
 ### WASM plugins (experimental)
 
-Third-party flow nodes can be compiled to WebAssembly and installed into a running EdgeLinkd
+Third-party flow nodes can be compiled to WebAssembly and installed into a running n2link
 without rebuilding it. They run in a Wasmi sandbox with no file, network, clock or credential
 access, under fuel, time and memory limits; installation is staged, self-tested and atomic, with
 one-call rollback. The feature is opt-in twice: build with `--features nodes_wasm`, then set
@@ -295,7 +296,7 @@ acceptance checks, and rollback procedure.
 
 #### Editor configuration pane
 
-An administrator can manage the egress policy from **User Settings → EdgeLinkd**. The pane reads,
+An administrator can manage the egress policy from **User Settings → n2link**. The pane reads,
 validates, saves, applies, and rolls back only the `[egress]` table in the active environment
 overlay (`n2linkd.dev.toml` by default). It never returns the rest of that file to the browser,
 because it may contain passwords or OIDC secrets. Saves use a SHA-256 revision, atomic `0600`
@@ -323,7 +324,7 @@ an editor session cannot grant itself administrator access.
 
 **Alpha Stage**: The project is currently in the *alpha* stage and cannot guarantee stable operation.
 
-**New: Integrated Web UI**: EdgeLinkd now includes a complete Node-RED web interface for flow design and management. The web UI is fully compatible with Node-RED's editor and provides the same user experience while running on the high-performance Rust runtime.
+**New: Integrated Web UI**: n2link now includes a complete Node-RED web interface for flow design and management. The web UI is fully compatible with Node-RED's editor and provides the same user experience while running on the high-performance Rust runtime.
 
 **Web UI Features**:
 - ✅ Complete Node-RED editor interface
@@ -470,11 +471,10 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
 
 ## Roadmap
 
-Check out our [milestones](https://github.com/oldrev/edgelinkd/milestones) to get a glimpse of the upcoming features and milestones.
+Check out our [milestones](https://github.com/n2link/n2link/milestones) to get a glimpse of the upcoming features and milestones.
 
 ## Contribution
 
-![Alt](https://repobeats.axiom.co/api/embed/cd18a784e88be20d79778703bda8858523c4257e.svg "Repobeats analytics image")
 
 We welcome contributions! Whether it's:
 
@@ -487,27 +487,17 @@ We welcome contributions! Whether it's:
 
 Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) for details.
 
-### Support the Project
-
-If EdgeLinkd saves you memory and improves your edge deployments, consider supporting development:
-
-<a href='https://ko-fi.com/O5O2U4W4E' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
-[![Support via PayPal.me](assets/paypal_button.svg)](https://www.paypal.me/oldrev)
-
 ## Known Issues
 
 Please refer to [ISSUES.md](docs/ISSUES.md) for a list of known issues and workarounds.
 
 ## Feedback and Support
 
-We welcome your feedback! If you encounter any issues or have suggestions, please open an [issue](https://github.com/edge-link/n2linkd/issues).
+We welcome your feedback! If you encounter any issues or have suggestions, please open an [issue](https://github.com/n2link/n2link/issues).
 
-* Contact me: E-mail: oldrev(at)gmail.com
-* Discord: [https://discord.gg/XJstgANe26](https://discord.gg/XJstgANe26)
 
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for more details.
 
-Copyright © Li Wei and other contributors. All rights reserved.
+Copyright © the n2link contributors. Based on EdgeLinkd, Copyright © Li Wei and other contributors.

@@ -1,6 +1,6 @@
 # Operational History
 
-EdgeLinkd can keep a bounded SQLite record of deploys, node status and throttled node errors,
+n2link can keep a bounded SQLite record of deploys, node status and throttled node errors,
 Flow Copilot draft outcomes, fleet push/promote, and runtime start/stop. It is fail-open.
 The default app build includes `history_sqlite`. Recording stays off until `[history] enabled = true`.
 

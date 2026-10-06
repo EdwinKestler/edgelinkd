@@ -4,11 +4,12 @@ version = "0.3.0"
 edition = "2021"
 rust-version = "1.88"
 readme = "README.md"
-homepage = "https://github.com/oldrev/edgelinkd"
-description = "EdgeLinkd is a Node-RED compatible run-time engine in Rust."
+homepage = "https://github.com/n2link/n2link"
+repository = "https://github.com/n2link/n2link"
+description = "n2link is a Node-RED compatible run-time engine in Rust."
 build = "build.rs"
 license = "Apache 2.0"
-authors = ["Li Wei <oldrev@gmail.com>"]
+authors = ["The n2link contributors", "Li Wei and the EdgeLinkd contributors"]
 
 
 [[bin]]

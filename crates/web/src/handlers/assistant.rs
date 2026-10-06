@@ -21,10 +21,10 @@ use serde_json::{Map, Value, json};
 use super::WebState;
 use super::reply::api_error;
 
-const FLOW_DEVELOPER_SKILL: &str = include_str!("../../assistant-skills/edgelink-flow-developer/SKILL.md");
-const DRAFT_SCHEMA: &str = include_str!("../../assistant-skills/edgelink-flow-developer/references/draft-schema.md");
+const FLOW_DEVELOPER_SKILL: &str = include_str!("../../assistant-skills/n2link-flow-developer/SKILL.md");
+const DRAFT_SCHEMA: &str = include_str!("../../assistant-skills/n2link-flow-developer/references/draft-schema.md");
 const COMMON_PATTERNS: &str =
-    include_str!("../../assistant-skills/edgelink-flow-developer/references/common-patterns.md");
+    include_str!("../../assistant-skills/n2link-flow-developer/references/common-patterns.md");
 
 const MAX_PROMPT_CHARS: usize = 8_000;
 const MAX_FLOW_BYTES: usize = 512 * 1024;
@@ -107,8 +107,8 @@ pub async fn get_assistant_catalog(Extension(state): Extension<Arc<WebState>>) -
 /// List the built-in skill used for flow drafting. Its text is returned for transparency.
 pub async fn get_assistant_skills() -> Json<Value> {
     Json(json!([{
-        "name": "edgelink-flow-developer",
-        "description": "Draft safe, importable EdgeLinkd flows for the active editor canvas",
+        "name": "n2link-flow-developer",
+        "description": "Draft safe, importable n2link flows for the active editor canvas",
         "content": FLOW_DEVELOPER_SKILL,
     }]))
 }
@@ -231,7 +231,7 @@ pub async fn post_assistant_draft(
     let detail = format!("{} nodes", nodes.len());
     let _ = state.audit.record(&actor.username, "assistant.draft", Some(&detail)).await;
     Json(DraftResponse {
-        skill: "edgelink-flow-developer",
+        skill: "n2link-flow-developer",
         summary: draft.summary,
         assumptions: draft.assumptions,
         warnings: draft.warnings,
@@ -617,8 +617,8 @@ mod tests {
                 "summary":"Publish a timestamp every three minutes and append received values to CSV",
                 "nodes":[
                     {"ref":"clock","type":"inject","name":"Every 3 minutes","config":{"props":[{"p":"payload"},{"p":"topic","vt":"str"}],"repeat":"180","crontab":"","once":false,"onceDelay":0.1,"topic":"","payload":"","payloadType":"date"}},
-                    {"ref":"publish","type":"mqtt out","name":"Publish timestamp","config":{"topic":"edgelink/timestamp","qos":"","retain":"","respTopic":"","contentType":"","userProps":"","correl":"","expiry":"","broker":"0000000000000002"}},
-                    {"ref":"subscribe","type":"mqtt in","name":"Receive timestamp","config":{"topic":"edgelink/timestamp","qos":"1","datatype":"auto-detect","broker":"0000000000000002","nl":false,"rap":true,"rh":0,"inputs":0}},
+                    {"ref":"publish","type":"mqtt out","name":"Publish timestamp","config":{"topic":"n2link/timestamp","qos":"","retain":"","respTopic":"","contentType":"","userProps":"","correl":"","expiry":"","broker":"0000000000000002"}},
+                    {"ref":"subscribe","type":"mqtt in","name":"Receive timestamp","config":{"topic":"n2link/timestamp","qos":"1","datatype":"auto-detect","broker":"0000000000000002","nl":false,"rap":true,"rh":0,"inputs":0}},
                     {"ref":"row","type":"change","name":"Build CSV row","config":{"rules":[{"t":"set","p":"payload","pt":"msg","to":"{\"timestamp\": payload}","tot":"jsonata"}]}},
                     {"ref":"encode","type":"csv","name":"Encode CSV","config":{"spec":"rfc","sep":",","hdrin":false,"hdrout":"once","multi":"one","ret":"\\r\\n","temp":"timestamp","skip":"0","strings":true,"include_empty_strings":false,"include_null_values":false}},
                     {"ref":"save","type":"file","name":"Append timestamps","config":{"filename":"data/timestamps.csv","filenameType":"str","appendNewline":false,"createDir":true,"overwriteFile":"false","encoding":"none"}}

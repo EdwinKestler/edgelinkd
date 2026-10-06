@@ -16,7 +16,9 @@ Done outside the repo (2026-10-06): GitHub organisation `n2link` created; local 
 | R1 | `18a567b` | crates, lib names, `N2linkError`, `n2link_pymod`, `n2link-nodes-dummy` |
 | R2 | `e878b51` | `n2linkd`, `n2linkd*.toml`, `~/.n2linkd`, `N2LINK_*`; `n2link_core::compat` keeps the old names for 0.4.x; credential, keyring and journal tags are `n2link-credential*`, and EdgeLinkd files fail with a clear message; `dist-pack.py` ships an `edgelinkd` shim and `NOTICE` |
 | R3 | `305196c` | plugin interface `n2link:node/v1`, `n2link.manifest`, log target `n2link::wasm`, examples `n2link/*`; EdgeLinkd-built modules get a rebuild hint; ADR-0002 amended |
-| R4 | this commit | editor theme (title, favicon, tab icon, header logo), plugin ids and CSS `n2link-*`, client page title, favicon and storage keys (old keys read once), `/api/health` and `/api/info`, bundle id `io.github.n2link.n2linkd`; brand files in `assets/brand`, copied by `build.rs` into `ui_static/n2link/` and the root favicon |
+| R4 | `6f01d96` | editor theme (title, favicon, tab icon, header logo), plugin ids and CSS `n2link-*`, client page title, favicon and storage keys (old keys read once), `/api/health` and `/api/info`, bundle id `io.github.n2link.n2linkd`; brand files in `assets/brand`, copied by `build.rs` into `ui_static/n2link/` and the root favicon |
+| R5 | this commit | READMEs (banner, n2link badges and links, fork note; upstream donation, contact and analytics removed), docs, `AGENTS.md`, contributing guides, comments, messages, scripts, Python test helpers, Copilot skill `n2link-flow-developer`, `Cargo.toml` homepage/repository/authors; upstream assets removed |
+| R6 | after R5 | repository description, homepage and Issues on `n2link/n2link`; palimnex slug `n2linkd`; CI on a pull request to `master` |
 
 ## Decisions (2026-10-06)
 
@@ -146,7 +148,10 @@ Each step is one commit on `rebrand-n2link`, verified before the next.
 
 Allow-list for the final `git grep -i edgelink`: `LICENSE`, `NOTICE`, `adoption/**`, source
 copyright headers, the compat layer and its tests, the old-credential rejection test,
-`CHANGELOG`, and the README's fork sentence.
+`CHANGELOG`, and the README's fork sentence. Also kept: the upstream credit in `Cargo.toml`
+`authors` and the upstream copyright comment in `crates/web/public/index.html`, the legacy
+plugin-interface rejections (`exec.rs`, `section.rs`), the client's one-time storage-key
+migration, and the `edgelinkd` shim in `dist-pack.py`. Checked at R5: nothing else remains.
 
 ## Open items
 

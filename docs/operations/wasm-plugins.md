@@ -1,14 +1,14 @@
 # WASM plugins (experimental)
 
 Optional third-party flow nodes compiled to `wasm32-unknown-unknown` and run by the Wasmi
-interpreter inside EdgeLinkd. This is the operator manual: enabling, installing, upgrading,
+interpreter inside n2link. This is the operator manual: enabling, installing, upgrading,
 rolling back, observing and troubleshooting plugins. Writing plugins:
 [`docs/development/wasm-plugins.md`](../development/wasm-plugins.md). Design and measurements:
 [`adoption/phase7/`](../../adoption/phase7/).
 
 ## When to use plugins
 
-Use a plugin for message logic you want to add or update without rebuilding EdgeLinkd: device
+Use a plugin for message logic you want to add or update without rebuilding n2link: device
 protocol decoders, parsers, filters, unit conversion, vendor algorithms shipped as binaries. A
 plugin cannot do I/O. Devices, brokers and services are reached by the built-in nodes, and the
 plugin processes what they carry (see [Connecting devices](#connecting-devices)). For a few lines
@@ -184,7 +184,7 @@ socat TCP-LISTEN:7000,reuseaddr FILE:/dev/ttyUSB0,b921600,raw,echo=0
 
 `tcp in` (client `127.0.0.1:7000`, stream, Buffer) → `TOFSense` plugin → your flow.
 
-EdgeLinkd rejects a wire loop at deploy (`Referenced node not found`). For request/response
+n2link rejects a wire loop at deploy (`Referenced node not found`). For request/response
 devices, send with one plugin node and decode the reply with a second one.
 
 ## Observing

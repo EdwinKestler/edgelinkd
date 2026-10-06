@@ -51,7 +51,7 @@ pub mod wellknown_names {
     pub const UNKNOWN_FLOW_NODE: &str = "unknown";
 }
 
-/// EdgeLinkd-owned types that must not fall back to `unknown` when the feature is off.
+/// n2link-owned types that must not fall back to `unknown` when the feature is off.
 pub fn n2link_owned_node_type(type_name: &str) -> bool {
     matches!(
         type_name,
@@ -135,7 +135,7 @@ pub enum NodeFactory {
 pub const NODE_METADATA_VERSION: u32 = 2;
 
 /// Advisory `msg.payload` types used in port metadata. A port may join several with `|`
-/// (`"string|buffer"`). `buffer` is a Node-RED Buffer, which EdgeLinkd's message JSON carries as an
+/// (`"string|buffer"`). `buffer` is a Node-RED Buffer, which n2link's message JSON carries as an
 /// array of byte values. Payload types are never enforced: Node-RED messages stay dynamic.
 pub const PAYLOAD_TYPES: &[&str] = &["any", "string", "number", "boolean", "object", "array", "buffer", "null"];
 

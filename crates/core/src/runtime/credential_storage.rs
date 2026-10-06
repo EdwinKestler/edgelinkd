@@ -1070,7 +1070,7 @@ mod tests {
 
     #[cfg(feature = "credential_encryption")]
     fn temp() -> TempDir {
-        let path = std::env::temp_dir().join(format!("edgelink-credential-storage-{}", uuid::Uuid::new_v4()));
+        let path = std::env::temp_dir().join(format!("n2link-credential-storage-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&path).unwrap();
         TempDir(path)
     }
@@ -1128,14 +1128,14 @@ mod tests {
         let legacy = serde_json::to_value(envelope).unwrap();
         assert!(matches!(format_of(&legacy), SidecarFormat::Encrypted));
         let err = decrypt_with_keys(legacy, &keys).unwrap_err();
-        assert!(err.contains("EdgeLinkd"), "{err}");
+        assert!(err.contains("n2link"), "{err}");
         assert!(!err.contains("fixture-secret"));
 
         let keyring = String::from_utf8(keys.keyring_bytes().unwrap()).unwrap();
         let legacy_keyring = keyring.replace(KEYRING_FORMAT, "edgelink-credential-keyring");
         assert_ne!(keyring, legacy_keyring);
         let err = KeySet::from_keyring_bytes(legacy_keyring.as_bytes()).err().unwrap();
-        assert!(err.contains("EdgeLinkd"), "{err}");
+        assert!(err.contains("n2link"), "{err}");
     }
 
     #[cfg(feature = "credential_encryption")]

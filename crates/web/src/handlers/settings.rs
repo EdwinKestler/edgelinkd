@@ -210,7 +210,7 @@ pub async fn get_plugin_messages(Query(params): Query<HashMap<String, String>>) 
     // Return localized messages for plugins
     let messages = match lang.as_str() {
         "zh-CN" => serde_json::json!({
-            "edgelink": {
+            "n2link": {
                 "plugin": {
                     "name": "n2link 插件",
                     "description": "n2link 核心插件",
@@ -219,7 +219,7 @@ pub async fn get_plugin_messages(Query(params): Query<HashMap<String, String>>) 
             }
         }),
         _ => serde_json::json!({
-            "edgelink": {
+            "n2link": {
                 "plugin": {
                     "name": "n2link Plugin",
                     "description": "n2link core plugin",

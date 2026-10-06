@@ -660,7 +660,7 @@ class TestEvaluateNodeProperty:
             }}
         },{})""") == "123"
 
-    @pytest.mark.skip(reason="JSONata is implemented by the EdgeLinkd Rust runtime and is not exposed "
+    @pytest.mark.skip(reason="JSONata is implemented by the n2link Rust runtime and is not exposed "
                              "to the function node sandbox, so evaluateNodeProperty('jsonata') fails "
                              "loudly instead of returning a result")
     @pytest.mark.asyncio
@@ -1032,7 +1032,7 @@ class TestNormaliseNodeTypeName:
 @pytest.mark.describe('prepareJSONataExpression')
 class TestPrepareJSONataExpression:
 
-    @pytest.mark.skip(reason="JSONata is implemented by the EdgeLinkd Rust runtime and is not exposed "
+    @pytest.mark.skip(reason="JSONata is implemented by the n2link Rust runtime and is not exposed "
                              "to the function node sandbox: prepareJSONataExpression fails loudly "
                              "instead of returning an expression object")
     @pytest.mark.asyncio
@@ -1040,7 +1040,7 @@ class TestPrepareJSONataExpression:
     async def test_0001(self):
         pass
 
-    @pytest.mark.skip(reason="JSONata is implemented by the EdgeLinkd Rust runtime and is not exposed "
+    @pytest.mark.skip(reason="JSONata is implemented by the n2link Rust runtime and is not exposed "
                              "to the function node sandbox: prepareJSONataExpression fails loudly "
                              "instead of returning an expression object")
     @pytest.mark.asyncio
@@ -1052,11 +1052,11 @@ class TestPrepareJSONataExpression:
 @pytest.mark.describe('@node-red/util/util')
 @pytest.mark.describe('evaluateJSONataExpression')
 class TestEvaluateJSONataExpression:
-    """Every upstream case needs a JSONata engine inside the sandbox; EdgeLinkd evaluates JSONata
+    """Every upstream case needs a JSONata engine inside the sandbox; n2link evaluates JSONata
     in Rust (`runtime/jsonata`) and does not expose that engine to JavaScript, so the whole
     describe is out of scope and the port fails loudly (`NOT_SUPPORTED`) instead."""
 
-    _REASON = ("JSONata is implemented by the EdgeLinkd Rust runtime and is not exposed to the "
+    _REASON = ("JSONata is implemented by the n2link Rust runtime and is not exposed to the "
                "function node sandbox")
 
     @pytest.mark.skip(reason=_REASON)

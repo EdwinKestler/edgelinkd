@@ -1,4 +1,4 @@
-# Common EdgeLinkd node patterns
+# Common n2link node patterns
 
 Use these properties when the corresponding type appears in the supplied runtime catalog. Preserve an existing configuration-node ID verbatim when referencing it.
 
@@ -76,7 +76,7 @@ Do not use `$ref`, `pattern`, or `allOf`.
 {
   "type": "mqtt out",
   "config": {
-    "topic": "edgelink/timestamp",
+    "topic": "n2link/timestamp",
     "qos": "",
     "retain": "",
     "respTopic": "",
@@ -93,7 +93,7 @@ Do not use `$ref`, `pattern`, or `allOf`.
 {
   "type": "mqtt in",
   "config": {
-    "topic": "edgelink/timestamp",
+    "topic": "n2link/timestamp",
     "qos": "1",
     "datatype": "auto-detect",
     "broker": "EXISTING_MQTT_BROKER_ID",

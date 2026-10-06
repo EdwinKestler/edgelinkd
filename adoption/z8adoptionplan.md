@@ -1,5 +1,8 @@
 # z8run Adoption Plan for EdgeLinkd
 
+> The project was renamed to n2link on 2026-10-06 (`adoption/rebrand/PLAN.md`). This plan and the
+> phase records keep the EdgeLinkd names they were written with.
+
 Status: Phases 0-6 implemented locally; Phase 7 is a partial prototype behind `nodes_wasm`
 (no plugin store yet; G1 passed on a Raspberry Pi 5), see `adoption/phase7/REPORT.md`. Design: `adoption/phase7/ADR-0002-wasm-node-sdk.md` and
 `adoption/phase7/DESIGN.md`. Earlier evidence: `adoption/phase6/REPORT.md`,

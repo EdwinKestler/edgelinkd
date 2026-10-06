@@ -818,7 +818,7 @@ const RED = (function () {
                 result = (new Date()).toISOString();
             } else {
                 // Node-RED formats with moment (`.format(value)`), which the sandbox does not have
-                throw createError("NOT_SUPPORTED", "evaluateNodeProperty('date') cannot format a date: the EdgeLinkd function node sandbox has no moment");
+                throw createError("NOT_SUPPORTED", "evaluateNodeProperty('date') cannot format a date: the n2link function node sandbox has no moment");
             }
         } else if (type === 'bin') {
             var data = JSON.parse(value);
@@ -869,19 +869,19 @@ const RED = (function () {
     /**
      * Prepares a JSONata expression for evaluation.
      *
-     * NOT SUPPORTED: Node-RED's JSONata lives in the `jsonata` npm package; EdgeLinkd evaluates
+     * NOT SUPPORTED: Node-RED's JSONata lives in the `jsonata` npm package; n2link evaluates
      * JSONata in Rust (`runtime/jsonata`) and does not expose the engine to JavaScript. Rather than
      * returning a plausible-looking value, this fails loudly.
      */
     function prepareJSONataExpression(value, node) {
-        throw createError("NOT_SUPPORTED", "RED.util.prepareJSONataExpression is not supported: JSONata is implemented by the EdgeLinkd Rust runtime and is not available inside the function node sandbox");
+        throw createError("NOT_SUPPORTED", "RED.util.prepareJSONataExpression is not supported: JSONata is implemented by the n2link Rust runtime and is not available inside the function node sandbox");
     }
 
     /**
      * Evaluates a JSONata expression. See `prepareJSONataExpression` - not supported.
      */
     function evaluateJSONataExpression(expr, msg, callback) {
-        throw createError("NOT_SUPPORTED", "RED.util.evaluateJSONataExpression is not supported: JSONata is implemented by the EdgeLinkd Rust runtime and is not available inside the function node sandbox");
+        throw createError("NOT_SUPPORTED", "RED.util.evaluateJSONataExpression is not supported: JSONata is implemented by the n2link Rust runtime and is not available inside the function node sandbox");
     }
 
     /**

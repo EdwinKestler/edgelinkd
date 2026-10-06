@@ -1,6 +1,6 @@
 //! JSONata expression evaluation.
 //!
-//! Node-RED evaluates JSONata with the reference `jsonata-js` library; EdgeLinkd uses the
+//! Node-RED evaluates JSONata with the reference `jsonata-js` library; n2link uses the
 //! pure-Rust `jsonata-core` engine instead, which keeps the runtime free of a JavaScript
 //! dependency (see the design philosophy in `AGENTS.md`). Behaviour we support has to match
 //! Node-RED; helper functions this engine does not provide (for example `$moment`) fail with

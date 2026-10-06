@@ -186,7 +186,7 @@ class TestCsvNodeLegacyMode:
             # Check columns property (should be clean column names)
             assert msg["columns"] == "a,b,c,d"
 
-    @pytest.mark.skip(reason='out of scope: the assertion is the mocha node.warn log key csv.errors.csv_js, and EdgeLinkd has no node.warn channel. A legacy bad type sets a red status and completes the message without sending it')
+    @pytest.mark.skip(reason='out of scope: the assertion is the mocha node.warn log key csv.errors.csv_js, and n2link has no node.warn channel. A legacy bad type sets a red status and completes the message without sending it')
     @pytest.mark.asyncio
     @pytest.mark.it('should warn if provided a number or boolean')
     async def test_legacy_warn_bad_type(self):

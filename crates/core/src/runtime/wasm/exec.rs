@@ -17,7 +17,7 @@ use wasmi::{
 use crate::N2linkError;
 
 pub(crate) const ABI_MODULE: &str = "n2link:node/v1";
-/// The import module EdgeLinkd plugins used before the rename; such modules get a rebuild hint.
+/// The import module n2link plugins used before the rename; such modules get a rebuild hint.
 const LEGACY_ABI_MODULE: &str = "edgelink:node/v1";
 use ValType::I32;
 

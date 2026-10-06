@@ -1,12 +1,12 @@
 # Credential Lifecycle Operations Manual
 
-EdgeLinkd stores Node-RED node credentials separately from `flows.json`. The current and rollback
+n2link stores Node-RED node credentials separately from `flows.json`. The current and rollback
 generations are `flows_cred.json` and `flows_cred.json.prev`. Default builds can store both as
 authenticated XChaCha20-Poly1305 envelopes while preserving Node-RED's `__PWRD__` placeholder,
 deploy, and rollback behavior.
 
 This procedure is explicit by design: startup reads plaintext sidecars but never migrates them.
-All examples assume the repository or installation directory is the EdgeLinkd home.
+All examples assume the repository or installation directory is the n2link home.
 
 ```bash
 cd /path/to/n2linkd-home
@@ -63,7 +63,7 @@ installation files but does not silently add a copy of a newly generated key.
 install -m 600 flows_cred.key "$BACKUP/flows_cred.key"
 ```
 
-Restart EdgeLinkd and exercise one flow that uses a saved credential. For example, confirm an MQTT
+Restart n2link and exercise one flow that uses a saved credential. For example, confirm an MQTT
 publish/subscribe round trip or an AI-provider response. A clean startup alone proves that the
 sidecars decrypt; it does not prove the external service accepted the credential.
 
@@ -109,7 +109,7 @@ target/debug/n2linkd credentials status
 ```
 
 If an injected key is present, remove it from the service environment before local-key recovery.
-Do not replace `flows_cred.key` manually while EdgeLinkd may be deploying.
+Do not replace `flows_cred.key` manually while n2link may be deploying.
 
 ## 6. Export for downgrade or disaster recovery
 

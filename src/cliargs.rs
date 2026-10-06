@@ -9,7 +9,7 @@ n2link is a Node-RED compatible back-end engine implemented in Rust.
 
 Copyright (C) 2023-TODAY Li Wei and contributors. All rights reserved.
 
-For more information, visit the website: https://github.com/oldrev/edgelink
+For more information, visit the website: https://github.com/n2link/n2link
 "#;
 
 #[derive(Parser, Debug, Clone)]
