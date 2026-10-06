@@ -1,4 +1,4 @@
-//! Inventory of other EdgeLinkd devices and a push of one flows file.
+//! Inventory of other n2link devices and a push of one flows file.
 //!
 //! The routes stay installed when fleet is off and answer `not_supported`, so a caller cannot
 //! mistake a missing route for a push that worked. A push reads the target's current `rev` and

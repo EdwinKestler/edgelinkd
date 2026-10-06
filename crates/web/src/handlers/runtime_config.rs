@@ -341,7 +341,7 @@ mod tests {
     }
 
     fn temp() -> TempDir {
-        let path = std::env::temp_dir().join(format!("edgelink-config-{}", uuid::Uuid::new_v4()));
+        let path = std::env::temp_dir().join(format!("n2link-config-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&path).unwrap();
         TempDir(path)
     }

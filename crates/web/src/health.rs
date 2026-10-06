@@ -13,9 +13,9 @@ pub async fn health_check() -> Result<Json<Value>, StatusCode> {
 /// Get API information
 pub async fn api_info() -> Result<Json<Value>, StatusCode> {
     Ok(Json(serde_json::json!({
-        "name": "EdgeLinkd Web API",
+        "name": "n2link Web API",
         "version": env!("CARGO_PKG_VERSION"),
-        "description": "Node-RED compatible API for EdgeLinkd",
+        "description": "Node-RED compatible API for n2link",
         "endpoints": {
             "admin": {
                 "flows": "/api/admin/flows",

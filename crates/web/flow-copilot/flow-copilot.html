@@ -1,31 +1,31 @@
 <style>
-    .edgelink-copilot { display:flex; flex-direction:column; height:100%; padding:10px; gap:8px; box-sizing:border-box; }
-    .edgelink-copilot-target { color:var(--red-ui-secondary-text-color); font-size:12px; }
-    .edgelink-copilot textarea { width:100%; min-height:105px; resize:vertical; box-sizing:border-box; }
-    .edgelink-copilot-actions { display:flex; gap:6px; flex-wrap:wrap; }
-    .edgelink-copilot-preview { flex:1; overflow:auto; border-top:1px solid var(--red-ui-secondary-border-color); padding-top:8px; }
-    .edgelink-copilot-preview h4 { margin:6px 0; }
-    .edgelink-copilot-preview ul { margin:4px 0 10px 20px; }
-    .edgelink-copilot-empty { color:var(--red-ui-secondary-text-color); font-style:italic; }
-    .edgelink-copilot select { width:100%; }
+    .n2link-copilot { display:flex; flex-direction:column; height:100%; padding:10px; gap:8px; box-sizing:border-box; }
+    .n2link-copilot-target { color:var(--red-ui-secondary-text-color); font-size:12px; }
+    .n2link-copilot textarea { width:100%; min-height:105px; resize:vertical; box-sizing:border-box; }
+    .n2link-copilot-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .n2link-copilot-preview { flex:1; overflow:auto; border-top:1px solid var(--red-ui-secondary-border-color); padding-top:8px; }
+    .n2link-copilot-preview h4 { margin:6px 0; }
+    .n2link-copilot-preview ul { margin:4px 0 10px 20px; }
+    .n2link-copilot-empty { color:var(--red-ui-secondary-text-color); font-style:italic; }
+    .n2link-copilot select { width:100%; }
 </style>
 
 <script type="text/javascript">
 (function() {
     "use strict";
 
-    RED.plugins.registerPlugin("edgelink-flow-copilot/flow-copilot", {
-        type: "edgelink-flow-copilot",
+    RED.plugins.registerPlugin("n2link-flow-copilot/flow-copilot", {
+        type: "n2link-flow-copilot",
         onadd: function() {
-            var content = $('<div class="edgelink-copilot"></div>');
-            var target = $('<div class="edgelink-copilot-target"></div>').appendTo(content);
+            var content = $('<div class="n2link-copilot"></div>');
+            var target = $('<div class="n2link-copilot-target"></div>').appendTo(content);
             var provider = $('<select aria-label="AI provider"></select>').appendTo(content);
             var prompt = $('<textarea placeholder="Describe the flow to add to the active tab..."></textarea>').appendTo(content);
-            var actions = $('<div class="edgelink-copilot-actions"></div>').appendTo(content);
+            var actions = $('<div class="n2link-copilot-actions"></div>').appendTo(content);
             var generate = $('<button type="button" class="red-ui-button red-ui-button-primary"><i class="fa fa-magic"></i> Draft</button>').appendTo(actions);
             var apply = $('<button type="button" class="red-ui-button" disabled><i class="fa fa-plus"></i> Apply to flow</button>').appendTo(actions);
             var clear = $('<button type="button" class="red-ui-button">Clear</button>').appendTo(actions);
-            var preview = $('<div class="edgelink-copilot-preview"><div class="edgelink-copilot-empty">No draft yet.</div></div>').appendTo(content);
+            var preview = $('<div class="n2link-copilot-preview"><div class="n2link-copilot-empty">No draft yet.</div></div>').appendTo(content);
             var pending = null;
 
             function activeWorkspace() {
@@ -85,7 +85,7 @@
             function resetDraft() {
                 pending = null;
                 apply.prop("disabled", true);
-                preview.html('<div class="edgelink-copilot-empty">No draft yet.</div>');
+                preview.html('<div class="n2link-copilot-empty">No draft yet.</div>');
             }
 
             generate.on("click", function() {
@@ -151,7 +151,7 @@
                     generateDefaultNames: true,
                     notify: true,
                     applyNodeDefaults: true,
-                    eventContext: {source: "edgelink-flow-copilot"}
+                    eventContext: {source: "n2link-flow-copilot"}
                 });
                 RED.notify("Flow Copilot draft added. Review it, then use Deploy when ready.", "success");
                 resetDraft();
@@ -163,7 +163,7 @@
             });
 
             RED.sidebar.addTab({
-                id: "edgelink-flow-copilot",
+                id: "n2link-flow-copilot",
                 label: "Flow Copilot",
                 name: "Flow Copilot",
                 iconClass: "fa fa-magic",

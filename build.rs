@@ -159,6 +159,7 @@ fn build_static_files() {
         copy_node_red_locales(&static_dir).expect("Failed to copy node-red locales");
 
         copy_client_page(&static_dir);
+        copy_brand_assets(&static_dir);
 
         println!("cargo:warning=Static files build complete!");
     }
@@ -284,6 +285,25 @@ fn package_version(package_json: &Path) -> Option<String> {
         }
     }
     None
+}
+
+/// n2link brand files from `assets/brand`: the logo and icons under `ui_static/n2link/`, and the
+/// favicon at the static root, replacing the Node-RED one copied before it.
+fn copy_brand_assets(static_dir: &Path) {
+    println!("cargo:rerun-if-changed=assets/brand");
+    let brand = PathBuf::from("assets/brand");
+    let dest = static_dir.join("n2link");
+    std::fs::create_dir_all(&dest).expect("Failed to create the brand directory");
+    for name in ["n2link-logo.svg", "n2link-icon.svg", "n2link-icon-256.png", "n2link-square-logo.svg"] {
+        let src = brand.join(name);
+        if src.exists() {
+            std::fs::copy(&src, dest.join(name)).expect("Failed to copy a brand asset");
+        }
+    }
+    let favicon = brand.join("favicon.ico");
+    if favicon.exists() {
+        std::fs::copy(&favicon, static_dir.join("favicon.ico")).expect("Failed to copy the favicon");
+    }
 }
 
 /// Build the client-only page and copy it under `ui_static/client`, leaving the editor

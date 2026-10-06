@@ -15,7 +15,8 @@ Done outside the repo (2026-10-06): GitHub organisation `n2link` created; local 
 | R0 | `34c626f` | plan, `NOTICE`; `.env.example` in `485680a`; repo moved to `n2link/n2link` |
 | R1 | `18a567b` | crates, lib names, `N2linkError`, `n2link_pymod`, `n2link-nodes-dummy` |
 | R2 | `e878b51` | `n2linkd`, `n2linkd*.toml`, `~/.n2linkd`, `N2LINK_*`; `n2link_core::compat` keeps the old names for 0.4.x; credential, keyring and journal tags are `n2link-credential*`, and EdgeLinkd files fail with a clear message; `dist-pack.py` ships an `edgelinkd` shim and `NOTICE` |
-| R3 | this commit | plugin interface `n2link:node/v1`, `n2link.manifest`, log target `n2link::wasm`, examples `n2link/*`; EdgeLinkd-built modules get a rebuild hint; ADR-0002 amended |
+| R3 | `305196c` | plugin interface `n2link:node/v1`, `n2link.manifest`, log target `n2link::wasm`, examples `n2link/*`; EdgeLinkd-built modules get a rebuild hint; ADR-0002 amended |
+| R4 | this commit | editor theme (title, favicon, tab icon, header logo), plugin ids and CSS `n2link-*`, client page title, favicon and storage keys (old keys read once), `/api/health` and `/api/info`, bundle id `io.github.n2link.n2linkd`; brand files in `assets/brand`, copied by `build.rs` into `ui_static/n2link/` and the root favicon |
 
 ## Decisions (2026-10-06)
 

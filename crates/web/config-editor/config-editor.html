@@ -1,33 +1,33 @@
 <style>
-    .edgelink-config-pane { padding:12px; box-sizing:border-box; }
-    .edgelink-config-pane h3 { margin:4px 0 8px; }
-    .edgelink-config-pane .form-row label { width:190px; }
-    .edgelink-config-pane .form-row input,
-    .edgelink-config-pane .form-row select { width:calc(100% - 205px); }
-    .edgelink-config-actions { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
-    .edgelink-config-status { padding:8px; border:1px solid var(--red-ui-secondary-border-color); margin-bottom:12px; }
-    .edgelink-config-rules { width:100%; border-collapse:collapse; }
-    .edgelink-config-rules th { text-align:left; }
-    .edgelink-config-rules th, .edgelink-config-rules td { padding:4px; }
-    .edgelink-config-rules input { width:100%; box-sizing:border-box; }
-    .edgelink-config-help { color:var(--red-ui-secondary-text-color); font-size:12px; }
+    .n2link-config-pane { padding:12px; box-sizing:border-box; }
+    .n2link-config-pane h3 { margin:4px 0 8px; }
+    .n2link-config-pane .form-row label { width:190px; }
+    .n2link-config-pane .form-row input,
+    .n2link-config-pane .form-row select { width:calc(100% - 205px); }
+    .n2link-config-actions { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+    .n2link-config-status { padding:8px; border:1px solid var(--red-ui-secondary-border-color); margin-bottom:12px; }
+    .n2link-config-rules { width:100%; border-collapse:collapse; }
+    .n2link-config-rules th { text-align:left; }
+    .n2link-config-rules th, .n2link-config-rules td { padding:4px; }
+    .n2link-config-rules input { width:100%; box-sizing:border-box; }
+    .n2link-config-help { color:var(--red-ui-secondary-text-color); font-size:12px; }
 </style>
 
 <script type="text/javascript">
 (function() {
     "use strict";
 
-    RED.plugins.registerPlugin("edgelink-config/config-editor", {
-        type: "edgelink-config",
+    RED.plugins.registerPlugin("n2link-config/config-editor", {
+        type: "n2link-config",
         onadd: function() {
             if (!RED.settings.get("configEditor") || !RED.user.hasPermission("config.read")) {
                 return;
             }
 
-            var root = $('<div id="red-ui-settings-tab-edgelink-config" class="edgelink-config-pane"></div>');
+            var root = $('<div id="red-ui-settings-tab-n2link-config" class="n2link-config-pane"></div>');
             $('<h3>Outbound network policy</h3>').appendTo(root);
-            $('<p class="edgelink-config-help">Edits only the [egress] section. Secrets and unrelated configuration are never returned to the browser.</p>').appendTo(root);
-            var status = $('<div class="edgelink-config-status">Not loaded</div>').appendTo(root);
+            $('<p class="n2link-config-help">Edits only the [egress] section. Secrets and unrelated configuration are never returned to the browser.</p>').appendTo(root);
+            var status = $('<div class="n2link-config-status">Not loaded</div>').appendTo(root);
             var form = $('<div></div>').appendTo(root);
             var revision = "";
 
@@ -38,19 +38,19 @@
             }
 
             var modeRow = $('<div class="form-row"></div>').appendTo(form);
-            $('<label for="edgelink-egress-mode">Mode</label>').appendTo(modeRow);
-            var mode = $('<select id="edgelink-egress-mode"><option value="off">off</option><option value="observe">observe</option><option value="enforce">enforce</option></select>').appendTo(modeRow);
-            var environmentProxy = field("edgelink-egress-env-proxy", "Allow environment proxy", "checkbox");
+            $('<label for="n2link-egress-mode">Mode</label>').appendTo(modeRow);
+            var mode = $('<select id="n2link-egress-mode"><option value="off">off</option><option value="observe">observe</option><option value="enforce">enforce</option></select>').appendTo(modeRow);
+            var environmentProxy = field("n2link-egress-env-proxy", "Allow environment proxy", "checkbox");
             environmentProxy.css("width", "auto");
-            var proxyUrl = field("edgelink-egress-proxy", "Explicit proxy URL");
-            var connectTimeout = field("edgelink-egress-connect", "Connect timeout (ms)", "number");
-            var requestTimeout = field("edgelink-egress-request", "Request timeout (ms)", "number");
-            var idleTimeout = field("edgelink-egress-idle", "Idle timeout (ms)", "number");
-            var maxBytes = field("edgelink-egress-bytes", "Maximum response bytes", "number");
-            var maxRedirects = field("edgelink-egress-redirects", "Maximum redirects", "number");
+            var proxyUrl = field("n2link-egress-proxy", "Explicit proxy URL");
+            var connectTimeout = field("n2link-egress-connect", "Connect timeout (ms)", "number");
+            var requestTimeout = field("n2link-egress-request", "Request timeout (ms)", "number");
+            var idleTimeout = field("n2link-egress-idle", "Idle timeout (ms)", "number");
+            var maxBytes = field("n2link-egress-bytes", "Maximum response bytes", "number");
+            var maxRedirects = field("n2link-egress-redirects", "Maximum redirects", "number");
 
             $('<h3>Allow rules</h3>').appendTo(root);
-            var table = $('<table class="edgelink-config-rules"><thead><tr><th>Protocols</th><th>Host</th><th>CIDR</th><th>Ports</th><th></th></tr></thead><tbody></tbody></table>').appendTo(root);
+            var table = $('<table class="n2link-config-rules"><thead><tr><th>Protocols</th><th>Host</th><th>CIDR</th><th>Ports</th><th></th></tr></thead><tbody></tbody></table>').appendTo(root);
             var rules = table.find("tbody");
             var addRule = $('<button type="button" class="red-ui-button red-ui-button-small"><i class="fa fa-plus"></i> Add rule</button>').appendTo(root);
 
@@ -149,7 +149,7 @@
                 });
             }
 
-            var actions = $('<div class="edgelink-config-actions"></div>').appendTo(root);
+            var actions = $('<div class="n2link-config-actions"></div>').appendTo(root);
             $('<button type="button" class="red-ui-button"><i class="fa fa-refresh"></i> Read</button>').on("click", load).appendTo(actions);
             if (RED.user.hasPermission("config.write")) {
                 $('<button type="button" class="red-ui-button">Validate</button>').on("click", function() {
@@ -191,8 +191,8 @@
             }
 
             RED.userSettings.add({
-                id: "edgelink-config",
-                title: "EdgeLinkd",
+                id: "n2link-config",
+                title: "n2link",
                 get: function() { return root; },
                 focus: load
             });

@@ -1,7 +1,25 @@
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "edgelinkd.client.page";
-const WATCH_KEY = "edgelinkd.client.watch";
+const STORAGE_KEY = "n2linkd.client.page";
+const WATCH_KEY = "n2linkd.client.watch";
+// Keys written before the n2link rename; read once, then rewritten under the new names.
+const LEGACY_KEYS: Record<string, string> = {
+  [STORAGE_KEY]: "edgelinkd.client.page",
+  [WATCH_KEY]: "edgelinkd.client.watch",
+};
+
+function readKey(key: string): string | null {
+  const value = localStorage.getItem(key);
+  if (value !== null) {
+    return value;
+  }
+  const legacy = localStorage.getItem(LEGACY_KEYS[key]);
+  if (legacy !== null) {
+    localStorage.setItem(key, legacy);
+    localStorage.removeItem(LEGACY_KEYS[key]);
+  }
+  return legacy;
+}
 const MAX_ROWS = 12;
 const MAX_FLOWS = 16;
 const POLL_MS = 2000;
@@ -45,7 +63,7 @@ const INITIAL: PageState = {
 
 function loadState(): PageState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = readKey(STORAGE_KEY);
     if (!raw) {
       return INITIAL;
     }
@@ -61,7 +79,7 @@ function loadState(): PageState {
 
 function loadWatch(): string {
   try {
-    return localStorage.getItem(WATCH_KEY) ?? "scan";
+    return readKey(WATCH_KEY) ?? "scan";
   } catch {
     return "scan";
   }
@@ -263,7 +281,7 @@ export function App() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-16">
-      <p className="text-xs tracking-[0.28em] text-mark uppercase">EdgeLinkd</p>
+      <p className="text-xs tracking-[0.28em] text-mark uppercase">n2link</p>
       <h1 className="mt-4 font-serif text-5xl leading-none font-normal text-ink">Client page</h1>
       <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
         This page reads context from the runtime. The checklist stays in this browser. The flow editor stays at the site

@@ -66,7 +66,7 @@ pub async fn get_icons() -> Result<Json<Value>, StatusCode> {
     // Return a simulated icon list
     let icons = serde_json::json!({
         "node-red": ["arrow-in.svg", "arrow-out.svg", "debug.svg", "inject.svg", "function.svg"],
-        "edgelink": ["edge.svg", "link.svg"]
+        "n2link": ["n2link-icon.svg"]
     });
 
     Ok(Json(icons))
@@ -130,24 +130,24 @@ pub async fn get_plugins(headers: HeaderMap) -> Result<axum::response::Response,
     } else {
         let plugins = vec![
             serde_json::json!({
-                "id": "edgelink-config/config-editor",
+                "id": "n2link-config/config-editor",
                 "name": "config-editor",
-                "types": ["edgelink-config"],
+                "types": ["n2link-config"],
                 "enabled": true,
                 "local": true,
                 "user": false,
-                "module": "edgelink-config",
+                "module": "n2link-config",
                 "version": env!("CARGO_PKG_VERSION")
             }),
             #[cfg(feature = "nodes_ai")]
             serde_json::json!({
-                "id": "edgelink-flow-copilot/flow-copilot",
+                "id": "n2link-flow-copilot/flow-copilot",
                 "name": "flow-copilot",
-                "types": ["edgelink-flow-copilot"],
+                "types": ["n2link-flow-copilot"],
                 "enabled": true,
                 "local": true,
                 "user": false,
-                "module": "edgelink-flow-copilot",
+                "module": "n2link-flow-copilot",
                 "version": env!("CARGO_PKG_VERSION")
             }),
         ];
@@ -162,7 +162,7 @@ async fn generate_plugins_html() -> String {
     #[cfg(feature = "nodes_ai")]
     {
         format!(
-            "\n<!-- --- [red-plugin:edgelink-config/config-editor] --- -->\n{}\n<!-- --- [red-plugin:edgelink-flow-copilot/flow-copilot] --- -->\n{}",
+            "\n<!-- --- [red-plugin:n2link-config/config-editor] --- -->\n{}\n<!-- --- [red-plugin:n2link-flow-copilot/flow-copilot] --- -->\n{}",
             include_str!("../../config-editor/config-editor.html"),
             include_str!("../../flow-copilot/flow-copilot.html")
         )
@@ -170,7 +170,7 @@ async fn generate_plugins_html() -> String {
     #[cfg(not(feature = "nodes_ai"))]
     {
         format!(
-            "\n<!-- --- [red-plugin:edgelink-config/config-editor] --- -->\n{}",
+            "\n<!-- --- [red-plugin:n2link-config/config-editor] --- -->\n{}",
             include_str!("../../config-editor/config-editor.html")
         )
     }
@@ -180,16 +180,17 @@ pub async fn get_theme() -> Result<Json<Value>, StatusCode> {
     // Return Node-RED compatible theme list
     let jd = serde_json::json!({
         "page": {
-            "title": "EdgeLinkd",
+            "title": "n2link",
             "favicon": "favicon.ico",
             "tabicon": {
-                "icon": "red/images/node-red-icon-black.svg",
-                "colour": "#8f0000"
+                "icon": "n2link/n2link-icon.svg",
+                "colour": "#0C948A"
             }
         },
+        // The logo already carries the wordmark, so the header has no separate title text.
         "header": {
-            "title": "EdgeLinkd",
-            "image": "red/images/node-red.svg"
+            "title": "",
+            "image": "n2link/n2link-logo.svg"
         },
         "asset": {
             "red": "red/red.min.js",
@@ -211,8 +212,8 @@ pub async fn get_plugin_messages(Query(params): Query<HashMap<String, String>>) 
         "zh-CN" => serde_json::json!({
             "edgelink": {
                 "plugin": {
-                    "name": "EdgeLinkd 插件",
-                    "description": "EdgeLinkd 核心插件",
+                    "name": "n2link 插件",
+                    "description": "n2link 核心插件",
                     "version": "版本"
                 }
             }
@@ -220,8 +221,8 @@ pub async fn get_plugin_messages(Query(params): Query<HashMap<String, String>>) 
         _ => serde_json::json!({
             "edgelink": {
                 "plugin": {
-                    "name": "EdgeLinkd Plugin",
-                    "description": "EdgeLinkd core plugin",
+                    "name": "n2link Plugin",
+                    "description": "n2link core plugin",
                     "version": "Version"
                 }
             }
@@ -289,15 +290,15 @@ mod tests {
         let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
 
-        assert_eq!(plugins[0]["id"], "edgelink-config/config-editor");
-        assert!(html.contains("[red-plugin:edgelink-config/config-editor]"));
+        assert_eq!(plugins[0]["id"], "n2link-config/config-editor");
+        assert!(html.contains("[red-plugin:n2link-config/config-editor]"));
         assert!(html.contains("RED.userSettings.add"));
-        assert!(html.contains("id=\"red-ui-settings-tab-edgelink-config\""));
+        assert!(html.contains("id=\"red-ui-settings-tab-n2link-config\""));
 
         #[cfg(feature = "nodes_ai")]
         {
-            assert_eq!(plugins[1]["id"], "edgelink-flow-copilot/flow-copilot");
-            assert!(html.contains("[red-plugin:edgelink-flow-copilot/flow-copilot]"));
+            assert_eq!(plugins[1]["id"], "n2link-flow-copilot/flow-copilot");
+            assert!(html.contains("[red-plugin:n2link-flow-copilot/flow-copilot]"));
             assert!(html.contains("RED.plugins.registerPlugin"));
             assert!(html.contains("RED.sidebar.addTab"));
             assert!(html.contains("RED.view.importNodes"));

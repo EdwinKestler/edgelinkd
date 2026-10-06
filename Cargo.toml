@@ -173,7 +173,7 @@ chrono = { workspace = true }
 members = ["crates/*", "node-plugins/*"]
 
 [package.metadata.bundle]
-identifier = "com.github.oldrev.edgelink"
+identifier = "io.github.n2link.n2linkd"
 
 [features]
 full = ["default", "rqjs_bindgen"]
