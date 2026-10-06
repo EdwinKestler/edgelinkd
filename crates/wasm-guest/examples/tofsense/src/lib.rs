@@ -6,7 +6,7 @@
 //! `NLink_TOFSense_Frame0` frames, checks them and turns them into readings, and builds
 //! `NLink_TOFSense_Read_Frame0` query frames for UART query (cascade) mode.
 
-use edgelink_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Msg, Node, Shape};
+use n2link_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Msg, Node, Shape};
 
 manifest!("../plugin.toml");
 

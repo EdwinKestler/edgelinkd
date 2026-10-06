@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 enum LinkOutMode {
@@ -53,7 +53,7 @@ impl LinkOutNode {
                     linked_nodes.push(Arc::downgrade(&link_in));
                 } else {
                     log::error!("LinkOutNode: Cannot found the required `link in` node(id={link_in_id})!");
-                    return Err(EdgelinkError::BadFlowsJson("Cannot found the required `link in` node".to_owned()));
+                    return Err(N2linkError::BadFlowsJson("Cannot found the required `link in` node".to_owned()));
                 }
             }
         }
@@ -74,7 +74,7 @@ impl LinkOutNode {
                     } else {
                         let err_msg =
                             format!("The required `link in` was unavailable in `link out` node(id={})!", self.id());
-                        return Err(EdgelinkError::InvalidOperation(err_msg));
+                        return Err(N2linkError::InvalidOperation(err_msg));
                     }
                 }
             }
@@ -92,19 +92,19 @@ impl LinkOutNode {
                                 .return_msg(msg.clone(), source_link.id, self.id(), flow.id(), cancel.clone())
                                 .await?;
                         } else {
-                            return Err(EdgelinkError::InvalidOperation(format!(
+                            return Err(N2linkError::InvalidOperation(format!(
                                 "The node(id='{}') is not a `link call` node!",
                                 source_link.link_call_node_id
                             )));
                         }
                     } else {
-                        return Err(EdgelinkError::InvalidOperation(format!(
+                        return Err(N2linkError::InvalidOperation(format!(
                             "Cannot found the `link call` node by id='{}'",
                             source_link.link_call_node_id
                         )));
                     }
                 } else {
-                    return Err(EdgelinkError::InvalidOperation(format!(
+                    return Err(N2linkError::InvalidOperation(format!(
                         "The `link call stack` is empty for msg: {msg:?}"
                     )));
                 }

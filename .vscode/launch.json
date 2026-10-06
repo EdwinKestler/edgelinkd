@@ -7,12 +7,12 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'edgelink-app'",
+            "name": "Debug executable 'n2link-app'",
             "cargo": {
                 "args": [
                     "build",
                     "--bin=edgelinkd",
-                    "--package=edgelink-app"
+                    "--package=n2link-app"
                 ],
                 "filter": {
                     "name": "edgelinkd",
@@ -33,13 +33,13 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'edgelink-app'",
+            "name": "Debug unit tests in executable 'n2link-app'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--bin=edgelinkd",
-                    "--package=edgelink-app"
+                    "--package=n2link-app"
                 ],
                 "filter": {
                     "name": "edgelinkd",

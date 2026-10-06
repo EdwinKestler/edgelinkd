@@ -132,7 +132,7 @@ impl<'js> NodeClass {
             }
 
             _ => {
-                return Err(EdgelinkError::InvalidOperation(format!("Unsupported: {:?}", msgs.type_of())));
+                return Err(N2linkError::InvalidOperation(format!("Unsupported: {:?}", msgs.type_of())));
             }
         }
         Ok(())

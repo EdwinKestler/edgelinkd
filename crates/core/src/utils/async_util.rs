@@ -1,4 +1,4 @@
-use crate::EdgelinkError;
+use crate::N2linkError;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -10,7 +10,7 @@ pub async fn delay(dur: Duration, cancel: CancellationToken) -> crate::Result<()
     tokio::select! {
         _ = cancel.cancelled() => {
             // 取消 sleep_task 任务
-            Err(EdgelinkError::TaskCancelled)
+            Err(N2linkError::TaskCancelled)
         }
         _ = tokio::time::sleep(dur)=> {
             // Long work has completed

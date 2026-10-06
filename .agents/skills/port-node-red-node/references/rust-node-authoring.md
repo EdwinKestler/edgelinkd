@@ -23,7 +23,7 @@ Use a directory with a `mod.rs` when the node has sub-parts (see
 
 ## 2. Registration is automatic — but the module must be reachable
 
-`#[flow_node("type", red_name = "Name")]` (from `edgelink_macro`) expands to:
+`#[flow_node("type", red_name = "Name")]` (from `n2link_macro`) expands to:
 
 - `impl FlowsElement for <YourNode>` — `id/name/type_str/ordering/is_disabled/as_any/parent_element/get_path`,
 - `impl ContextHolder for <YourNode>`,
@@ -59,7 +59,7 @@ use serde::Deserialize;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::*;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Deserialize, Debug)]                       // config = the node's own JSON fields
 struct RangeNodeConfig {
@@ -158,7 +158,7 @@ Rules that hold for every node:
   `MsgHandle` write guard across a fan-out (the downstream node may need the same
   message).
 - `CancellationToken` is the only shutdown signal: check it in loops, pass
-  `cancel.child_token()` to sub-tasks, and treat `EdgelinkError::TaskCancelled` as a
+  `cancel.child_token()` to sub-tasks, and treat `N2linkError::TaskCancelled` as a
   normal exit (not an error to report).
 
 ## 6. Messages, envelopes, fan-out
@@ -234,14 +234,14 @@ let value = evaluate_node_property_value(
 ## 9. Errors, catch and status
 
 ```rust
-return Err(EdgelinkError::BadArgument("payload"))
+return Err(N2linkError::BadArgument("payload"))
     .with_context(|| format!("{prop} is not a number"));   // anyhow::Context, re-exported as ErrorContext
 ```
 
-Common variants (`EdgelinkError` in `crates/core/src/lib.rs`): `BadFlowsJson`,
+Common variants (`N2linkError` in `crates/core/src/lib.rs`): `BadFlowsJson`,
 `UnsupportedFlowsJsonFormat`, `NotSupported`, `BadArgument("field")`,
 `InvalidOperation(String)`, `OutOfRange`, `TaskCancelled`, `Configuration`, `Timeout`,
-`Io`. Use `Err(EdgelinkError::X.into())` for the unit-like variants.
+`Io`. Use `Err(N2linkError::X.into())` for the unit-like variants.
 
 - Returning `Err` from the `with_uow` closure is how a node raises a Node-RED error:
   the flow's `catch` nodes receive a message with `msg.error = { message, source: { id, type, name, count } }`

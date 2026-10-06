@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[cfg(feature = "nodes_yaml")]
 use serde_yaml_ng as yaml;
@@ -148,7 +148,7 @@ impl YamlNode {
     async fn parse_yaml_to_object(&self, yaml_string: &str) -> crate::Result<Variant> {
         match yaml::from_str::<yaml::Value>(yaml_string) {
             Ok(yaml_value) => Ok(yaml_value_to_variant(yaml_value)),
-            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("YAML parse error: {e}"))),
+            Err(e) => Err(crate::N2linkError::InvalidOperation(format!("YAML parse error: {e}"))),
         }
     }
 
@@ -156,7 +156,7 @@ impl YamlNode {
         let yaml_value = variant_to_yaml_value(value);
         match yaml::to_string(&yaml_value) {
             Ok(yaml_string) => Ok(Variant::String(indent_mapping_sequences(&yaml_string))),
-            Err(e) => Err(crate::EdgelinkError::InvalidOperation(format!("YAML stringify error: {e}"))),
+            Err(e) => Err(crate::N2linkError::InvalidOperation(format!("YAML stringify error: {e}"))),
         }
     }
 }
@@ -165,7 +165,7 @@ impl YamlNode {
 impl YamlNode {
     async fn process_yaml(&self, _msg: MsgHandle, _cancel: CancellationToken) -> crate::Result<()> {
         log::error!("YAML node is not available. Please enable the 'nodes_yaml' feature.");
-        Err(crate::EdgelinkError::InvalidOperation("YAML node requires 'nodes_yaml' feature to be enabled".to_string())
+        Err(crate::N2linkError::InvalidOperation("YAML node requires 'nodes_yaml' feature to be enabled".to_string())
             .into())
     }
 }

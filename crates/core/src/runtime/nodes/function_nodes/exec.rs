@@ -3,7 +3,7 @@
 // Based on Node-RED 90-exec.js
 
 use async_trait::async_trait;
-use edgelink_macro::*;
+use n2link_macro::*;
 use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -303,7 +303,7 @@ impl ExecNode {
         let (code, signal) = tokio::select! {
             _ = cancel.cancelled() => {
                 let _ = Self::stop_child(child, Some("SIGTERM")).await;
-                return Err(crate::EdgelinkError::TaskCancelled);
+                return Err(crate::N2linkError::TaskCancelled);
             }
             status = child.wait() => (status?.code(), None),
             signal = timer_future => {
@@ -398,7 +398,7 @@ impl ExecNode {
     ) -> crate::Result<()> {
         let (program, args) = Self::parse_command_for_spawn(&cmd);
         if program.is_empty() {
-            return Err(crate::EdgelinkError::invalid_operation("Empty command"));
+            return Err(crate::N2linkError::invalid_operation("Empty command"));
         }
         let mut command = Command::new(&program);
         command.args(&args);
@@ -621,7 +621,7 @@ impl ExecNode {
         drop(msg_guard);
 
         if cmd.trim().is_empty() {
-            return Err(crate::EdgelinkError::invalid_operation("Empty command"));
+            return Err(crate::N2linkError::invalid_operation("Empty command"));
         }
 
         // Execute based on mode

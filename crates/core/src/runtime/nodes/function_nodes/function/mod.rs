@@ -14,7 +14,7 @@ use js::IntoJs;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 mod context_class;
 mod edgelink_class;
@@ -156,7 +156,7 @@ impl FunctionNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let mut function_config = FunctionNodeConfig::deserialize(&config.rest)?;
         if !function_config.libs.is_empty() {
-            return Err(EdgelinkError::NotSupported("function extra modules (libs) are not supported".to_owned()));
+            return Err(N2linkError::NotSupported("function extra modules (libs) are not supported".to_owned()));
         }
         if function_config.output_count == 0 {
             function_config.output_count = 1;
@@ -240,7 +240,7 @@ impl FunctionNode {
 
         match eval_result {
             Ok(msgs) => Ok(msgs),
-            Err(e) => Err(EdgelinkError::InvalidOperation(e.to_string())),
+            Err(e) => Err(N2linkError::InvalidOperation(e.to_string())),
         }
     }
 
@@ -322,7 +322,7 @@ impl FunctionNode {
             Ok(()) => (),
             Err(e) => {
                 log::error!("Failed to invoke the initialization script code: {e}");
-                return Err(EdgelinkError::InvalidOperation(e.to_string()));
+                return Err(N2linkError::InvalidOperation(e.to_string()));
             }
         }
         while ctx.execute_pending_job() {}
@@ -336,7 +336,7 @@ impl FunctionNode {
             Ok(()) => Ok(()),
             Err(e) => {
                 log::error!("[function:{}] Failed to invoke the `finialize` script code: {e}", self.name());
-                Err(EdgelinkError::InvalidOperation(e.to_string()))
+                Err(N2linkError::InvalidOperation(e.to_string()))
             }
         }
     }
@@ -345,10 +345,10 @@ impl FunctionNode {
         // crate::runtime::red::js::red::register_red_object(&ctx).unwrap();
         // js::Class::<node_class::NodeClass>::register(&ctx)?;
         // js::Class::<env_class::EnvClass>::register(&ctx)?;
-        // js::Class::<edgelink_class::EdgelinkClass>::register(&ctx)?;
+        // js::Class::<edgelink_class::N2linkClass>::register(&ctx)?;
 
         ::rquickjs_extra::console::init(ctx)?;
-        ctx.globals().set("__edgelink", edgelink_class::EdgelinkClass::default())?;
+        ctx.globals().set("__edgelink", edgelink_class::N2linkClass::default())?;
 
         /*
         {
@@ -366,7 +366,7 @@ impl FunctionNode {
         if let Some(global_context) = self.engine().map(|x| x.context().clone()) {
             ctx.globals().set("__edgelinkGlobalContext", context_class::ContextClass::new(global_context))?;
         } else {
-            return Err(EdgelinkError::InvalidOperation("Failed to get global context".into()))
+            return Err(N2linkError::InvalidOperation("Failed to get global context".into()))
                 .with_context(|| "The engine cannot be released!");
         }
 
@@ -374,7 +374,7 @@ impl FunctionNode {
         if let Some(flow_context) = self.flow().map(|x| x.context().clone()) {
             ctx.globals().set("__edgelinkFlowContext", context_class::ContextClass::new(flow_context.clone()))?;
         } else {
-            return Err(EdgelinkError::InvalidOperation("Failed to get flow context".into()));
+            return Err(N2linkError::InvalidOperation("Failed to get flow context".into()));
         }
 
         // Register the node-scoped context
@@ -384,7 +384,7 @@ impl FunctionNode {
         eval_options.promise = true;
         eval_options.strict = true;
         if let Err(e) = ctx.eval_with_options::<(), _>(JS_PRELUDE_SCRIPT, eval_options).catch(ctx) {
-            return Err(EdgelinkError::InvalidOperation(e.to_string()))
+            return Err(N2linkError::InvalidOperation(e.to_string()))
                 .with_context(|| format!("Failed to evaluate the prelude script: {e:?}"));
         }
 

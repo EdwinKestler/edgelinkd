@@ -1,7 +1,7 @@
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 use std::sync::Arc;
 
 #[derive(Debug)]

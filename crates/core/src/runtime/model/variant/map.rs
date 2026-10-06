@@ -72,17 +72,17 @@ impl VariantObject for VariantObjectMap {
         create_missing: bool,
     ) -> crate::Result<()> {
         if expr.is_empty() {
-            return Err(crate::EdgelinkError::BadArgument("expr"))
+            return Err(crate::N2linkError::BadArgument("expr"))
                 .with_context(|| "The argument expr cannot be empty".to_owned());
         }
 
-        let mut segs = propex::parse(expr).map_err(|_| crate::EdgelinkError::BadArgument("expr"))?;
+        let mut segs = propex::parse(expr).map_err(|_| crate::N2linkError::BadArgument("expr"))?;
         self.expand_segs_property(&mut segs, eval_env)?;
 
         let first_prop_name = match segs.first() {
             Some(PropexSegment::Property(name)) => name,
             _ => {
-                return Err(crate::EdgelinkError::BadArgument("expr"))
+                return Err(crate::N2linkError::BadArgument("expr"))
                     .with_context(|| format!("The first property to access must be a string, but got '{expr}'"));
             }
         };
@@ -102,7 +102,7 @@ impl VariantObject for VariantObjectMap {
                     Some(PropexSegment::Property(_)) => Variant::empty_object(),
                     Some(PropexSegment::Index(_)) => Variant::empty_array(),
                     _ => {
-                        return Err(crate::EdgelinkError::BadArgument("expr"))
+                        return Err(crate::N2linkError::BadArgument("expr"))
                             .with_context(|| format!("Not allowed to set first property: '{first_prop_name}'"));
                     }
                 };
@@ -110,7 +110,7 @@ impl VariantObject for VariantObjectMap {
                 self.get_property_mut(first_prop_name).unwrap()
             }
             (None, _, _) => {
-                return Err(crate::EdgelinkError::BadArgument("expr"))
+                return Err(crate::N2linkError::BadArgument("expr"))
                     .with_context(|| format!("Failed to set first property: '{first_prop_name}'"));
             }
         };
@@ -126,7 +126,7 @@ impl VariantObject for VariantObjectMap {
                 Ok(())
             }
             None if create_missing => first_prop.set_segs_property(&segs[1..], value, true),
-            None => Err(crate::EdgelinkError::InvalidOperation(
+            None => Err(crate::N2linkError::InvalidOperation(
                 "Unable to set property: missing intermediate segments".into(),
             )),
         }
@@ -159,20 +159,20 @@ impl VariantObject for VariantObjectMap {
                         PropexEnv::ExtRef(_, _) => None,
                     }),
                     // 不支持递归
-                    _ => return Err(EdgelinkError::OutOfRange),
+                    _ => return Err(N2linkError::OutOfRange),
                 };
                 if let Some(nested_var) = nested_var {
-                    *seg = match nested_var.get_segs_property(&nested_segs[1..]).ok_or(EdgelinkError::OutOfRange)? {
+                    *seg = match nested_var.get_segs_property(&nested_segs[1..]).ok_or(N2linkError::OutOfRange)? {
                         Variant::String(str_index) => PropexSegment::Property(Cow::Owned(str_index.clone())),
                         Variant::Number(num_index)
                             if (num_index.is_u64() || num_index.is_i64()) && num_index.as_u64() >= Some(0) =>
                         {
                             PropexSegment::Index(num_index.as_u64().unwrap() as usize)
                         }
-                        _ => return Err(EdgelinkError::OutOfRange), // We cannot found the nested property
+                        _ => return Err(N2linkError::OutOfRange), // We cannot found the nested property
                     };
                 } else {
-                    return Err(EdgelinkError::OutOfRange);
+                    return Err(N2linkError::OutOfRange);
                 }
             }
         }

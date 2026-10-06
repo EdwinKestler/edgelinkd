@@ -12,7 +12,7 @@ use tokio::select;
 use tokio_util::sync::CancellationToken;
 
 use super::context::Context;
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::*;
 use crate::runtime::model::json::{RedFlowNodeConfig, RedGlobalNodeConfig};
 use crate::runtime::model::*;
@@ -52,7 +52,7 @@ pub mod wellknown_names {
 }
 
 /// EdgeLinkd-owned types that must not fall back to `unknown` when the feature is off.
-pub fn edgelink_owned_node_type(type_name: &str) -> bool {
+pub fn n2link_owned_node_type(type_name: &str) -> bool {
     matches!(
         type_name,
         "ai-provider"
@@ -68,8 +68,8 @@ pub fn edgelink_owned_node_type(type_name: &str) -> bool {
     )
 }
 
-pub fn missing_owned_node_type(type_name: &str) -> EdgelinkError {
-    EdgelinkError::NotSupported(format!("node type '{type_name}' is not compiled in this build"))
+pub fn missing_owned_node_type(type_name: &str) -> N2linkError {
+    N2linkError::NotSupported(format!("node type '{type_name}' is not compiled in this build"))
 }
 
 /// Third-party WASM plugin types (`wasm-<publisher>-<name>`). Always reserved so a missing
@@ -79,14 +79,14 @@ pub fn is_wasm_plugin_type(type_name: &str) -> bool {
 }
 
 /// A `wasm-*` type used as a config (global) node. Plugins provide flow nodes only.
-pub fn missing_wasm_plugin_type(type_name: &str) -> EdgelinkError {
+pub fn missing_wasm_plugin_type(type_name: &str) -> N2linkError {
     #[cfg(not(feature = "nodes_wasm"))]
     {
         crate::runtime::wasm::unavailable_plugin_error(type_name)
     }
     #[cfg(feature = "nodes_wasm")]
     {
-        EdgelinkError::NotSupported(format!("node type '{type_name}': WASM plugins provide flow nodes only"))
+        N2linkError::NotSupported(format!("node type '{type_name}': WASM plugins provide flow nodes only"))
     }
 }
 
@@ -452,7 +452,7 @@ pub trait FlowNodeBehavior: Send + Sync + FlowsElement {
     async fn inject_msg(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
         select! {
             result = self.get_base().msg_tx.send(msg) => result.map_err(|e| e.into()),
-            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
+            _ = cancel.cancelled() => Err(N2linkError::TaskCancelled),
         }
     }
 
@@ -485,7 +485,7 @@ pub trait FlowNodeBehavior: Send + Sync + FlowsElement {
             return Ok(());
         }
         if envelope.port >= self.get_base().ports.len() {
-            return Err(crate::EdgelinkError::BadArgument("envelope"))
+            return Err(crate::N2linkError::BadArgument("envelope"))
                 .with_context(|| format!("Invalid port index {}", envelope.port));
         }
 

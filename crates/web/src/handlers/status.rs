@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use axum::Extension;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
-use edgelink_core::runtime::engine::Engine;
+use n2link_core::runtime::engine::Engine;
 use serde_json::{Value, json};
 
 use super::WebState;
@@ -147,7 +147,7 @@ mod tests {
         std::fs::write(&flows, br#"[{"id":"100","type":"tab"}]"#).unwrap();
         let state = WebState::new();
         state.set_flows_file_path(flows.clone()).await;
-        let registry = edgelink_core::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let registry = n2link_core::runtime::registry::RegistryBuilder::default().build().unwrap();
         let engine = Engine::with_json(&registry, json!([{ "id": "100", "type": "tab" }]), None).unwrap();
         engine.start().await.unwrap();
         state.set_registry(registry).await;
@@ -172,12 +172,12 @@ mod tests {
         )
         .await
         .unwrap();
-        let mqtt_id: edgelink_core::runtime::model::ElementId = "2".parse().unwrap();
+        let mqtt_id: n2link_core::runtime::model::ElementId = "2".parse().unwrap();
         engine.report_node_status(
             mqtt_id,
-            edgelink_core::runtime::nodes::StatusObject {
-                fill: Some(edgelink_core::runtime::nodes::StatusFill::Green),
-                shape: Some(edgelink_core::runtime::nodes::StatusShape::Dot),
+            n2link_core::runtime::nodes::StatusObject {
+                fill: Some(n2link_core::runtime::nodes::StatusFill::Green),
+                shape: Some(n2link_core::runtime::nodes::StatusShape::Dot),
                 text: Some("connected".to_owned()),
             },
         );

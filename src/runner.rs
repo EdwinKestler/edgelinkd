@@ -4,18 +4,18 @@ use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
-use edgelink_core::runtime::paths;
-use edgelink_web::server::WebServer;
+use n2link_core::runtime::paths;
+use n2link_web::server::WebServer;
 
 use crate::app::App;
 use crate::cliargs::{CliArgs, Commands};
 use crate::config::load_config;
 use crate::consts;
-use crate::env::EdgelinkEnv;
+use crate::env::N2linkEnv;
 use crate::logging;
 use crate::registry::list_available_nodes;
 
-pub async fn run_app(cli_args: Arc<CliArgs>) -> edgelink_core::Result<()> {
+pub async fn run_app(cli_args: Arc<CliArgs>) -> n2link_core::Result<()> {
     match &cli_args.command {
         Some(Commands::Run { flows_path: _, headless: _, bind: _ }) => run_app_internal(cli_args.clone()).await,
         Some(Commands::List) => list_available_nodes().await,
@@ -26,7 +26,7 @@ pub async fn run_app(cli_args: Arc<CliArgs>) -> edgelink_core::Result<()> {
     }
 }
 
-pub async fn run_app_internal(cli_args: Arc<CliArgs>) -> edgelink_core::Result<()> {
+pub async fn run_app_internal(cli_args: Arc<CliArgs>) -> n2link_core::Result<()> {
     if cli_args.verbose > 0 {
         eprintln!("EdgeLinkd v{} - #{}\n", consts::APP_VERSION, consts::GIT_HASH);
         eprintln!("Loading configuration...");
@@ -43,7 +43,7 @@ pub async fn run_app_internal(cli_args: Arc<CliArgs>) -> edgelink_core::Result<(
     log::info!("==========================================================\n");
 
     // Prepare the runtime environment (ensure flows file exists, etc.)
-    let env = Arc::new(EdgelinkEnv::new(cfg));
+    let env = Arc::new(N2linkEnv::new(cfg));
     env.prepare()?;
 
     // Create cancellation token for graceful shutdown
@@ -88,7 +88,7 @@ async fn start_web_server(
     app: Arc<App>,
     cfg: &config::Config,
     cancel: CancellationToken,
-) -> edgelink_core::Result<JoinHandle<()>> {
+) -> n2link_core::Result<JoinHandle<()>> {
     // Determine static directory at runtime
     let static_dir = paths::ui_static_dir();
     log::info!("Using static directory: {}", static_dir.display());

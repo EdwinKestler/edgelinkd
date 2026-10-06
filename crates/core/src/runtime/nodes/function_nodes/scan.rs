@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug)]
 #[flow_node("scan", red_name = "scan")]

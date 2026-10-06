@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tokio::net::{TcpStream, lookup_host};
 use url::{Host, Url};
 
-use crate::{EdgelinkError, Result};
+use crate::{N2linkError, Result};
 
 const DEFAULT_CONNECT_TIMEOUT_MS: u64 = 10_000;
 const DEFAULT_REQUEST_TIMEOUT_MS: u64 = 60_000;
@@ -189,7 +189,7 @@ struct Rule {
 }
 
 impl TryFrom<EgressRule> for Rule {
-    type Error = EdgelinkError;
+    type Error = N2linkError;
 
     fn try_from(raw: EgressRule) -> Result<Self> {
         if raw.protocols.is_empty() || raw.ports.is_empty() {
@@ -259,7 +259,7 @@ impl EgressPolicy {
             Some(cfg) => match cfg.get::<EgressConfig>("egress") {
                 Ok(raw) => raw,
                 Err(config::ConfigError::NotFound(_)) => EgressConfig::default(),
-                Err(err) => return Err(EdgelinkError::Other(anyhow::Error::new(err).context("invalid egress policy"))),
+                Err(err) => return Err(N2linkError::Other(anyhow::Error::new(err).context("invalid egress policy"))),
             },
             None => EgressConfig::default(),
         };
@@ -424,15 +424,15 @@ impl EgressPolicy {
         if approved.addresses.is_empty() {
             return tokio::time::timeout(self.connect_timeout, TcpStream::connect((approved.host.as_str(), port)))
                 .await
-                .map_err(|_| EdgelinkError::Timeout)?
-                .map_err(EdgelinkError::from);
+                .map_err(|_| N2linkError::Timeout)?
+                .map_err(N2linkError::from);
         }
         let mut last = None;
         for address in approved.socket_addrs() {
             match tokio::time::timeout(self.connect_timeout, TcpStream::connect(address)).await {
                 Ok(Ok(stream)) => return Ok(stream),
-                Ok(Err(err)) => last = Some(EdgelinkError::from(err)),
-                Err(_) => last = Some(EdgelinkError::Timeout),
+                Ok(Err(err)) => last = Some(N2linkError::from(err)),
+                Err(_) => last = Some(N2linkError::Timeout),
             }
         }
         Err(last.unwrap_or_else(|| denied("outbound target has no approved address")))
@@ -680,12 +680,12 @@ fn is_unsafe_v4(ip: Ipv4Addr) -> bool {
         || ip == Ipv4Addr::new(169, 254, 169, 254)
 }
 
-fn config_error(message: &str) -> EdgelinkError {
-    EdgelinkError::InvalidOperation(format!("invalid egress configuration: {message}"))
+fn config_error(message: &str) -> N2linkError {
+    N2linkError::InvalidOperation(format!("invalid egress configuration: {message}"))
 }
 
-fn denied(message: &'static str) -> EdgelinkError {
-    EdgelinkError::InvalidOperation(message.to_owned())
+fn denied(message: &'static str) -> N2linkError {
+    N2linkError::InvalidOperation(message.to_owned())
 }
 
 #[cfg(test)]

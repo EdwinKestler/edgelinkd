@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 type ClientWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -43,7 +43,7 @@ impl WebSocketClientNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let ws_config = WebSocketClientConfig::deserialize(&config.rest)?;
         let engine =
-            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("websocket client has no engine"))?;
+            flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("websocket client has no engine"))?;
         let node = WebSocketClientNode {
             base: state,
             config: ws_config,
@@ -139,7 +139,7 @@ impl WebSocketClientNode {
             .egress
             .connect_websocket(&connection.url)
             .await
-            .map_err(|_| crate::EdgelinkError::invalid_operation("WebSocket client connection failed"))?;
+            .map_err(|_| crate::N2linkError::invalid_operation("WebSocket client connection failed"))?;
 
         // Store the stream
         {
@@ -250,7 +250,7 @@ impl WebSocketClientNode {
                                 log::debug!("WebSocket client: Received raw frame");
                             }
                             Some(Err(e)) => {
-                                return Err(crate::EdgelinkError::InvalidOperation(format!("WebSocket error: {e}")));
+                                return Err(crate::N2linkError::InvalidOperation(format!("WebSocket error: {e}")));
                             }
                             None => {
                                 log::info!("WebSocket client: Connection stream ended");
@@ -290,13 +290,13 @@ impl WebSocketClientNode {
                     stream
                         .send(message)
                         .await
-                        .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Failed to send message: {e}")))?;
+                        .map_err(|e| crate::N2linkError::InvalidOperation(format!("Failed to send message: {e}")))?;
                     return Ok(());
                 }
             }
         }
 
-        Err(crate::EdgelinkError::InvalidOperation("WebSocket client not connected".to_string()))
+        Err(crate::N2linkError::InvalidOperation("WebSocket client not connected".to_string()))
     }
 
     pub async fn is_connected(&self) -> bool {

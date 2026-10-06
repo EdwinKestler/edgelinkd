@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
 enum TcpOutMode {
@@ -40,7 +40,7 @@ impl TcpOutNode {
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let tcp_config = TcpOutNodeConfig::deserialize(&config.rest)?;
-        let engine = flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("tcp out has no engine"))?;
+        let engine = flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("tcp out has no engine"))?;
         let node = TcpOutNode {
             base: state,
             config: tcp_config,
@@ -79,7 +79,7 @@ impl TcpOutNode {
             Variant::String(s) => {
                 if self.config.base64 {
                     base64::Engine::decode(&base64::engine::general_purpose::STANDARD, s)
-                        .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Invalid base64 payload: {e}")))
+                        .map_err(|e| crate::N2linkError::InvalidOperation(format!("Invalid base64 payload: {e}")))
                 } else {
                     Ok(s.as_bytes().to_vec())
                 }
@@ -93,17 +93,17 @@ impl TcpOutNode {
                             if b <= 255 {
                                 bytes.push(b as u8);
                             } else {
-                                return Err(crate::EdgelinkError::InvalidOperation(
+                                return Err(crate::N2linkError::InvalidOperation(
                                     "Array contains numbers > 255".to_string(),
                                 ));
                             }
                         } else {
-                            return Err(crate::EdgelinkError::InvalidOperation(
+                            return Err(crate::N2linkError::InvalidOperation(
                                 "Array contains non-integer numbers".to_string(),
                             ));
                         }
                     } else {
-                        return Err(crate::EdgelinkError::InvalidOperation(
+                        return Err(crate::N2linkError::InvalidOperation(
                             "Array contains non-numeric items".to_string(),
                         ));
                     }
@@ -133,7 +133,7 @@ impl TcpOutNode {
         let port = self.config.port.unwrap_or(0);
 
         if port == 0 {
-            return Err(crate::EdgelinkError::InvalidOperation("Port must be specified for client mode".to_string()));
+            return Err(crate::N2linkError::InvalidOperation("Port must be specified for client mode".to_string()));
         }
 
         let remote_addr = format!("{host}:{port}");
@@ -152,7 +152,7 @@ impl TcpOutNode {
                         log::info!("TCP out: Connected");
                         stream_arc
                     }
-                    Err(_) => return Err(crate::EdgelinkError::invalid_operation("TCP out connection failed")),
+                    Err(_) => return Err(crate::N2linkError::invalid_operation("TCP out connection failed")),
                 }
             }
         };
@@ -164,7 +164,7 @@ impl TcpOutNode {
                 // Remove failed connection
                 let mut connections = self.connections.lock().await;
                 connections.remove(&connection_key);
-                return Err(crate::EdgelinkError::InvalidOperation(format!("Failed to send data: {e}")));
+                return Err(crate::N2linkError::InvalidOperation(format!("Failed to send data: {e}")));
             }
 
             if let Err(e) = stream.flush().await {

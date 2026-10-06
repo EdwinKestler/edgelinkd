@@ -419,13 +419,13 @@ fn test_switch_property_type_try_from() {
     ];
 
     for (input, expected) in success_cases {
-        let result: Result<RedPropertyType, EdgelinkError> = input.try_into();
+        let result: Result<RedPropertyType, N2linkError> = input.try_into();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), expected);
     }
 
     // Test the error case
-    let result: Result<RedPropertyType, EdgelinkError> = SwitchPropertyType::Prev.try_into();
+    let result: Result<RedPropertyType, N2linkError> = SwitchPropertyType::Prev.try_into();
     assert!(result.is_err());
 }
 

@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 use super::exec::{Budget, EngineCell};
 use super::plugin_set::PluginSpec;
@@ -82,7 +82,7 @@ impl WasmRuntime {
         let s = &self.settings;
         let check = |name: &str, value: u64, max: u64, key: &str| -> crate::Result<u64> {
             if value > max {
-                return Err(EdgelinkError::NotSupported(format!(
+                return Err(N2linkError::NotSupported(format!(
                     "WASM plugin {} requests limits.{name} = {value}, above [runtime.wasm] {key} = {max}",
                     spec.id
                 )));
@@ -117,7 +117,7 @@ impl WasmRuntime {
         }
         let budget = u64::from(self.settings.memory_budget_kib);
         if admission.reserved_kib + need > budget {
-            return Err(EdgelinkError::NotSupported(format!(
+            return Err(N2linkError::NotSupported(format!(
                 "WASM memory budget exceeded: node type '{}' needs {need} KiB, {} of {budget} KiB already reserved \
                  ([runtime.wasm] memory_budget_kib)",
                 spec.type_name, admission.reserved_kib

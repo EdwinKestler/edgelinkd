@@ -1,6 +1,6 @@
 //! `[runtime.wasm]` settings. `enabled` defaults to `false`, even with `nodes_wasm` compiled in.
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 /// Keys this prototype implements.
 const KNOWN_KEYS: &[&str] = &[
@@ -124,7 +124,7 @@ impl WasmSettings {
             return Err(named("runtime.wasm.default_deadline_ms", "must be <= max_deadline_ms"));
         }
         if super::strict_bool(cfg, "runtime.wasm.require_signature")? == Some(true) {
-            return Err(EdgelinkError::NotSupported(
+            return Err(N2linkError::NotSupported(
                 "runtime.wasm.require_signature is not implemented in ABI v1".to_owned(),
             ));
         }
@@ -132,14 +132,14 @@ impl WasmSettings {
     }
 }
 
-pub(crate) fn disabled_plugin_error(type_name: &str) -> EdgelinkError {
-    EdgelinkError::NotSupported(format!(
+pub(crate) fn disabled_plugin_error(type_name: &str) -> N2linkError {
+    N2linkError::NotSupported(format!(
         "node type '{type_name}' needs WASM plugins, which are disabled by configuration ([runtime.wasm] enabled = false)"
     ))
 }
 
-fn named(key: &str, why: &str) -> EdgelinkError {
-    EdgelinkError::invalid_operation(&format!("{key} {why}"))
+fn named(key: &str, why: &str) -> N2linkError {
+    N2linkError::invalid_operation(&format!("{key} {why}"))
 }
 
 fn assign_u32(cfg: &config::Config, key: &str, min: u32, max: u32, dest: &mut u32) -> crate::Result<()> {

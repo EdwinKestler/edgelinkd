@@ -832,172 +832,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c7a8fb8a9fbf66c1f703fe16184d10ca0ee9d23be5b4436400408ba54a95005"
 
 [[package]]
-name = "edgelink-app"
-version = "0.3.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "clap",
- "config",
- "dirs-next",
- "edgelink-core",
- "edgelink-nodes-dummy",
- "edgelink-web",
- "log 0.4.27",
- "log4rs",
- "once_cell",
- "semver",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "edgelink-core"
-version = "0.3.0"
-dependencies = [
- "anyhow",
- "arrayvec",
- "async-trait",
- "axum",
- "base64 0.22.1",
- "bincode",
- "bumpalo",
- "bytes",
- "chacha20poly1305",
- "chrono",
- "config",
- "ctor",
- "dashmap",
- "edgelink-eve",
- "edgelink-macro",
- "fs2",
- "futures",
- "futures-util",
- "hex",
- "inventory",
- "itertools 0.14.0",
- "jsonata-core",
- "libc",
- "log 0.4.27",
- "log4rs",
- "mustache",
- "nom 8.0.0",
- "notify",
- "quick-xml",
- "rand 0.9.1",
- "redis",
- "regex",
- "reqwest",
- "rquickjs",
- "rquickjs-extra",
- "rumqttc",
- "rusqlite",
- "semver",
- "serde",
- "serde-xml-rs",
- "serde_json",
- "serde_with",
- "serde_yaml_ng",
- "sha2",
- "smallstr",
- "smallvec",
- "thiserror 2.0.12",
- "tokio",
- "tokio-cron-scheduler",
- "tokio-postgres",
- "tokio-tungstenite",
- "tokio-util",
- "toml_edit",
- "url",
- "urlencoding",
- "uuid",
- "wasmi",
- "wat",
- "zeroize",
-]
-
-[[package]]
-name = "edgelink-eve"
-version = "0.3.0"
-
-[[package]]
-name = "edgelink-macro"
-version = "0.3.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
-]
-
-[[package]]
-name = "edgelink-nodes-dummy"
-version = "0.3.0"
-dependencies = [
- "async-trait",
- "config",
- "edgelink-core",
- "edgelink-macro",
- "inventory",
- "log 0.4.27",
- "tokio-util",
-]
-
-[[package]]
-name = "edgelink-pymod"
-version = "0.3.0"
-dependencies = [
- "anyhow",
- "config",
- "edgelink-core",
- "edgelink-nodes-dummy",
- "log 0.4.27",
- "log4rs",
- "pyo3",
- "pyo3-async-runtimes",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "edgelink-wasm-guest"
-version = "0.3.0"
-dependencies = [
- "edgelink-eve",
-]
-
-[[package]]
-name = "edgelink-web"
-version = "0.3.0"
-dependencies = [
- "anyhow",
- "axum",
- "bcrypt",
- "chrono",
- "config",
- "edgelink-core",
- "futures-util",
- "hex",
- "inventory",
- "log 0.4.27",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "toml_edit",
- "tower 0.4.13",
- "tower-http",
- "uuid",
- "wat",
-]
-
-[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2018,6 +1852,172 @@ checksum = "51956ef1c5d20a1384524d91e616fb44dfc7d8f249bf696d49c97dd3289ecab5"
 dependencies = [
  "log 0.3.9",
  "serde",
+]
+
+[[package]]
+name = "n2link-app"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "clap",
+ "config",
+ "dirs-next",
+ "log 0.4.27",
+ "log4rs",
+ "n2link-core",
+ "n2link-nodes-dummy",
+ "n2link-web",
+ "once_cell",
+ "semver",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "n2link-core"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "arrayvec",
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "bincode",
+ "bumpalo",
+ "bytes",
+ "chacha20poly1305",
+ "chrono",
+ "config",
+ "ctor",
+ "dashmap",
+ "fs2",
+ "futures",
+ "futures-util",
+ "hex",
+ "inventory",
+ "itertools 0.14.0",
+ "jsonata-core",
+ "libc",
+ "log 0.4.27",
+ "log4rs",
+ "mustache",
+ "n2link-eve",
+ "n2link-macro",
+ "nom 8.0.0",
+ "notify",
+ "quick-xml",
+ "rand 0.9.1",
+ "redis",
+ "regex",
+ "reqwest",
+ "rquickjs",
+ "rquickjs-extra",
+ "rumqttc",
+ "rusqlite",
+ "semver",
+ "serde",
+ "serde-xml-rs",
+ "serde_json",
+ "serde_with",
+ "serde_yaml_ng",
+ "sha2",
+ "smallstr",
+ "smallvec",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-cron-scheduler",
+ "tokio-postgres",
+ "tokio-tungstenite",
+ "tokio-util",
+ "toml_edit",
+ "url",
+ "urlencoding",
+ "uuid",
+ "wasmi",
+ "wat",
+ "zeroize",
+]
+
+[[package]]
+name = "n2link-eve"
+version = "0.3.0"
+
+[[package]]
+name = "n2link-macro"
+version = "0.3.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "n2link-nodes-dummy"
+version = "0.3.0"
+dependencies = [
+ "async-trait",
+ "config",
+ "inventory",
+ "log 0.4.27",
+ "n2link-core",
+ "n2link-macro",
+ "tokio-util",
+]
+
+[[package]]
+name = "n2link-pymod"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "log 0.4.27",
+ "log4rs",
+ "n2link-core",
+ "n2link-nodes-dummy",
+ "pyo3",
+ "pyo3-async-runtimes",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "n2link-wasm-guest"
+version = "0.3.0"
+dependencies = [
+ "n2link-eve",
+]
+
+[[package]]
+name = "n2link-web"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bcrypt",
+ "chrono",
+ "config",
+ "futures-util",
+ "hex",
+ "inventory",
+ "log 0.4.27",
+ "n2link-core",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "toml_edit",
+ "tower 0.4.13",
+ "tower-http",
+ "uuid",
+ "wat",
 ]
 
 [[package]]

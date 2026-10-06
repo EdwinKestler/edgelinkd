@@ -258,7 +258,7 @@ impl RedPropertyValue {
                 let arr = Variant::deserialize(&jv)?;
                 let bytes = arr
                     .to_bytes()
-                    .ok_or(EdgelinkError::BadArgument("value"))
+                    .ok_or(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Expected an array of bytes, got: {value:?}"))?;
                 Variant::from(bytes)
             }
@@ -270,7 +270,7 @@ impl RedPropertyValue {
             RedPropertyType::Jsonata => Variant::String(value.into()),
 
             _ => {
-                return Err(EdgelinkError::BadArgument("_type"))
+                return Err(N2linkError::BadArgument("_type"))
                     .with_context(|| format!("Unsupported constant type `{_type:?}`"));
             }
         };

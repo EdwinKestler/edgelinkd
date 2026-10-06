@@ -38,10 +38,10 @@ use std::sync::Arc;
 use serde::Deserialize;
 
 use super::mqtt_broker::{self, BrokerSession, PublishProps, qos_of};
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MqttQoS {
@@ -165,10 +165,10 @@ impl MqttOutNode {
         };
         let topic = planned_topic(&self.config.topic, msg.get("topic").and_then(|value| value.as_str()));
         if topic.is_empty() {
-            return Err(EdgelinkError::invalid_operation("No topic specified for MQTT publish"));
+            return Err(N2linkError::invalid_operation("No topic specified for MQTT publish"));
         }
         if !valid_publish_topic(&topic) {
-            return Err(EdgelinkError::invalid_operation(&format!("Invalid topic for publishing: '{topic}'")));
+            return Err(N2linkError::invalid_operation(&format!("Invalid topic for publishing: '{topic}'")));
         }
         let qos = planned_qos(self.config.qos, msg.get("qos"))?;
         let retain = planned_retain(self.config.retain, msg.get("retain"));
@@ -189,7 +189,7 @@ impl MqttOutNode {
             Variant::Object(_) | Variant::Array(_) => {
                 // For objects and arrays, stringify to JSON
                 serde_json::to_vec(payload)
-                    .map_err(|e| crate::EdgelinkError::invalid_operation(&format!("Failed to serialize payload: {e}")))
+                    .map_err(|e| crate::N2linkError::invalid_operation(&format!("Failed to serialize payload: {e}")))
             }
             Variant::Date(d) => {
                 // Convert SystemTime to ISO 8601 string
@@ -210,7 +210,7 @@ impl MqttOutNode {
             match action {
                 "connect" => {
                     if msg.get("broker").is_some() {
-                        return Err(EdgelinkError::NotSupported(
+                        return Err(N2linkError::NotSupported(
                             "a broker supplied on the message is not supported".to_owned(),
                         ));
                     }
@@ -226,7 +226,7 @@ impl MqttOutNode {
                     log::info!("MQTT disconnected");
                 }
                 _ => {
-                    return Err(crate::EdgelinkError::invalid_operation(&format!(
+                    return Err(crate::N2linkError::invalid_operation(&format!(
                         "Invalid MQTT action: '{action}'. Valid actions are 'connect' and 'disconnect'"
                     )));
                 }
@@ -301,8 +301,8 @@ fn message_qos_value(value: &Variant) -> crate::Result<rumqttc::QoS> {
         Some(0) => Ok(rumqttc::QoS::AtMostOnce),
         Some(1) => Ok(rumqttc::QoS::AtLeastOnce),
         Some(2) => Ok(rumqttc::QoS::ExactlyOnce),
-        Some(other) => Err(EdgelinkError::invalid_operation(&format!("MQTT qos {other} is out of range"))),
-        None => Err(EdgelinkError::invalid_operation("MQTT qos is out of range")),
+        Some(other) => Err(N2linkError::invalid_operation(&format!("MQTT qos {other} is out of range"))),
+        None => Err(N2linkError::invalid_operation("MQTT qos is out of range")),
     }
 }
 
@@ -344,7 +344,7 @@ fn reject_publish_config(config: &MqttOutNodeConfig, v5: bool) -> crate::Result<
         || user_set;
     if !v5 {
         return if properties {
-            Err(EdgelinkError::NotSupported("MQTT v5 publish properties are not supported".to_owned()))
+            Err(N2linkError::NotSupported("MQTT v5 publish properties are not supported".to_owned()))
         } else {
             Ok(())
         };
@@ -371,14 +371,14 @@ fn config_props(config: &MqttOutNodeConfig) -> crate::Result<PublishProps> {
 
 fn parse_user_props_text(raw: &str) -> crate::Result<Vec<(String, String)>> {
     let value: serde_json::Value = serde_json::from_str(raw.trim())
-        .map_err(|_| EdgelinkError::invalid_operation("mqtt userProps is not a JSON object of strings"))?;
+        .map_err(|_| N2linkError::invalid_operation("mqtt userProps is not a JSON object of strings"))?;
     let serde_json::Value::Object(map) = value else {
-        return Err(EdgelinkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
+        return Err(N2linkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
     };
     let mut pairs = Vec::with_capacity(map.len());
     for (key, item) in map {
         let serde_json::Value::String(text) = item else {
-            return Err(EdgelinkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
+            return Err(N2linkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
         };
         pairs.push((key, text));
     }
@@ -388,7 +388,7 @@ fn parse_user_props_text(raw: &str) -> crate::Result<Vec<(String, String)>> {
 fn merge_message_props(props: &mut PublishProps, msg: &Msg, v5: bool) -> crate::Result<()> {
     if !v5 {
         return if message_property_set(msg) {
-            Err(EdgelinkError::NotSupported("MQTT v5 publish properties are not supported".to_owned()))
+            Err(N2linkError::NotSupported("MQTT v5 publish properties are not supported".to_owned()))
         } else {
             Ok(())
         };
@@ -447,7 +447,7 @@ fn take_text(value: &Variant, name: &str) -> crate::Result<Option<String>> {
         Variant::Null => Ok(None),
         Variant::String(text) if text.is_empty() => Ok(None),
         Variant::String(text) => Ok(Some(text.clone())),
-        _ => Err(EdgelinkError::invalid_operation(&format!("mqtt {name} is not a string"))),
+        _ => Err(N2linkError::invalid_operation(&format!("mqtt {name} is not a string"))),
     }
 }
 
@@ -458,7 +458,7 @@ fn take_bytes(value: &Variant, name: &str) -> crate::Result<Option<Vec<u8>>> {
         Variant::String(text) => Ok(Some(text.as_bytes().to_vec())),
         Variant::Bytes(bytes) if bytes.is_empty() => Ok(None),
         Variant::Bytes(bytes) => Ok(Some(bytes.clone())),
-        _ => Err(EdgelinkError::invalid_operation(&format!("mqtt {name} is not bytes"))),
+        _ => Err(N2linkError::invalid_operation(&format!("mqtt {name} is not bytes"))),
     }
 }
 
@@ -470,24 +470,24 @@ fn optional_expiry(value: &Variant) -> crate::Result<Option<u32>> {
             .as_u64()
             .and_then(|level| u32::try_from(level).ok())
             .map(Some)
-            .ok_or_else(|| EdgelinkError::invalid_operation("mqtt messageExpiryInterval is out of range")),
+            .ok_or_else(|| N2linkError::invalid_operation("mqtt messageExpiryInterval is out of range")),
         Variant::String(text) => text
             .trim()
             .parse::<u32>()
             .map(Some)
-            .map_err(|_| EdgelinkError::invalid_operation("mqtt messageExpiryInterval is not a number")),
-        _ => Err(EdgelinkError::invalid_operation("mqtt messageExpiryInterval is not a number")),
+            .map_err(|_| N2linkError::invalid_operation("mqtt messageExpiryInterval is not a number")),
+        _ => Err(N2linkError::invalid_operation("mqtt messageExpiryInterval is not a number")),
     }
 }
 
 fn user_properties_from_message(value: &Variant) -> crate::Result<Vec<(String, String)>> {
     let Variant::Object(map) = value else {
-        return Err(EdgelinkError::invalid_operation("mqtt userProperties is not an object of strings"));
+        return Err(N2linkError::invalid_operation("mqtt userProperties is not an object of strings"));
     };
     let mut pairs = Vec::with_capacity(map.len());
     for (key, item) in map {
         let Variant::String(text) = item else {
-            return Err(EdgelinkError::invalid_operation("mqtt userProperties is not an object of strings"));
+            return Err(N2linkError::invalid_operation("mqtt userProperties is not an object of strings"));
         };
         pairs.push((key.clone(), text.clone()));
     }

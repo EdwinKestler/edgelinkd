@@ -26,7 +26,7 @@ mod tools;
 use std::time::Duration;
 
 #[cfg(feature = "nodes_ai")]
-use crate::EdgelinkError;
+use crate::N2linkError;
 #[cfg(feature = "nodes_ai")]
 use crate::runtime::engine::Engine;
 #[cfg(feature = "nodes_ai")]
@@ -52,14 +52,14 @@ pub(crate) async fn complete_for_engine(
     timeout: Duration,
 ) -> crate::Result<String> {
     let id: ElementId =
-        provider_id.parse().map_err(|_| EdgelinkError::invalid_operation("AI provider id is not a node id"))?;
+        provider_id.parse().map_err(|_| N2linkError::invalid_operation("AI provider id is not a node id"))?;
     let global = engine
         .find_global_node_by_id(&id)
-        .ok_or_else(|| EdgelinkError::invalid_operation("AI provider is not deployed"))?;
+        .ok_or_else(|| N2linkError::invalid_operation("AI provider is not deployed"))?;
     let provider = global
         .as_any()
         .downcast_ref::<AiProviderNode>()
-        .ok_or_else(|| EdgelinkError::invalid_operation("selected node is not an ai-provider"))?;
+        .ok_or_else(|| N2linkError::invalid_operation("selected node is not an ai-provider"))?;
     let model = model.filter(|value| !value.trim().is_empty()).unwrap_or(&provider.default_model);
     let request = ChatRequest {
         model: model.to_owned(),

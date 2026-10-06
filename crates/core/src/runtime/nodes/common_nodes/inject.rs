@@ -6,10 +6,10 @@ use serde::Deserialize;
 use serde_json::Value;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::eval;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 // const USER_INJECT_PROPS: &str = "__user_inject_props__";
 
@@ -89,7 +89,7 @@ impl InjectNode {
 
         if self.config.crontab.is_empty() {
             log::error!("Cron expression is missing");
-            return Err(EdgelinkError::BadFlowsJson("Cron expression is missing".to_owned()));
+            return Err(N2linkError::BadFlowsJson("Cron expression is missing".to_owned()));
         }
 
         log::debug!("cron_expr='{}'", self.config.crontab);

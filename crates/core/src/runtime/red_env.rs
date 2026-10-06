@@ -193,7 +193,7 @@ impl RedEnvStoreBuilder {
                 let arr = Variant::deserialize(&jv)?;
                 let bytes = arr
                     .to_bytes()
-                    .ok_or(EdgelinkError::BadArgument("value"))
+                    .ok_or(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Expected an array of bytes, got: {value:?}"))?;
                 Ok(Variant::Bytes(bytes))
             }
@@ -207,16 +207,16 @@ impl RedEnvStoreBuilder {
 
             #[cfg(not(feature = "jsonata"))]
             RedPropertyType::Jsonata => {
-                Err(EdgelinkError::NotSupported("JSONata support is not compiled in".to_owned()).into())
+                Err(N2linkError::NotSupported("JSONata support is not compiled in".to_owned()).into())
             }
 
             RedPropertyType::Env => match self.normalized_and_get_existed(value) {
                 Some(ev) => Ok(ev),
-                _ => Err(EdgelinkError::BadArgument("value"))
+                _ => Err(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Cannot found the environment variable: '{value}'")),
             },
 
-            _ => Err(EdgelinkError::BadArgument("type_"))
+            _ => Err(N2linkError::BadArgument("type_"))
                 .with_context(|| format!("Unsupported environment varibale type: '{value}'")),
         }
     }

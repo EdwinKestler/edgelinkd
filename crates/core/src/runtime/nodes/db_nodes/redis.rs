@@ -9,7 +9,7 @@ use redis::aio::Connection;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::engine::Engine;
 use crate::runtime::flow::Flow;
@@ -17,7 +17,7 @@ use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::json::RedGlobalNodeConfig;
 use crate::runtime::model::{MsgHandle, Variant};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 const DEFAULT_PORT: u16 = 6379;
 const DEFAULT_TIMEOUT_MS: u64 = 5_000;
@@ -49,23 +49,23 @@ fn resolve_settings(value: &Value) -> crate::Result<RedisSettings> {
     if value.get("tls").is_some_and(|item| item != &Value::Bool(false))
         || json_string(value, "tls").is_some_and(|mode| mode != "disable")
     {
-        return Err(EdgelinkError::NotSupported("Redis TLS is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("Redis TLS is not supported".to_owned()));
     }
     let host = json_string(value, "host").unwrap_or_else(|| "127.0.0.1".to_owned());
     let port = value.get("port").and_then(Value::as_u64).unwrap_or(DEFAULT_PORT as u64);
     if !(1..=65535).contains(&port) {
-        return Err(EdgelinkError::invalid_operation("redis port is out of range"));
+        return Err(N2linkError::invalid_operation("redis port is out of range"));
     }
     let db = value.get("db").and_then(Value::as_i64).unwrap_or(0);
     if !(0..=15).contains(&db) {
-        return Err(EdgelinkError::invalid_operation("redis db must be 0..=15"));
+        return Err(N2linkError::invalid_operation("redis db must be 0..=15"));
     }
     let password = json_string(value, "password")
         .or_else(|| value.get("credentials").and_then(|creds| json_string(creds, "password")))
         .unwrap_or_default();
     let timeout_ms = value.get("timeoutMs").and_then(Value::as_u64).unwrap_or(DEFAULT_TIMEOUT_MS);
     if !(100..=120_000).contains(&timeout_ms) {
-        return Err(EdgelinkError::invalid_operation("redis timeoutMs is out of range"));
+        return Err(N2linkError::invalid_operation("redis timeoutMs is out of range"));
     }
     Ok(RedisSettings { host, port: port as u16, db, password, timeout: Duration::from_millis(timeout_ms) })
 }
@@ -101,18 +101,18 @@ impl GlobalNodeBehavior for RedisConfigNode {
 
 fn config_from_flow(flow: &Flow, id: &str) -> crate::Result<(RedisSettings, EgressPolicyHandle)> {
     if id.is_empty() {
-        return Err(EdgelinkError::invalid_operation("redis node has no redis-config"));
+        return Err(N2linkError::invalid_operation("redis node has no redis-config"));
     }
     let eid: crate::runtime::model::ElementId =
-        id.parse().map_err(|_| EdgelinkError::invalid_operation("redis-config id is not a node id"))?;
-    let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("redis node has no engine"))?;
+        id.parse().map_err(|_| N2linkError::invalid_operation("redis-config id is not a node id"))?;
+    let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("redis node has no engine"))?;
     let global = engine
         .find_global_node_by_id(&eid)
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("redis-config '{id}' was not loaded")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("redis-config '{id}' was not loaded")))?;
     let node = global
         .as_any()
         .downcast_ref::<RedisConfigNode>()
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("node '{id}' is not a redis-config")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("node '{id}' is not a redis-config")))?;
     Ok((node.settings.clone(), node.egress.clone()))
 }
 
@@ -143,20 +143,20 @@ impl RedisNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let raw = CommandConfig::deserialize(&config.rest)?;
         if raw.redis.trim().is_empty() {
-            return Err(EdgelinkError::invalid_operation("redis node requires a redis-config"));
+            return Err(N2linkError::invalid_operation("redis node requires a redis-config"));
         }
         let command = if raw.command.trim().is_empty() { "ping".to_owned() } else { raw.command.to_ascii_lowercase() };
         match command.as_str() {
             "ping" | "get" | "set" | "del" => {}
             other => {
-                return Err(EdgelinkError::NotSupported(format!("Redis command '{other}' is not supported")));
+                return Err(N2linkError::NotSupported(format!("Redis command '{other}' is not supported")));
             }
         }
         Ok(Box::new(Self { base: base_node, redis: raw.redis, command, key: raw.key }))
     }
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
-        let flow = self.flow().ok_or_else(|| EdgelinkError::invalid_operation("redis node has no flow"))?;
+        let flow = self.flow().ok_or_else(|| N2linkError::invalid_operation("redis node has no flow"))?;
         let (settings, egress) = config_from_flow(&flow, &self.redis)?;
         let (command, key, value) = {
             let guard = msg.read().await;
@@ -180,7 +180,7 @@ impl RedisNode {
             (command, key, value)
         };
         tokio::select! {
-            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
+            _ = cancel.cancelled() => Err(N2linkError::TaskCancelled),
             result = run_command(&settings, &egress, &command, &key, &value) => {
                 let payload = result?;
                 let mut guard = msg.write().await;
@@ -211,7 +211,7 @@ async fn run_command(
     let stream = egress
         .connect_tcp(EgressPurpose::Redis, NetworkProtocol::Tcp, &settings.host, settings.port)
         .await
-        .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&err.to_string(), &settings.password)))?;
+        .map_err(|err| N2linkError::invalid_operation(&hide_secret(&err.to_string(), &settings.password)))?;
     let info = redis::RedisConnectionInfo {
         db: settings.db,
         username: None,
@@ -221,10 +221,10 @@ async fn run_command(
     #[allow(deprecated)]
     let mut connection = tokio::time::timeout(settings.timeout, Connection::new(&info, stream))
         .await
-        .map_err(|_| EdgelinkError::Timeout)?
-        .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&err.to_string(), &settings.password)))?;
+        .map_err(|_| N2linkError::Timeout)?
+        .map_err(|err| N2linkError::invalid_operation(&hide_secret(&err.to_string(), &settings.password)))?;
     let map_err =
-        |err: redis::RedisError| EdgelinkError::invalid_operation(&hide_secret(&err.to_string(), &settings.password));
+        |err: redis::RedisError| N2linkError::invalid_operation(&hide_secret(&err.to_string(), &settings.password));
     tokio::time::timeout(settings.timeout, async {
         match command {
             "ping" => {
@@ -233,30 +233,30 @@ async fn run_command(
             }
             "get" => {
                 if key.is_empty() {
-                    return Err(EdgelinkError::invalid_operation("redis GET requires a key"));
+                    return Err(N2linkError::invalid_operation("redis GET requires a key"));
                 }
                 let value: Option<String> = connection.get(key).await.map_err(map_err)?;
                 Ok(value.map(Variant::String).unwrap_or(Variant::Null))
             }
             "set" => {
                 if key.is_empty() {
-                    return Err(EdgelinkError::invalid_operation("redis SET requires a key"));
+                    return Err(N2linkError::invalid_operation("redis SET requires a key"));
                 }
                 let _: () = connection.set(key, value).await.map_err(map_err)?;
                 Ok(Variant::String("OK".to_owned()))
             }
             "del" => {
                 if key.is_empty() {
-                    return Err(EdgelinkError::invalid_operation("redis DEL requires a key"));
+                    return Err(N2linkError::invalid_operation("redis DEL requires a key"));
                 }
                 let n: i64 = connection.del(key).await.map_err(map_err)?;
                 Ok(Variant::Number(serde_json::Number::from(n)))
             }
-            other => Err(EdgelinkError::NotSupported(format!("Redis command '{other}' is not supported"))),
+            other => Err(N2linkError::NotSupported(format!("Redis command '{other}' is not supported"))),
         }
     })
     .await
-    .map_err(|_| EdgelinkError::Timeout)?
+    .map_err(|_| N2linkError::Timeout)?
 }
 
 #[async_trait::async_trait]

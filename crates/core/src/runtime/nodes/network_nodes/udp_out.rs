@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::runtime::egress::{EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug)]
 enum UdpMulticast {
@@ -112,16 +112,16 @@ impl UdpOutNode {
         });
 
         let target_ip = target_ip
-            .ok_or_else(|| crate::EdgelinkError::InvalidOperation("No target IP address specified".to_string()))?;
+            .ok_or_else(|| crate::N2linkError::InvalidOperation("No target IP address specified".to_string()))?;
 
-        let target_port = target_port
-            .ok_or_else(|| crate::EdgelinkError::InvalidOperation("No target port specified".to_string()))?;
+        let target_port =
+            target_port.ok_or_else(|| crate::N2linkError::InvalidOperation("No target port specified".to_string()))?;
 
         if target_port == 0 {
-            return Err(crate::EdgelinkError::InvalidOperation("Invalid port number".to_string()));
+            return Err(crate::N2linkError::InvalidOperation("Invalid port number".to_string()));
         }
 
-        let engine = self.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("udp out has no engine"))?;
+        let engine = self.engine().ok_or_else(|| crate::N2linkError::invalid_operation("udp out has no engine"))?;
         let approved = engine
             .egress_policy()
             .approve(EgressPurpose::Udp, NetworkProtocol::Udp, &target_ip.to_string(), target_port)
@@ -138,9 +138,9 @@ impl UdpOutNode {
             // Decode base64 data for sending
             if let Some(payload_str) = payload.as_str() {
                 base64::Engine::decode(&base64::engine::general_purpose::STANDARD, payload_str)
-                    .map_err(|e| crate::EdgelinkError::InvalidOperation(format!("Invalid base64 payload: {e}")))?
+                    .map_err(|e| crate::N2linkError::InvalidOperation(format!("Invalid base64 payload: {e}")))?
             } else {
-                return Err(crate::EdgelinkError::InvalidOperation("Base64 mode requires string payload".to_string()));
+                return Err(crate::N2linkError::InvalidOperation("Base64 mode requires string payload".to_string()));
             }
         } else {
             // Normal mode - send raw bytes
@@ -158,7 +158,7 @@ impl UdpOutNode {
             Ok(_) => Ok(()),
             Err(e) => {
                 self.report_error(format!("Failed to send UDP packet: {e}"), msg.clone(), cancel).await;
-                Err(crate::EdgelinkError::InvalidOperation(format!("Failed to send UDP packet: {e}")))
+                Err(crate::N2linkError::InvalidOperation(format!("Failed to send UDP packet: {e}")))
             }
         }
     }

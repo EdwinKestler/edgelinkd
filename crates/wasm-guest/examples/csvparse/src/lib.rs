@@ -1,7 +1,7 @@
 //! Example plugin with configuration: parse a CSV string payload into rows. Build with
 //! `cargo build --release --target wasm32-unknown-unknown` (see `scripts/wasm-examples.sh`).
 
-use edgelink_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Level, Msg, Node, Shape};
+use n2link_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Level, Msg, Node, Shape};
 
 manifest!("../plugin.toml");
 

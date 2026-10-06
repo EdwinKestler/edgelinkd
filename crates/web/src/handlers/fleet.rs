@@ -12,8 +12,8 @@ use axum::Extension;
 use axum::extract::Path;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
-use edgelink_core::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
-use edgelink_core::runtime::engine::Engine;
+use n2link_core::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
+use n2link_core::runtime::engine::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::sync::RwLock;
@@ -208,7 +208,7 @@ impl Fleet {
         let path = home.join("fleet.json");
         let devices = self.devices.read().await.clone();
         let text = serde_json::to_string_pretty(&FleetFile { devices }).map_err(|err| err.to_string())?;
-        edgelink_core::utils::atomic_file::write_bytes(&path, text.as_bytes(), true).await
+        n2link_core::utils::atomic_file::write_bytes(&path, text.as_bytes(), true).await
     }
 }
 

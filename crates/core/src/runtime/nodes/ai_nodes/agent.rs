@@ -9,14 +9,14 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::context::Context;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::ContextHolder;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::{MsgHandle, Variant};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 use super::adapter::{
     ProviderKind, ToolCall, ToolChatOutput, ToolChatRequest, ToolSpec, TranscriptItem, complete_tools_with_policy,
@@ -89,17 +89,17 @@ impl AiAgentNode {
         require_memory_store(options)?;
         let raw = AgentConfig::deserialize(&config.rest)?;
         if raw.provider.trim().is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-agent provider is required"));
+            return Err(N2linkError::invalid_operation("ai-agent provider is required"));
         }
         if raw.tools.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-agent tools are required"));
+            return Err(N2linkError::invalid_operation("ai-agent tools are required"));
         }
         if raw.system.len() > 4096 {
-            return Err(EdgelinkError::invalid_operation("ai-agent system exceeds 4 KiB"));
+            return Err(N2linkError::invalid_operation("ai-agent system exceeds 4 KiB"));
         }
         let (settings, default_model, _, _) = provider_from_flow(flow, &raw.provider)?;
         if settings.kind == ProviderKind::Cortex {
-            return Err(EdgelinkError::NotSupported("agent tools are not supported for cortex".to_owned()));
+            return Err(N2linkError::NotSupported("agent tools are not supported for cortex".to_owned()));
         }
         let mut tools = Vec::new();
         for name in &raw.tools {
@@ -107,32 +107,32 @@ impl AiAgentNode {
         }
         let timeout_ms = raw.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
         if !(MIN_TIMEOUT_MS..=MAX_TIMEOUT_MS).contains(&timeout_ms) {
-            return Err(EdgelinkError::invalid_operation("ai-agent timeoutMs is out of range"));
+            return Err(N2linkError::invalid_operation("ai-agent timeoutMs is out of range"));
         }
         let max_turns = raw.max_turns.unwrap_or(4);
         if !(1..=8).contains(&max_turns) {
-            return Err(EdgelinkError::invalid_operation("ai-agent maxTurns is out of range"));
+            return Err(N2linkError::invalid_operation("ai-agent maxTurns is out of range"));
         }
         let max_tool_calls = raw.max_tool_calls.unwrap_or(8);
         if !(1..=16).contains(&max_tool_calls) {
-            return Err(EdgelinkError::invalid_operation("ai-agent maxToolCalls is out of range"));
+            return Err(N2linkError::invalid_operation("ai-agent maxToolCalls is out of range"));
         }
         let max_tokens = raw.max_tokens.unwrap_or(1024);
         if !(1..=8192).contains(&max_tokens) {
-            return Err(EdgelinkError::invalid_operation("ai-agent maxTokens is out of range"));
+            return Err(N2linkError::invalid_operation("ai-agent maxTokens is out of range"));
         }
         let max_context_chars = raw.max_context_chars.unwrap_or(8000) as usize;
         if !(1..=32000).contains(&max_context_chars) {
-            return Err(EdgelinkError::invalid_operation("ai-agent maxContextChars is out of range"));
+            return Err(N2linkError::invalid_operation("ai-agent maxContextChars is out of range"));
         }
         let max_tool_result_chars = raw.max_tool_result_chars.unwrap_or(1024) as usize;
         if !(1..=4096).contains(&max_tool_result_chars) {
-            return Err(EdgelinkError::invalid_operation("ai-agent maxToolResultChars is out of range"));
+            return Err(N2linkError::invalid_operation("ai-agent maxToolResultChars is out of range"));
         }
         if let Some(temperature) = raw.temperature
             && !(0.0..=2.0).contains(&temperature)
         {
-            return Err(EdgelinkError::invalid_operation("ai-agent temperature must be between 0 and 2"));
+            return Err(N2linkError::invalid_operation("ai-agent temperature must be between 0 and 2"));
         }
         let model = if raw.model.trim().is_empty() { default_model } else { raw.model };
         Ok(Box::new(AiAgentNode {
@@ -156,14 +156,14 @@ impl AiAgentNode {
     }
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
-        let flow = self.flow().ok_or_else(|| EdgelinkError::invalid_operation("ai-agent has no flow"))?;
-        let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("ai-agent has no engine"))?;
+        let flow = self.flow().ok_or_else(|| N2linkError::invalid_operation("ai-agent has no flow"))?;
+        let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("ai-agent has no engine"))?;
         let slot = engine.agent_slots();
         let deadline = Instant::now() + self.config.timeout;
         let permit = tokio::time::timeout(remaining(deadline), slot.acquire())
             .await
-            .map_err(|_| EdgelinkError::invalid_operation("ai-agent concurrency limit"))?
-            .map_err(|_| EdgelinkError::invalid_operation("ai-agent concurrency limit"))?;
+            .map_err(|_| N2linkError::invalid_operation("ai-agent concurrency limit"))?
+            .map_err(|_| N2linkError::invalid_operation("ai-agent concurrency limit"))?;
         let result = self.run_loop(&msg, &flow, deadline, &cancel).await;
         drop(permit);
         result?;
@@ -195,14 +195,14 @@ impl AiAgentNode {
         let egress = egress.snapshot();
         for _turn in 0..self.config.max_turns {
             if cancel.is_cancelled() {
-                return Err(EdgelinkError::TaskCancelled);
+                return Err(N2linkError::TaskCancelled);
             }
             let left = remaining(deadline);
             if left < Duration::from_millis(MIN_TIMEOUT_MS) {
-                return Err(EdgelinkError::Timeout);
+                return Err(N2linkError::Timeout);
             }
             if transcript_chars(&items) > self.config.max_context_chars {
-                return Err(EdgelinkError::invalid_operation("ai-agent maxContextChars exceeded"));
+                return Err(N2linkError::invalid_operation("ai-agent maxContextChars exceeded"));
             }
             let request = ToolChatRequest {
                 model: model.clone(),
@@ -214,8 +214,8 @@ impl AiAgentNode {
                 timeout: left.min(self.config.timeout),
             };
             let output = tokio::select! {
-                _ = cancel.cancelled() => return Err(EdgelinkError::TaskCancelled),
-                _ = tokio::time::sleep_until(tokio::time::Instant::from_std(deadline)) => return Err(EdgelinkError::Timeout),
+                _ = cancel.cancelled() => return Err(N2linkError::TaskCancelled),
+                _ = tokio::time::sleep_until(tokio::time::Instant::from_std(deadline)) => return Err(N2linkError::Timeout),
                 reply = complete_tools_with_policy(&client, &egress, &settings, &request) => reply?,
             };
             match output {
@@ -234,10 +234,10 @@ impl AiAgentNode {
                 ToolChatOutput::Calls(calls) => {
                     for call in calls {
                         if cancel.is_cancelled() {
-                            return Err(EdgelinkError::TaskCancelled);
+                            return Err(N2linkError::TaskCancelled);
                         }
                         if tool_calls >= self.config.max_tool_calls {
-                            return Err(EdgelinkError::invalid_operation("tool_limit"));
+                            return Err(N2linkError::invalid_operation("tool_limit"));
                         }
                         let allow = self.config.tools.iter().any(|tool| tool.name == call.name);
                         if !allow {
@@ -245,7 +245,7 @@ impl AiAgentNode {
                             *count += 1;
                             tool_calls += 1;
                             if *count >= 2 {
-                                return Err(EdgelinkError::invalid_operation("tool_denied"));
+                                return Err(N2linkError::invalid_operation("tool_denied"));
                             }
                             items.push(TranscriptItem::FunctionCall {
                                 call_id: call.call_id.clone(),
@@ -260,13 +260,13 @@ impl AiAgentNode {
                         }
                         let raw = serde_json::to_string(&call.arguments).unwrap_or_else(|_| "{}".to_owned());
                         if raw.len() > 4096 {
-                            return Err(EdgelinkError::invalid_operation("tool_args_limit"));
+                            return Err(N2linkError::invalid_operation("tool_args_limit"));
                         }
                         let digest = repeat_hash(&call.name, &call.arguments);
                         let seen = repeats.entry(digest).or_insert(0);
                         *seen += 1;
                         if *seen >= 3 {
-                            return Err(EdgelinkError::invalid_operation("repeated_tool_call"));
+                            return Err(N2linkError::invalid_operation("repeated_tool_call"));
                         }
                         items.push(TranscriptItem::FunctionCall {
                             call_id: call.call_id.clone(),
@@ -276,14 +276,14 @@ impl AiAgentNode {
                         let output = self.execute_tool(flow, &call).await;
                         tool_calls += 1;
                         if output.len() > self.config.max_tool_result_chars {
-                            return Err(EdgelinkError::invalid_operation("tool_result_limit"));
+                            return Err(N2linkError::invalid_operation("tool_result_limit"));
                         }
                         items.push(TranscriptItem::FunctionResult { call_id: call.call_id, output });
                     }
                 }
             }
         }
-        Err(EdgelinkError::invalid_operation("ai-agent maxTurns exceeded"))
+        Err(N2linkError::invalid_operation("ai-agent maxTurns exceeded"))
     }
 
     async fn execute_tool(&self, flow: &Flow, call: &ToolCall) -> String {
@@ -338,10 +338,10 @@ impl AiAgentNode {
             "node" => Ok(self.get_base().context().clone()),
             "flow" => Ok(flow.context().clone()),
             "global" => {
-                let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("ai-agent has no engine"))?;
+                let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("ai-agent has no engine"))?;
                 Ok(engine.context().clone())
             }
-            _ => Err(EdgelinkError::invalid_operation("invalid scope")),
+            _ => Err(N2linkError::invalid_operation("invalid scope")),
         }
     }
 }
@@ -354,7 +354,7 @@ fn require_memory_store(options: Option<&config::Config>) -> crate::Result<()> {
     let key = format!("runtime.context.stores.{default}.provider");
     let provider = cfg.get_string(&key).unwrap_or_else(|_| "memory".to_owned());
     if provider != "memory" {
-        return Err(EdgelinkError::NotSupported(
+        return Err(N2linkError::NotSupported(
             "ai-agent requires the default context store to use the memory provider".to_owned(),
         ));
     }
@@ -428,13 +428,13 @@ fn cap(text: &str) -> String {
 
 fn payload_text(value: Option<&Variant>) -> crate::Result<String> {
     let Some(value) = value else {
-        return Err(EdgelinkError::invalid_operation("ai-agent prompt is empty"));
+        return Err(N2linkError::invalid_operation("ai-agent prompt is empty"));
     };
     value
         .as_str()
         .filter(|text| !text.is_empty())
         .map(str::to_owned)
-        .ok_or_else(|| EdgelinkError::invalid_operation("ai-agent prompt is empty"))
+        .ok_or_else(|| N2linkError::invalid_operation("ai-agent prompt is empty"))
 }
 
 fn empty_as_none_u32<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>

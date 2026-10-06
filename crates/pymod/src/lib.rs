@@ -1,14 +1,14 @@
-use edgelink_core::runtime::model::{ElementId, Msg};
+use n2link_core::runtime::model::{ElementId, Msg};
 use pyo3::types::PyModule;
 use pyo3::{prelude::*, wrap_pyfunction};
 use serde::Deserialize;
 
-use edgelink_core::runtime::engine::Engine;
+use n2link_core::runtime::engine::Engine;
 mod context;
 mod json;
 
 #[pymodule]
-fn edgelink_pymod(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn n2link_pymod(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_sleep, m)?)?;
     m.add_function(wrap_pyfunction!(run_flows_once, m)?)?;
     m.add_function(wrap_pyfunction!(run_flows_for_once, m)?)?;
@@ -55,7 +55,7 @@ fn build_engine_only<'a>(py_json: &'a Bound<'a, PyAny>, app_cfg: &'a Bound<'a, P
         }
     };
 
-    let registry = edgelink_core::runtime::registry::RegistryBuilder::default()
+    let registry = n2link_core::runtime::registry::RegistryBuilder::default()
         .build()
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 

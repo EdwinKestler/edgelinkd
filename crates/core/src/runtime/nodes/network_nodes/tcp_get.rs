@@ -11,7 +11,7 @@ use serde::Deserialize;
 use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
 enum TcpGetMode {
@@ -153,8 +153,7 @@ impl TcpGetNode {
         let socket_timeout = None;
         // Node-RED caps the per-connection queues with its `tcpMsgQueueSize` setting.
         let msg_queue_size = flow.settings().tcp_msg_queue_size;
-        let engine =
-            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("tcp request has no engine"))?;
+        let engine = flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("tcp request has no engine"))?;
         let node = TcpGetNode {
             base: state,
             config: tcp_config,
@@ -208,9 +207,9 @@ impl TcpGetNode {
     async fn connect_key(&self, connection_key: &str) -> crate::Result<TcpStream> {
         let (host, port) = connection_key
             .rsplit_once(':')
-            .ok_or_else(|| crate::EdgelinkError::invalid_operation("TCP request target is invalid"))?;
+            .ok_or_else(|| crate::N2linkError::invalid_operation("TCP request target is invalid"))?;
         let port =
-            port.parse::<u16>().map_err(|_| crate::EdgelinkError::invalid_operation("TCP request port is invalid"))?;
+            port.parse::<u16>().map_err(|_| crate::N2linkError::invalid_operation("TCP request port is invalid"))?;
         self.egress.connect_tcp(EgressPurpose::Tcp, NetworkProtocol::Tcp, host.trim_matches(['[', ']']), port).await
     }
 
@@ -226,17 +225,17 @@ impl TcpGetNode {
                             if b <= 255 {
                                 bytes.push(b as u8);
                             } else {
-                                return Err(crate::EdgelinkError::InvalidOperation(
+                                return Err(crate::N2linkError::InvalidOperation(
                                     "Array contains numbers > 255".to_string(),
                                 ));
                             }
                         } else {
-                            return Err(crate::EdgelinkError::InvalidOperation(
+                            return Err(crate::N2linkError::InvalidOperation(
                                 "Array contains non-integer numbers".to_string(),
                             ));
                         }
                     } else {
-                        return Err(crate::EdgelinkError::InvalidOperation(
+                        return Err(crate::N2linkError::InvalidOperation(
                             "Array contains non-numeric items".to_string(),
                         ));
                     }
@@ -380,9 +379,9 @@ impl TcpGetNode {
         match timeout(timeout_duration, stream.read_exact(&mut buffer)).await {
             Ok(Ok(_)) => {}
             Ok(Err(e)) => {
-                return Err(crate::EdgelinkError::InvalidOperation(format!("Read error: {e}")));
+                return Err(crate::N2linkError::InvalidOperation(format!("Read error: {e}")));
             }
-            Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string())),
+            Err(_) => return Err(crate::N2linkError::InvalidOperation("Read timeout".to_string())),
         }
         Ok(buffer)
     }
@@ -402,7 +401,7 @@ impl TcpGetNode {
                     }
                 }
                 Ok(Err(_)) => break, // Read error
-                Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string())),
+                Err(_) => return Err(crate::N2linkError::InvalidOperation("Read timeout".to_string())),
             }
             // If splitc == 0, break after reading one byte
             if split_char == 0 {
@@ -426,9 +425,9 @@ impl TcpGetNode {
                     }
                 }
                 Ok(Err(e)) => {
-                    return Err(crate::EdgelinkError::InvalidOperation(format!("Read error: {e}")));
+                    return Err(crate::N2linkError::InvalidOperation(format!("Read error: {e}")));
                 }
-                Err(_) => return Err(crate::EdgelinkError::InvalidOperation("Read timeout".to_string())),
+                Err(_) => return Err(crate::N2linkError::InvalidOperation("Read timeout".to_string())),
             }
         }
         Ok(buffer)
@@ -469,7 +468,7 @@ impl TcpGetNode {
             .unwrap_or(0);
 
         if port == 0 {
-            return Err(crate::EdgelinkError::InvalidOperation("Port must be specified".to_string()));
+            return Err(crate::N2linkError::InvalidOperation("Port must be specified".to_string()));
         }
 
         let connection_key = format!("{host}:{port}");
@@ -668,14 +667,14 @@ impl TcpGetNode {
                             .await;
                     });
                     self.clients.get(&connection_key).ok_or_else(|| {
-                        crate::EdgelinkError::InvalidOperation(format!(
+                        crate::N2linkError::InvalidOperation(format!(
                             "TCP sit connection not found for {connection_key}"
                         ))
                     })?
                 }
                 Err(e) => {
                     self.report_error(format!("Failed to connect: {e}"), stop_token.clone()).await;
-                    return Err(crate::EdgelinkError::InvalidOperation(format!(
+                    return Err(crate::N2linkError::InvalidOperation(format!(
                         "Failed to connect to {connection_key}: {e}"
                     )));
                 }

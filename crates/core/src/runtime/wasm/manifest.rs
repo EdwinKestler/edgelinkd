@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 pub(crate) const SUPPORTED_ABI: u32 = 1;
 
@@ -219,8 +219,8 @@ pub struct SelfTest {
     pub expect_outputs: Vec<u32>,
 }
 
-fn bad(field: &str, why: impl std::fmt::Display) -> EdgelinkError {
-    EdgelinkError::NotSupported(format!("manifest {field}: {why}"))
+fn bad(field: &str, why: impl std::fmt::Display) -> N2linkError {
+    N2linkError::NotSupported(format!("manifest {field}: {why}"))
 }
 
 /// `[a-z][a-z0-9]{0,31}`: no dashes, so `wasm-<publisher>-<name>` is injective.
@@ -250,7 +250,7 @@ fn plain_text(field: &str, text: &str, max: usize) -> crate::Result<()> {
 impl Manifest {
     pub(crate) fn parse(text: &str) -> crate::Result<Self> {
         let manifest: Manifest =
-            toml_edit::de::from_str(text).map_err(|err| EdgelinkError::NotSupported(format!("manifest: {err}")))?;
+            toml_edit::de::from_str(text).map_err(|err| N2linkError::NotSupported(format!("manifest: {err}")))?;
         manifest.validate()?;
         Ok(manifest)
     }

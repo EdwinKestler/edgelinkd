@@ -16,7 +16,7 @@ use axum::Extension;
 use axum::extract::Query;
 use axum::http::{HeaderMap, Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use edgelink_core::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
+use n2link_core::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
 use serde::Deserialize;
 use serde_json::{Value, json};
 

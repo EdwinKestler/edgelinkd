@@ -3,7 +3,7 @@
 use serde_json::json;
 
 use super::adapter::ToolSpec;
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 pub(crate) const CONTEXT_GET: &str = "context_get";
 pub(crate) const CONTEXT_SET: &str = "context_set";
@@ -48,16 +48,16 @@ pub(crate) fn spec_for(name: &str) -> crate::Result<ToolSpec> {
     match name {
         CONTEXT_GET => Ok(context_get_spec()),
         CONTEXT_SET => Ok(context_set_spec()),
-        _ => Err(EdgelinkError::NotSupported(format!("ai-agent tool '{name}' is not supported"))),
+        _ => Err(N2linkError::NotSupported(format!("ai-agent tool '{name}' is not supported"))),
     }
 }
 
 pub(crate) fn validate_tool_name(name: &str) -> crate::Result<()> {
     if FORBIDDEN.contains(&name) || name.contains('.') {
-        return Err(EdgelinkError::NotSupported(format!("ai-agent tool '{name}' is not supported")));
+        return Err(N2linkError::NotSupported(format!("ai-agent tool '{name}' is not supported")));
     }
     if name.is_empty() || name.len() > 64 || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-        return Err(EdgelinkError::NotSupported(format!("ai-agent tool '{name}' is not supported")));
+        return Err(N2linkError::NotSupported(format!("ai-agent tool '{name}' is not supported")));
     }
     Ok(())
 }

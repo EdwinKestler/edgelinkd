@@ -14,7 +14,7 @@ use crate::runtime::flow::Flow;
 use crate::runtime::http_registry::{HttpResponse, HttpResponseRegistry};
 use crate::runtime::ingress::{EndpointLimits, IngressProtectionConfig, ProtectionMode, TrustedProxySet};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -108,18 +108,18 @@ impl HttpInNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let http_config = HttpInNodeConfig::deserialize(&config.rest)?;
         if !http_config.url.starts_with('/') || http_config.url.contains('?') {
-            return Err(EdgelinkError::invalid_operation(
+            return Err(N2linkError::invalid_operation(
                 "http in url must be an exact absolute path without a query string",
             ));
         }
-        let ingress = IngressProtectionConfig::load(options).map_err(|err| EdgelinkError::invalid_operation(&err))?;
+        let ingress = IngressProtectionConfig::load(options).map_err(|err| N2linkError::invalid_operation(&err))?;
         let limits = ingress.webhook.clone();
         let trusted_proxies =
-            TrustedProxySet::new(&ingress.trusted_proxies).map_err(|err| EdgelinkError::invalid_operation(&err))?;
+            TrustedProxySet::new(&ingress.trusted_proxies).map_err(|err| N2linkError::invalid_operation(&err))?;
         let webhook_token =
             match ingress.webhook_bearer_env.as_deref().map(str::trim).filter(|name| !name.is_empty()) {
                 Some(name) => Some(std::env::var(name).ok().filter(|value| !value.is_empty()).ok_or_else(|| {
-                    EdgelinkError::invalid_operation("configured webhook bearer environment is missing")
+                    N2linkError::invalid_operation("configured webhook bearer environment is missing")
                 })?),
                 None => None,
             };

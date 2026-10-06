@@ -7,12 +7,12 @@ use serde::Deserialize;
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::{MsgHandle, Variant};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 use super::adapter::{EmbedRequest, ProviderKind, embed_with_policy};
 use super::provider::provider_from_flow;
@@ -61,34 +61,32 @@ impl AiEmbedNode {
         reject_unsupported(&config.rest)?;
         let raw = EmbedConfig::deserialize(&config.rest)?;
         if raw.provider.trim().is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-embed provider is required"));
+            return Err(N2linkError::invalid_operation("ai-embed provider is required"));
         }
         if raw.model.trim().is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-embed model is required"));
+            return Err(N2linkError::invalid_operation("ai-embed model is required"));
         }
         let (settings, _, _, _) = provider_from_flow(flow, &raw.provider)?;
         match settings.kind {
             ProviderKind::Openai | ProviderKind::Xai => {}
             other => {
-                return Err(EdgelinkError::NotSupported(format!(
+                return Err(N2linkError::NotSupported(format!(
                     "embeddings are not supported for provider '{}'",
                     other.as_str()
                 )));
             }
         }
         if raw.dimensions.is_some() && settings.kind == ProviderKind::Xai {
-            return Err(EdgelinkError::NotSupported(
-                "xAI embeddings do not accept dimensions in this build".to_owned(),
-            ));
+            return Err(N2linkError::NotSupported("xAI embeddings do not accept dimensions in this build".to_owned()));
         }
         if let Some(dimensions) = raw.dimensions
             && !(1..=4096).contains(&dimensions)
         {
-            return Err(EdgelinkError::invalid_operation("ai-embed dimensions is out of range"));
+            return Err(N2linkError::invalid_operation("ai-embed dimensions is out of range"));
         }
         let timeout_ms = raw.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
         if !(MIN_TIMEOUT_MS..=MAX_TIMEOUT_MS).contains(&timeout_ms) {
-            return Err(EdgelinkError::invalid_operation("ai-embed timeoutMs is out of range"));
+            return Err(N2linkError::invalid_operation("ai-embed timeoutMs is out of range"));
         }
         let property = if raw.property.trim().is_empty() { "payload".to_owned() } else { raw.property };
         Ok(Box::new(AiEmbedNode {
@@ -104,7 +102,7 @@ impl AiEmbedNode {
     }
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
-        let flow = self.flow().ok_or_else(|| EdgelinkError::invalid_operation("ai-embed has no flow"))?;
+        let flow = self.flow().ok_or_else(|| N2linkError::invalid_operation("ai-embed has no flow"))?;
         let (settings, _, client, egress) = provider_from_flow(&flow, &self.config.provider)?;
         let input = {
             let guard = msg.read().await;
@@ -118,7 +116,7 @@ impl AiEmbedNode {
         };
         let egress = egress.snapshot();
         tokio::select! {
-            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
+            _ = cancel.cancelled() => Err(N2linkError::TaskCancelled),
             reply = embed_with_policy(&client, &egress, &settings, &request) => {
                 let reply = reply?;
                 let payload = if reply.vectors.len() == 1 {
@@ -163,36 +161,36 @@ fn vector_variant(row: &[f64]) -> Variant {
 
 fn read_input(value: Option<&Variant>) -> crate::Result<Vec<String>> {
     let Some(value) = value else {
-        return Err(EdgelinkError::invalid_operation("ai-embed input is empty"));
+        return Err(N2linkError::invalid_operation("ai-embed input is empty"));
     };
     if let Some(text) = value.as_str() {
         if text.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-embed input is empty"));
+            return Err(N2linkError::invalid_operation("ai-embed input is empty"));
         }
         if text.chars().count() > 8192 {
-            return Err(EdgelinkError::invalid_operation("ai-embed input exceeds 8192 characters"));
+            return Err(N2linkError::invalid_operation("ai-embed input exceeds 8192 characters"));
         }
         return Ok(vec![text.to_owned()]);
     }
     let Some(list) = value.as_array() else {
-        return Err(EdgelinkError::invalid_operation("ai-embed input must be a string or array of strings"));
+        return Err(N2linkError::invalid_operation("ai-embed input must be a string or array of strings"));
     };
     if list.is_empty() || list.len() > 32 {
-        return Err(EdgelinkError::invalid_operation("ai-embed batch must have 1 to 32 strings"));
+        return Err(N2linkError::invalid_operation("ai-embed batch must have 1 to 32 strings"));
     }
     let mut out = Vec::new();
     let mut bytes = 0usize;
     for item in list {
-        let text = item.as_str().ok_or_else(|| EdgelinkError::invalid_operation("ai-embed batch must be strings"))?;
+        let text = item.as_str().ok_or_else(|| N2linkError::invalid_operation("ai-embed batch must be strings"))?;
         if text.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-embed input is empty"));
+            return Err(N2linkError::invalid_operation("ai-embed input is empty"));
         }
         if text.chars().count() > 8192 {
-            return Err(EdgelinkError::invalid_operation("ai-embed input exceeds 8192 characters"));
+            return Err(N2linkError::invalid_operation("ai-embed input exceeds 8192 characters"));
         }
         bytes = bytes.saturating_add(text.len());
         if bytes > 64 * 1024 {
-            return Err(EdgelinkError::invalid_operation("ai-embed batch exceeds 64 KiB"));
+            return Err(N2linkError::invalid_operation("ai-embed batch exceeds 64 KiB"));
         }
         out.push(text.to_owned());
     }
@@ -202,7 +200,7 @@ fn read_input(value: Option<&Variant>) -> crate::Result<Vec<String>> {
 fn reject_unsupported(value: &Value) -> crate::Result<()> {
     for key in ["stream", "encoding_format", "encodingFormat"] {
         if value.get(key).is_some_and(|item| !item.is_null() && item != &Value::Bool(false) && item != "") {
-            return Err(EdgelinkError::NotSupported(format!("AI option '{key}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("AI option '{key}' is not supported")));
         }
     }
     Ok(())

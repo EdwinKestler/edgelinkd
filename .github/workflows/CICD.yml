@@ -72,13 +72,13 @@ jobs:
         run: cargo check --workspace
       - name: Cargo check (minimal feature sets)
         run: |
-          cargo check -p edgelink-core --no-default-features --features core
-          cargo check -p edgelink-core --no-default-features --features core,js
-          cargo check -p edgelink-core --no-default-features --features core,jsonata
-          cargo check -p edgelink-core --no-default-features --features core,nodes_ai_text
-          cargo check -p edgelink-core --no-default-features --features core,nodes_ai_agent
-          cargo check -p edgelink-core --features nodes_wasm
-          if cargo tree -p edgelink-app -e normal -i wasmi >/dev/null 2>&1; then echo 'wasmi must not be in the default graph' >&2; exit 1; fi
+          cargo check -p n2link-core --no-default-features --features core
+          cargo check -p n2link-core --no-default-features --features core,js
+          cargo check -p n2link-core --no-default-features --features core,jsonata
+          cargo check -p n2link-core --no-default-features --features core,nodes_ai_text
+          cargo check -p n2link-core --no-default-features --features core,nodes_ai_agent
+          cargo check -p n2link-core --features nodes_wasm
+          if cargo tree -p n2link-app -e normal -i wasmi >/dev/null 2>&1; then echo 'wasmi must not be in the default graph' >&2; exit 1; fi
 
   build-and-test-windows:
     name: Build and Test on Windows
@@ -164,10 +164,10 @@ jobs:
         run: cargo test --workspace --no-fail-fast --features full --target ${{ matrix.target }} --profile ci
 
       - name: Run agent feature tests
-        run: cargo test -p edgelink-core --all-features --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
+        run: cargo test -p n2link-core --all-features --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
 
       - name: Run WASM plugin tests
-        run: cargo test -p edgelink-core --features nodes_wasm --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
+        run: cargo test -p n2link-core --features nodes_wasm --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
 
   build-and-test-linux:
     name: Build and Test on Linux (x86-64)
@@ -237,10 +237,10 @@ jobs:
         run: cargo test --workspace --no-fail-fast --features full --target ${{ matrix.target }} --profile ci
 
       - name: Run agent feature tests
-        run: cargo test -p edgelink-core --all-features --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
+        run: cargo test -p n2link-core --all-features --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
 
       - name: Run WASM plugin tests
-        run: cargo test -p edgelink-core --features nodes_wasm --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
+        run: cargo test -p n2link-core --features nodes_wasm --lib --no-fail-fast --target ${{ matrix.target }} --profile ci
 
       - name: Run Python tests
         env:
@@ -346,10 +346,10 @@ jobs:
         run: cargo install cross --git https://github.com/cross-rs/cross
 
       - name: Cross build
-        run: cross build --workspace --profile ci --target ${{ matrix.target }} --features full --exclude edgelink-pymod
+        run: cross build --workspace --profile ci --target ${{ matrix.target }} --features full --exclude n2link-pymod
 
       - name: Cross build tests without running
-        run: cross test --workspace --profile ci --target ${{ matrix.target }} --features full --exclude edgelink-pymod --no-run --message-format=json | tee ./target/${{ matrix.target }}/ci/cargo-build-test.json
+        run: cross test --workspace --profile ci --target ${{ matrix.target }} --features full --exclude n2link-pymod --no-run --message-format=json | tee ./target/${{ matrix.target }}/ci/cargo-build-test.json
 
       - name: Run unit tests in QEMU ARM
         run: python3 ./scripts/cross-unittest.py ${{ env.EDGELINK_QEMU_CMD }}  ${{ env.EDGELINK_TOOLCHAIN_TRIPLE }} ./target/${{ matrix.target }}/ci/cargo-build-test.json
@@ -408,11 +408,11 @@ jobs:
             cargo fmt --check --manifest-path "$example/Cargo.toml"
             cargo clippy --manifest-path "$example/Cargo.toml" --target wasm32-unknown-unknown -- -D warnings
           done
-          cargo clippy -p edgelink-wasm-guest --target wasm32-unknown-unknown -- -D warnings
+          cargo clippy -p n2link-wasm-guest --target wasm32-unknown-unknown -- -D warnings
       - name: Plugin host tests (core and web, nodes_wasm)
         run: |
-          cargo test -p edgelink-core --features nodes_wasm --lib
-          cargo test -p edgelink-web --features nodes_wasm --lib
+          cargo test -p n2link-core --features nodes_wasm --lib
+          cargo test -p n2link-web --features nodes_wasm --lib
       - name: Build the example plugins and install them end to end
         run: scripts/wasm-examples.sh --e2e
 

@@ -383,9 +383,7 @@ impl Engine {
                 // register all nodes
                 for fnode in flow.get_all_flow_nodes().iter() {
                     if self.inner.all_flow_nodes.contains_key(&fnode.id()) {
-                        return Err(EdgelinkError::InvalidOperation(format!(
-                            "This flow node already existed: {fnode}"
-                        )));
+                        return Err(N2linkError::InvalidOperation(format!("This flow node already existed: {fnode}")));
                     }
                     self.inner.all_flow_nodes.insert(fnode.id(), fnode.clone());
                 }
@@ -408,7 +406,7 @@ impl Engine {
                 meta_node
             } else if crate::runtime::nodes::is_wasm_plugin_type(node_type_name) {
                 return Err(crate::runtime::nodes::missing_wasm_plugin_type(node_type_name));
-            } else if crate::runtime::nodes::edgelink_owned_node_type(node_type_name) {
+            } else if crate::runtime::nodes::n2link_owned_node_type(node_type_name) {
                 return Err(crate::runtime::nodes::missing_owned_node_type(node_type_name));
             } else {
                 log::warn!(
@@ -430,7 +428,7 @@ impl Engine {
             let global_node = match meta_node.factory {
                 NodeFactory::Global(factory) => factory(self, &global_config, settings)?,
                 _ => {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "Must be a global node: Node(id={0}, type='{1}')",
                         global_config.id, global_config.type_name
                     )));
@@ -453,7 +451,7 @@ impl Engine {
             flow.inject_msg(msg, cancel.clone()).await?;
             Ok(())
         } else {
-            Err(EdgelinkError::BadArgument("flow_id")).with_context(|| format!("Can not found flow_id: {flow_id}"))
+            Err(N2linkError::BadArgument("flow_id")).with_context(|| format!("Can not found flow_id: {flow_id}"))
         }
     }
 
@@ -468,7 +466,7 @@ impl Engine {
             flow.inject_msg(msg, cancel.clone()).await?;
             Ok(())
         } else {
-            Err(EdgelinkError::BadArgument("link_in_id"))
+            Err(N2linkError::BadArgument("link_in_id"))
                 .with_context(|| format!("Can not found `link id`: {link_in_id}"))
         }
     }
@@ -477,11 +475,11 @@ impl Engine {
         log::info!("-- Starting engine...");
         let mut shutdown_lock = self.inner.shutdown.try_write()?;
         if !(*shutdown_lock) {
-            return Err(EdgelinkError::invalid_operation("already started."));
+            return Err(N2linkError::invalid_operation("already started."));
         }
 
         if self.inner.flows.is_empty() {
-            return Err(EdgelinkError::invalid_operation("no flows loaded in the engine."));
+            return Err(N2linkError::invalid_operation("no flows loaded in the engine."));
         }
 
         // Reject a period the process will not schedule before any flow task starts.
@@ -514,7 +512,7 @@ impl Engine {
     pub async fn stop(&self) -> crate::Result<()> {
         let mut shutdown_lock = self.inner.shutdown.try_write()?;
         if *shutdown_lock {
-            return Err(EdgelinkError::invalid_operation("not started."));
+            return Err(N2linkError::invalid_operation("not started."));
         }
         log::info!("-- Stopping engine...");
 
@@ -581,7 +579,7 @@ impl Engine {
         match result {
             Ok(Ok(())) => Ok(received),
             Ok(Err(e)) => Err(e),
-            Err(_) => Err(EdgelinkError::Timeout),
+            Err(_) => Err(N2linkError::Timeout),
         }
     }
 
@@ -742,7 +740,7 @@ impl Engine {
         } else if nfound == 0 {
             Ok(None)
         } else {
-            Err(EdgelinkError::InvalidOperation(format!("There are multiple global nodes with name '{name}'")))
+            Err(N2linkError::InvalidOperation(format!("There are multiple global nodes with name '{name}'")))
         }
     }
 
@@ -754,7 +752,7 @@ impl Engine {
     ) -> crate::Result<()> {
         let node = self
             .find_flow_node_by_id(flow_node_id)
-            .ok_or(EdgelinkError::BadArgument("flow_node_id"))
+            .ok_or(N2linkError::BadArgument("flow_node_id"))
             .with_context(|| format!("Cannot found the flow node, id='{flow_node_id}'"))?;
         node.inject_msg(msg, cancel).await
     }
@@ -987,7 +985,7 @@ impl Engine {
 
         if let Err(err) = self.load_into(json.clone(), reg, elcfg).await {
             if let Err(restore) = self.restore_previous(previous, reg, elcfg, was_running).await {
-                return Err(EdgelinkError::invalid_operation(&format!(
+                return Err(N2linkError::invalid_operation(&format!(
                     "{err}; previous graph was not restored: {restore}"
                 )));
             }
@@ -997,7 +995,7 @@ impl Engine {
         if let Err(err) = self.start().await {
             let _ = self.stop().await;
             if let Err(restore) = self.restore_previous(previous, reg, elcfg, was_running).await {
-                return Err(EdgelinkError::invalid_operation(&format!(
+                return Err(N2linkError::invalid_operation(&format!(
                     "{err}; previous graph was not restored: {restore}"
                 )));
             }

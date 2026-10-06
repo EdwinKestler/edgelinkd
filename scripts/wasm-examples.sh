@@ -3,7 +3,7 @@
 # run their host-side unit tests, and optionally the end-to-end install test.
 #
 #   scripts/wasm-examples.sh          build + unit tests; packages in target/wasm-examples/
-#   scripts/wasm-examples.sh --e2e    also stage, activate and run them in edgelink-core
+#   scripts/wasm-examples.sh --e2e    also stage, activate and run them in n2link-core
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -33,6 +33,6 @@ for example in uppercase csvparse tofsense; do
 done
 
 if [[ "${1:-}" == "--e2e" ]]; then
-  EDGELINK_WASM_EXAMPLES="$OUT" cargo test -q -p edgelink-core --features nodes_wasm --lib -- \
+  EDGELINK_WASM_EXAMPLES="$OUT" cargo test -q -p n2link-core --features nodes_wasm --lib -- \
     --ignored --exact runtime::wasm::plugin_node::tests::example_plugins_install_and_run
 fi

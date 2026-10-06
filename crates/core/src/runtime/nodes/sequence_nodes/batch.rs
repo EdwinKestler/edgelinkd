@@ -9,10 +9,10 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::{Duration, interval};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchNodeConfig {
@@ -122,11 +122,7 @@ impl BatchNode {
     /// stay in the buffer for the next sequence (count mode with `overlap`), the copy that is sent
     /// has to be a clone, or the next batch would rewrite the `parts` of a message that was
     /// already emitted.
-    async fn send_batch(
-        &self,
-        messages: Vec<MsgHandle>,
-        clone_messages: bool,
-    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
+    async fn send_batch(&self, messages: Vec<MsgHandle>, clone_messages: bool) -> Result<Vec<MsgHandle>, N2linkError> {
         if messages.is_empty() {
             return Ok(vec![]);
         }
@@ -225,7 +221,7 @@ impl BatchNode {
         &self,
         msg_handle: MsgHandle,
         cancel: CancellationToken,
-    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
+    ) -> Result<Vec<MsgHandle>, N2linkError> {
         let mut eof = false;
         if self.config.honour_parts {
             let msg = msg_handle.read().await;
@@ -344,7 +340,7 @@ impl BatchNode {
         &self,
         msg_handle: MsgHandle,
         cancel: CancellationToken,
-    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
+    ) -> Result<Vec<MsgHandle>, N2linkError> {
         let mut pending = self.interval_pending.lock().await;
         let mut pending_count = self.pending_count.lock().await;
         pending.push(msg_handle);
@@ -364,7 +360,7 @@ impl BatchNode {
         &self,
         msg_handle: MsgHandle,
         cancel: CancellationToken,
-    ) -> Result<Vec<MsgHandle>, EdgelinkError> {
+    ) -> Result<Vec<MsgHandle>, N2linkError> {
         let (topic, group_id, has_parts) = {
             let msg = msg_handle.read().await;
 

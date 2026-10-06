@@ -383,7 +383,7 @@ impl Default for LoggingConfig {
 
 // Load WebServerArgs from config, fallback to default if not found
 impl RedSystemSettings {
-    pub fn load(cfg: &config::Config) -> edgelink_core::Result<Self> {
+    pub fn load(cfg: &config::Config) -> n2link_core::Result<Self> {
         match cfg.get::<Self>("web") {
             Ok(res) => Ok(res),
             Err(config::ConfigError::NotFound(_)) => Ok(Self::default()),

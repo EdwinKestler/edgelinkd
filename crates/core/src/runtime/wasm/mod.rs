@@ -1,6 +1,6 @@
 //! WASM plugin host. The `wasm-` type prefix is always reserved; the interpreter is feature-gated.
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 #[cfg(feature = "nodes_wasm")]
 mod convert;
@@ -66,10 +66,10 @@ pub(crate) fn resolve_plugin_meta(engine: &Engine, type_name: &str) -> crate::Re
     }
 }
 
-pub(crate) fn unavailable_plugin_error(type_name: &str) -> EdgelinkError {
+pub(crate) fn unavailable_plugin_error(type_name: &str) -> N2linkError {
     #[cfg(not(feature = "nodes_wasm"))]
     {
-        EdgelinkError::NotSupported(format!(
+        N2linkError::NotSupported(format!(
             "node type '{type_name}' is not compiled in this build (requires nodes_wasm)"
         ))
     }
@@ -111,8 +111,8 @@ pub(crate) fn plugin_id_of(type_name: &str) -> String {
 }
 
 #[cfg(feature = "nodes_wasm")]
-pub(crate) fn not_active_error(type_name: &str) -> EdgelinkError {
-    EdgelinkError::NotSupported(format!(
+pub(crate) fn not_active_error(type_name: &str) -> N2linkError {
+    N2linkError::NotSupported(format!(
         "node type '{type_name}' requires WASM plugin {} which is not active",
         plugin_id_of(type_name)
     ))
@@ -125,7 +125,7 @@ pub(crate) fn strict_bool(cfg: &config::Config, key: &str) -> crate::Result<Opti
         Err(_) => Ok(None),
         Ok(value) => match value.kind {
             config::ValueKind::Boolean(flag) => Ok(Some(flag)),
-            _ => Err(EdgelinkError::invalid_operation(&format!("{key} must be true or false"))),
+            _ => Err(N2linkError::invalid_operation(&format!("{key} must be true or false"))),
         },
     }
 }
@@ -141,7 +141,7 @@ pub(crate) fn reject_enabled_without_feature(cfg: Option<&config::Config>) -> cr
     if enabled {
         #[cfg(not(feature = "nodes_wasm"))]
         {
-            return Err(EdgelinkError::NotSupported(
+            return Err(N2linkError::NotSupported(
                 "WASM plugins are not compiled in this build (requires nodes_wasm)".to_owned(),
             ));
         }
@@ -172,7 +172,7 @@ mod tests {
         #[cfg(feature = "nodes_wasm")]
         assert!(text.contains("disabled by configuration"), "{text}");
         assert!(text.contains("wasm-acme-csvparse"), "{text}");
-        assert!(matches!(err, EdgelinkError::NotSupported(_)), "{err:?}");
+        assert!(matches!(err, N2linkError::NotSupported(_)), "{err:?}");
     }
 
     #[test]
@@ -182,7 +182,7 @@ mod tests {
             { "id": "9", "type": "wasm-acme-settings" }
         ]);
         let err = crate::runtime::engine::build_test_engine(flows).unwrap_err();
-        assert!(matches!(err, EdgelinkError::NotSupported(_)), "{err:?}");
+        assert!(matches!(err, N2linkError::NotSupported(_)), "{err:?}");
     }
 
     #[test]

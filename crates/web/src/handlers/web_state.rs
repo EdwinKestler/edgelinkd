@@ -1,18 +1,18 @@
 // REMOVED: clone_for_update. All mutation must use interior mutability (Mutex/RwLock) on fields.
 use axum::Router;
-use edgelink_core::runtime::paths;
+use n2link_core::runtime::paths;
 
 use crate::handlers::CommsManager;
 use crate::handlers::audit::AuditLog;
 use crate::handlers::auth::AdminAuth;
 use crate::handlers::fleet::Fleet;
 use crate::models::RedSystemSettings;
-use edgelink_core::runtime::credential_storage::CredentialStore;
-use edgelink_core::runtime::egress::EgressPolicyHandle;
-use edgelink_core::runtime::engine::Engine;
-use edgelink_core::runtime::engine_events::EngineEvent;
-use edgelink_core::runtime::registry::RegistryHandle;
-use edgelink_core::web::WebHandlerRegistry;
+use n2link_core::runtime::credential_storage::CredentialStore;
+use n2link_core::runtime::egress::EgressPolicyHandle;
+use n2link_core::runtime::engine::Engine;
+use n2link_core::runtime::engine_events::EngineEvent;
+use n2link_core::runtime::registry::RegistryHandle;
+use n2link_core::web::WebHandlerRegistry;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 use crate::protection::ApiProtection;
 
 // --- WebStateCore trait implementation ---
-use edgelink_core::web::web_state_trait::WebStateCore;
+use n2link_core::web::web_state_trait::WebStateCore;
 
 /// Callback type for restarting the flow engine
 pub type FlowEngineRestartCallback = Arc<dyn Fn(PathBuf) -> tokio::task::JoinHandle<()> + Send + Sync>;
@@ -32,7 +32,7 @@ pub struct WebRuntimeServices {
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
     pub protection: ApiProtection,
-    pub history: edgelink_core::runtime::history::HistoryHandle,
+    pub history: n2link_core::runtime::history::HistoryHandle,
     pub copilot_strict_metadata: bool,
 }
 
@@ -42,7 +42,7 @@ impl Default for WebRuntimeServices {
             egress: EgressPolicyHandle::default(),
             credentials: CredentialStore::default(),
             protection: ApiProtection::default(),
-            history: edgelink_core::runtime::history::HistoryHandle::default(),
+            history: n2link_core::runtime::history::HistoryHandle::default(),
             copilot_strict_metadata: true,
         }
     }
@@ -67,7 +67,7 @@ pub struct WebState {
     pub egress: EgressPolicyHandle,
     pub credentials: CredentialStore,
     pub protection: ApiProtection,
-    pub history: edgelink_core::runtime::history::HistoryHandle,
+    pub history: n2link_core::runtime::history::HistoryHandle,
     pub config_editor_enabled: bool,
     pub copilot_strict_metadata: bool,
     /// The environment-specific overlay edited by the configuration pane.
@@ -84,7 +84,7 @@ pub struct WebState {
     pub config_apply: tokio::sync::Mutex<()>,
     /// The WASM plugin store, present only when `[runtime.wasm] enabled = true`.
     #[cfg(feature = "nodes_wasm")]
-    pub plugin_store: RwLock<Option<Arc<edgelink_core::runtime::wasm::PluginStore>>>,
+    pub plugin_store: RwLock<Option<Arc<n2link_core::runtime::wasm::PluginStore>>>,
 }
 
 /// Implement WebStateCore trait for WebState
@@ -208,7 +208,7 @@ impl WebState {
 
     /// Hand the plugin store (and its lock) to the admin API.
     #[cfg(feature = "nodes_wasm")]
-    pub async fn set_plugin_store(&self, store: Arc<edgelink_core::runtime::wasm::PluginStore>) {
+    pub async fn set_plugin_store(&self, store: Arc<n2link_core::runtime::wasm::PluginStore>) {
         *self.plugin_store.write().await = Some(store);
     }
 
@@ -358,20 +358,20 @@ impl WebState {
     }
 
     /// Deploy flows using Engine's redeploy_flows method
-    pub async fn redeploy_flows(&self, flows: serde_json::Value) -> Result<(), edgelink_core::EdgelinkError> {
+    pub async fn redeploy_flows(&self, flows: serde_json::Value) -> Result<(), n2link_core::N2linkError> {
         let engine_guard = self.engine.read().await;
         let registry_guard = self.registry.read().await;
         if let (Some(engine), Some(registry)) = (engine_guard.as_ref(), registry_guard.as_ref()) {
             engine.redeploy_flows(flows, registry, None).await
         } else {
-            Err(edgelink_core::EdgelinkError::invalid_operation("engine is not available"))
+            Err(n2link_core::N2linkError::invalid_operation("engine is not available"))
         }
     }
 
     /// Start debug message listener (connect to Engine's debug channel)
     pub async fn start_debug_listener(
         &self,
-        engine: &edgelink_core::runtime::engine::Engine,
+        engine: &n2link_core::runtime::engine::Engine,
         cancel_token: tokio_util::sync::CancellationToken,
     ) {
         let debug_rx = engine.debug_channel().subscribe();

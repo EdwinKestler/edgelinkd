@@ -10,7 +10,7 @@
 
 use crate::handlers::WebState;
 use axum::{Extension, Json, extract::Path, http::StatusCode};
-use edgelink_core::runtime::flow_credentials::{self, sidecar_path};
+use n2link_core::runtime::flow_credentials::{self, sidecar_path};
 use serde_json::{Map, Value, json};
 use std::collections::HashSet;
 use std::path::{Path as StdPath, PathBuf};
@@ -243,7 +243,7 @@ pub async fn snapshot_sidecar(flows_file: &StdPath) -> Result<(), String> {
 }
 
 pub async fn write_sidecar(flows_file: &StdPath, stored: &Map<String, Value>) -> Result<(), String> {
-    let store = edgelink_core::runtime::credential_storage::CredentialStore::default();
+    let store = n2link_core::runtime::credential_storage::CredentialStore::default();
     let _lock = store.lock(flows_file).await?;
     let path = sidecar_path(flows_file);
     if let Some(parent) = path.parent() {
@@ -252,7 +252,7 @@ pub async fn write_sidecar(flows_file: &StdPath, stored: &Map<String, Value>) ->
     let current =
         if path.exists() { tokio::fs::read(&path).await.map_err(|err| err.to_string())? } else { b"{}".to_vec() };
     let bytes = store.encode_for_write(flows_file, stored, &current).await?;
-    edgelink_core::utils::atomic_file::write_bytes(&path, &bytes, true).await
+    n2link_core::utils::atomic_file::write_bytes(&path, &bytes, true).await
 }
 
 pub async fn swap_sidecar(flows_file: &StdPath) -> Result<(), String> {
@@ -265,8 +265,8 @@ pub async fn swap_sidecar(flows_file: &StdPath) -> Result<(), String> {
     };
     let current =
         if path.exists() { tokio::fs::read(&path).await.map_err(|err| err.to_string())? } else { b"{}".to_vec() };
-    edgelink_core::utils::atomic_file::write_bytes(&path, &saved, true).await?;
-    edgelink_core::utils::atomic_file::write_bytes(&previous, &current, true).await?;
+    n2link_core::utils::atomic_file::write_bytes(&path, &saved, true).await?;
+    n2link_core::utils::atomic_file::write_bytes(&previous, &current, true).await?;
     Ok(())
 }
 

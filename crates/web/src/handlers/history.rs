@@ -10,7 +10,7 @@ use axum::Extension;
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use edgelink_core::runtime::history::{HistoryQuery, HistoryQueryError};
+use n2link_core::runtime::history::{HistoryQuery, HistoryQueryError};
 
 use super::WebState;
 use super::reply::api_error;
@@ -140,7 +140,7 @@ mod tests {
     use crate::models::RedSystemSettings;
     use axum::body::{Body, to_bytes};
     use axum::http::Request;
-    use edgelink_core::runtime::history::{HistoryConfig, HistoryHandle};
+    use n2link_core::runtime::history::{HistoryConfig, HistoryHandle};
     use tower::ServiceExt;
 
     #[tokio::test]

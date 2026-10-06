@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
 use crate::text::parsing;
-use edgelink_macro::*;
+use n2link_macro::*;
 use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, Deserialize)]

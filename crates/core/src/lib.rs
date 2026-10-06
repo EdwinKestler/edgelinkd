@@ -27,7 +27,7 @@ pub trait Plugin {
 /// and [`Self::is_out_of_range`] still match through that wrapper.
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
-pub enum EdgelinkError {
+pub enum N2linkError {
     #[error("permission denied")]
     PermissionDenied,
 
@@ -66,13 +66,13 @@ pub enum EdgelinkError {
     Other(#[from] anyhow::Error),
 }
 
-pub type Result<T, E = EdgelinkError> = std::result::Result<T, E>;
+pub type Result<T, E = N2linkError> = std::result::Result<T, E>;
 
-/// Attach context to a failure and return [`EdgelinkError`].
+/// Attach context to a failure and return [`N2linkError`].
 ///
 /// Same shape as `anyhow::Context`, but the result is this crate's error. A typed
-/// [`EdgelinkError`] stays recoverable through [`EdgelinkError::is_cancelled`] and
-/// [`EdgelinkError::is_out_of_range`].
+/// [`N2linkError`] stays recoverable through [`N2linkError::is_cancelled`] and
+/// [`N2linkError::is_out_of_range`].
 pub trait ErrorContext<T> {
     fn context<C>(self, context: C) -> Result<T>
     where
@@ -94,7 +94,7 @@ where
     {
         self.map_err(|err| {
             let err: anyhow::Error = err.into();
-            EdgelinkError::Other(err.context(context))
+            N2linkError::Other(err.context(context))
         })
     }
 
@@ -105,7 +105,7 @@ where
     {
         self.map_err(|err| {
             let err: anyhow::Error = err.into();
-            EdgelinkError::Other(err.context(f()))
+            N2linkError::Other(err.context(f()))
         })
     }
 }
@@ -123,20 +123,20 @@ impl<T> ErrorContext<T> for Option<T> {
         C: std::fmt::Display + Send + Sync + 'static,
         F: FnOnce() -> C,
     {
-        self.ok_or_else(|| EdgelinkError::Other(anyhow::anyhow!("{}", f())))
+        self.ok_or_else(|| N2linkError::Other(anyhow::anyhow!("{}", f())))
     }
 }
 
-impl EdgelinkError {
+impl N2linkError {
     pub fn invalid_operation(msg: &str) -> Self {
-        EdgelinkError::InvalidOperation(msg.to_owned())
+        N2linkError::InvalidOperation(msg.to_owned())
     }
 
     /// `TaskCancelled`, including when `.context()` wrapped it in [`Self::Other`].
     pub fn is_cancelled(&self) -> bool {
         match self {
-            EdgelinkError::TaskCancelled => true,
-            EdgelinkError::Other(err) => err.downcast_ref::<EdgelinkError>().is_some_and(Self::is_cancelled),
+            N2linkError::TaskCancelled => true,
+            N2linkError::Other(err) => err.downcast_ref::<N2linkError>().is_some_and(Self::is_cancelled),
             _ => false,
         }
     }
@@ -144,8 +144,8 @@ impl EdgelinkError {
     /// `OutOfRange`, including when `.context()` wrapped it in [`Self::Other`].
     pub fn is_out_of_range(&self) -> bool {
         match self {
-            EdgelinkError::OutOfRange => true,
-            EdgelinkError::Other(err) => err.downcast_ref::<EdgelinkError>().is_some_and(Self::is_out_of_range),
+            N2linkError::OutOfRange => true,
+            N2linkError::Other(err) => err.downcast_ref::<N2linkError>().is_some_and(Self::is_out_of_range),
             _ => false,
         }
     }
@@ -153,15 +153,15 @@ impl EdgelinkError {
 
 macro_rules! from_other {
     ($($ty:ty),+ $(,)?) => {$(
-        impl From<$ty> for EdgelinkError {
+        impl From<$ty> for N2linkError {
             fn from(err: $ty) -> Self {
-                EdgelinkError::Other(anyhow::Error::from(err))
+                N2linkError::Other(anyhow::Error::from(err))
             }
         }
     )+};
 }
 
-// `?` on these keeps working now that `Result` defaults to `EdgelinkError` rather than
+// `?` on these keeps working now that `Result` defaults to `N2linkError` rather than
 // `anyhow::Error`. `SendError` is converted by hand because the value it holds does not have to
 // be `Send`, and `anyhow` only accepts `'static + Send + Sync` errors.
 from_other!(
@@ -185,35 +185,35 @@ from_other!(notify::Error);
 #[cfg(feature = "jsonata")]
 from_other!(jsonata_core::evaluator::EvaluatorError);
 
-impl<T> From<tokio::sync::mpsc::error::SendError<T>> for EdgelinkError {
+impl<T> From<tokio::sync::mpsc::error::SendError<T>> for N2linkError {
     fn from(err: tokio::sync::mpsc::error::SendError<T>) -> Self {
-        EdgelinkError::Other(anyhow::Error::msg(err.to_string()))
+        N2linkError::Other(anyhow::Error::msg(err.to_string()))
     }
 }
 
-impl<T> From<tokio::sync::broadcast::error::SendError<T>> for EdgelinkError {
+impl<T> From<tokio::sync::broadcast::error::SendError<T>> for N2linkError {
     fn from(err: tokio::sync::broadcast::error::SendError<T>) -> Self {
-        EdgelinkError::Other(anyhow::Error::msg(err.to_string()))
+        N2linkError::Other(anyhow::Error::msg(err.to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{EdgelinkError, ErrorContext};
+    use super::{ErrorContext, N2linkError};
 
     #[test]
     fn error_display_is_lowercase_and_keeps_context() {
-        assert_eq!(EdgelinkError::PermissionDenied.to_string(), "permission denied");
-        assert_eq!(EdgelinkError::TaskCancelled.to_string(), "task cancelled");
-        assert_eq!(EdgelinkError::OutOfRange.to_string(), "out of range");
-        let io = EdgelinkError::from(std::io::Error::new(std::io::ErrorKind::NotFound, "missing"));
+        assert_eq!(N2linkError::PermissionDenied.to_string(), "permission denied");
+        assert_eq!(N2linkError::TaskCancelled.to_string(), "task cancelled");
+        assert_eq!(N2linkError::OutOfRange.to_string(), "out of range");
+        let io = N2linkError::from(std::io::Error::new(std::io::ErrorKind::NotFound, "missing"));
         assert_eq!(io.to_string(), "io error: missing");
 
-        let wrapped = Err::<(), _>(EdgelinkError::OutOfRange).context("reading key").unwrap_err();
+        let wrapped = Err::<(), _>(N2linkError::OutOfRange).context("reading key").unwrap_err();
         assert!(wrapped.is_out_of_range(), "{wrapped}");
         assert!(wrapped.to_string().contains("reading key"), "{wrapped}");
-        assert!(EdgelinkError::TaskCancelled.is_cancelled());
-        assert!(!EdgelinkError::OutOfRange.is_cancelled());
+        assert!(N2linkError::TaskCancelled.is_cancelled());
+        assert!(!N2linkError::OutOfRange.is_cancelled());
     }
 
     #[ctor::ctor]

@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-macro"
+name = "n2link-macro"
 version = "0.3.0"
 edition = "2024"
 

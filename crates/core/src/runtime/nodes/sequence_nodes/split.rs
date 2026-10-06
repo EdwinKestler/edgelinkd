@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
 enum SplitType {
@@ -112,16 +112,16 @@ impl SplitNode {
             }
             SplitType::Binary => {
                 let array: Vec<u8> = serde_json::from_str(&split_config.split)
-                    .map_err(|_| crate::EdgelinkError::invalid_operation("Invalid binary array for split"))?;
+                    .map_err(|_| crate::N2linkError::invalid_operation("Invalid binary array for split"))?;
                 SplitDelimiter::Binary(array)
             }
             SplitType::Length => {
                 let len = split_config
                     .split
                     .parse::<usize>()
-                    .map_err(|_| crate::EdgelinkError::invalid_operation("Invalid length for split"))?;
+                    .map_err(|_| crate::N2linkError::invalid_operation("Invalid length for split"))?;
                 if len < 1 {
-                    return Err(crate::EdgelinkError::invalid_operation("Split length must be >= 1"));
+                    return Err(crate::N2linkError::invalid_operation("Split length must be >= 1"));
                 }
                 SplitDelimiter::Length(len)
             }
@@ -129,7 +129,7 @@ impl SplitNode {
 
         // Validate array split length
         if split_config.array_split < 1 {
-            return Err(crate::EdgelinkError::invalid_operation("Array split length must be >= 1"));
+            return Err(crate::N2linkError::invalid_operation("Array split length must be >= 1"));
         }
 
         let node = SplitNode {
@@ -252,7 +252,7 @@ impl SplitNode {
                 }
             }
             _ => {
-                return Err(crate::EdgelinkError::invalid_operation("Invalid delimiter type for string"));
+                return Err(crate::N2linkError::invalid_operation("Invalid delimiter type for string"));
             }
         }
 
@@ -466,7 +466,7 @@ impl SplitNode {
                 }
             }
             _ => {
-                return Err(crate::EdgelinkError::invalid_operation("Invalid delimiter type for buffer"));
+                return Err(crate::N2linkError::invalid_operation("Invalid delimiter type for buffer"));
             }
         }
 

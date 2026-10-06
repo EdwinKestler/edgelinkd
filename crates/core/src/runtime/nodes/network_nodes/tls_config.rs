@@ -39,7 +39,7 @@ use serde::Deserialize;
 use tokio::fs;
 
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
@@ -155,7 +155,7 @@ impl TlsConfigNode {
             // File-based certificates
             if cert_path.is_empty() != key_path.is_empty() {
                 self.valid = false;
-                return Err(crate::EdgelinkError::invalid_operation(
+                return Err(crate::N2linkError::invalid_operation(
                     "TLS config error: certificate and key must both be provided or both be empty",
                 ));
             }
@@ -163,35 +163,35 @@ impl TlsConfigNode {
             if !cert_path.is_empty() {
                 if !self.is_valid_file_path(cert_path) {
                     self.valid = false;
-                    return Err(crate::EdgelinkError::invalid_operation(
+                    return Err(crate::N2linkError::invalid_operation(
                         "TLS config error: invalid certificate file path",
                     ));
                 }
                 cert_data = Some(fs::read(cert_path).await.map_err(|e| {
                     self.valid = false;
-                    crate::EdgelinkError::invalid_operation(&format!("Failed to read certificate file: {e}"))
+                    crate::N2linkError::invalid_operation(&format!("Failed to read certificate file: {e}"))
                 })?);
             }
 
             if !key_path.is_empty() {
                 if !self.is_valid_file_path(key_path) {
                     self.valid = false;
-                    return Err(crate::EdgelinkError::invalid_operation("TLS config error: invalid key file path"));
+                    return Err(crate::N2linkError::invalid_operation("TLS config error: invalid key file path"));
                 }
                 key_data = Some(fs::read(key_path).await.map_err(|e| {
                     self.valid = false;
-                    crate::EdgelinkError::invalid_operation(&format!("Failed to read key file: {e}"))
+                    crate::N2linkError::invalid_operation(&format!("Failed to read key file: {e}"))
                 })?);
             }
 
             if !ca_path.is_empty() {
                 if !self.is_valid_file_path(ca_path) {
                     self.valid = false;
-                    return Err(crate::EdgelinkError::invalid_operation("TLS config error: invalid CA file path"));
+                    return Err(crate::N2linkError::invalid_operation("TLS config error: invalid CA file path"));
                 }
                 ca_data = Some(fs::read(ca_path).await.map_err(|e| {
                     self.valid = false;
-                    crate::EdgelinkError::invalid_operation(&format!("Failed to read CA file: {e}"))
+                    crate::N2linkError::invalid_operation(&format!("Failed to read CA file: {e}"))
                 })?);
             }
         } else {
@@ -202,7 +202,7 @@ impl TlsConfigNode {
 
             if certdata.is_some() != keydata.is_some() {
                 self.valid = false;
-                return Err(crate::EdgelinkError::invalid_operation(
+                return Err(crate::N2linkError::invalid_operation(
                     "TLS config error: certificate and key data must both be provided or both be empty",
                 ));
             }
@@ -244,7 +244,7 @@ impl TlsConfigNode {
     /// Add TLS options to a configuration (similar to Node-RED's addTLSOptions)
     pub fn add_tls_options(&self, opts: &mut std::collections::HashMap<String, String>) -> crate::Result<()> {
         if !self.valid {
-            return Err(crate::EdgelinkError::invalid_operation("TLS configuration is invalid"));
+            return Err(crate::N2linkError::invalid_operation("TLS configuration is invalid"));
         }
 
         if let Some(certificates) = &self.certificates {

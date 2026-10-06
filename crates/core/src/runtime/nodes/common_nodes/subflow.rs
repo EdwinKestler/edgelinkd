@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug)]
 #[flow_node("subflow", red_name = "subflow")]
@@ -22,7 +22,7 @@ impl SubflowNode {
             .type_name
             .split_once(':')
             .and_then(|p| crate::runtime::nodes::json::deser::parse_red_id_str(p.1))
-            .ok_or(EdgelinkError::BadArgument("config"))
+            .ok_or(N2linkError::BadArgument("config"))
             .with_context(|| format!("Bad subflow instance type: `{}`", config.type_name))?;
 
         //let subflow = flow.engine.upgrade().unwrap().flows

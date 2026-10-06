@@ -5,7 +5,7 @@ use tokio_util::sync::CancellationToken;
 use tokio;
 use tokio::sync::mpsc;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::nodes::FlowNodeBehavior;
 
 mod eid;
@@ -55,10 +55,10 @@ impl PortWire {
         tokio::select! {
 
             send_result = self.msg_sender.send(msg) =>  send_result.map_err(|e|
-                crate::EdgelinkError::InvalidOperation(format!("Failed to transmit message: {e}"))),
+                crate::N2linkError::InvalidOperation(format!("Failed to transmit message: {e}"))),
 
             _ = cancel.cancelled() =>
-                Err(crate::EdgelinkError::TaskCancelled),
+                Err(crate::N2linkError::TaskCancelled),
         }
     }
 }
@@ -123,7 +123,7 @@ impl MsgReceiverHolder {
             None => {
                 // Every sender is gone, e.g. the wires were dropped while the flow was shutting down.
                 log::debug!("The message channel has been closed");
-                Err(EdgelinkError::InvalidOperation("No message in the bounded channel!".to_owned()))
+                Err(N2linkError::InvalidOperation("No message in the bounded channel!".to_owned()))
             }
         }
     }
@@ -141,7 +141,7 @@ impl MsgReceiverHolder {
                 let rx = &mut self.rx.lock().await;
                 rx.recv().await.ok_or_else(|| {
                     log::debug!("The message channel has been closed");
-                    EdgelinkError::InvalidOperation("No message in the bounded channel!".to_owned())
+                    N2linkError::InvalidOperation("No message in the bounded channel!".to_owned())
                 })
             } => {
                 result
@@ -149,7 +149,7 @@ impl MsgReceiverHolder {
 
             _ = stop_token.cancelled() => {
                 // The token was cancelled
-                Err(EdgelinkError::TaskCancelled)
+                Err(N2linkError::TaskCancelled)
             }
         }
     }
@@ -175,7 +175,7 @@ impl MsgUnboundedReceiverHolder {
             None => {
                 // Every sender is gone, e.g. the wires were dropped while the flow was shutting down.
                 log::debug!("The message channel has been closed");
-                Err(EdgelinkError::InvalidOperation("No message in the unbounded channel!".to_owned()))
+                Err(N2linkError::InvalidOperation("No message in the unbounded channel!".to_owned()))
             }
         }
     }
@@ -188,7 +188,7 @@ impl MsgUnboundedReceiverHolder {
 
             _ = stop_token.cancelled() => {
                 // The token was cancelled
-                Err(EdgelinkError::TaskCancelled)
+                Err(N2linkError::TaskCancelled)
             }
         }
     }

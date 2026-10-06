@@ -65,7 +65,7 @@ pub async fn evaluate_raw_node_property(
             let arr = Variant::deserialize(&jv)?;
             let bytes = arr
                 .to_bytes()
-                .ok_or(EdgelinkError::BadArgument("value"))
+                .ok_or(N2linkError::BadArgument("value"))
                 .with_context(|| format!("Expected an array of bytes, got: {value:?}"))?;
             Ok(Variant::from(bytes))
         }
@@ -75,11 +75,11 @@ pub async fn evaluate_raw_node_property(
                 if let Some(pv) = msg.get_nav_stripped(value) {
                     Ok(pv.clone())
                 } else {
-                    Err(EdgelinkError::BadArgument("value"))
+                    Err(N2linkError::BadArgument("value"))
                         .with_context(|| format!("Cannot get the property(s) from `msg`: {value}"))
                 }
             } else {
-                Err(EdgelinkError::BadArgument("msg")).with_context(|| "`msg` is not existed!".to_owned())
+                Err(N2linkError::BadArgument("msg")).with_context(|| "`msg` is not existed!".to_owned())
             }
         }
 
@@ -89,13 +89,13 @@ pub async fn evaluate_raw_node_property(
                 .and_then(|f| f.engine())
                 .or(node.and_then(|n| n.engine()))
                 .map(|e| e.context().clone())
-                .ok_or_else(|| EdgelinkError::BadArgument("flow,node"))?;
+                .ok_or_else(|| N2linkError::BadArgument("flow,node"))?;
 
             let msg_env = msg.map(|m| SmallVec::from([PropexEnv::ExtRef("msg", m.as_variant())])).unwrap_or_default();
             if let Some(ctx_value) = ctx.get_one(ctx_prop.store, ctx_prop.key, &msg_env).await {
                 Ok(ctx_value)
             } else {
-                Err(EdgelinkError::BadArgument("value"))
+                Err(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Cannot found the global context variable `{value}`"))
             }
         }
@@ -106,13 +106,13 @@ pub async fn evaluate_raw_node_property(
                 .cloned()
                 .or(node.and_then(|n| n.flow()))
                 .map(|e| e.context().clone())
-                .ok_or_else(|| EdgelinkError::BadArgument("flow,node"))?;
+                .ok_or_else(|| N2linkError::BadArgument("flow,node"))?;
 
             let msg_env = msg.map(|m| SmallVec::from([PropexEnv::ExtRef("msg", m.as_variant())])).unwrap_or_default();
             if let Some(ctx_value) = ctx.get_one(ctx_prop.store, ctx_prop.key, &msg_env).await {
                 Ok(ctx_value)
             } else {
-                Err(EdgelinkError::BadArgument("value"))
+                Err(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Cannot found the flow context variable `{value}`"))
             }
         }
@@ -124,12 +124,12 @@ pub async fn evaluate_raw_node_property(
 
         #[cfg(not(feature = "jsonata"))]
         RedPropertyType::Jsonata => {
-            Err(EdgelinkError::NotSupported("JSONata support is not compiled in".to_owned()).into())
+            Err(N2linkError::NotSupported("JSONata support is not compiled in".to_owned()).into())
         }
 
         RedPropertyType::Env => match evaluate_env_property(value, node, flow) {
             Some(ev) => Ok(ev),
-            _ => Err(EdgelinkError::BadArgument("value"))
+            _ => Err(N2linkError::BadArgument("value"))
                 .with_context(|| format!("Cannot found the environment variable `{value}`")),
         },
     }
@@ -170,7 +170,7 @@ pub async fn evaluate_node_property_value(
             if let Some(msg) = msg {
                 if let Some(pv) = msg.get_nav_stripped(prop.as_str()) { pv.clone() } else { Variant::Null }
             } else {
-                return Err(EdgelinkError::BadArgument("msg")).with_context(|| "`msg` is required".to_owned());
+                return Err(N2linkError::BadArgument("msg")).with_context(|| "`msg` is required".to_owned());
             }
         }
 
@@ -181,13 +181,13 @@ pub async fn evaluate_node_property_value(
                 .and_then(|f| f.engine())
                 .or(node.and_then(|n| n.engine()))
                 .map(|e| e.context().clone())
-                .ok_or_else(|| EdgelinkError::BadArgument("flow,node"))?;
+                .ok_or_else(|| N2linkError::BadArgument("flow,node"))?;
 
             let msg_env = msg.map(|m| SmallVec::from([PropexEnv::ExtRef("msg", m.as_variant())])).unwrap_or_default();
             if let Some(ctx_value) = ctx.get_one(ctx_prop.store, ctx_prop.key, &msg_env).await {
                 ctx_value
             } else {
-                return Err(EdgelinkError::BadArgument("value"))
+                return Err(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Cannot found the global context variable `{value}`"));
             }
         }
@@ -198,13 +198,13 @@ pub async fn evaluate_node_property_value(
                 .cloned()
                 .or(node.and_then(|n| n.flow()))
                 .map(|e| e.context().clone())
-                .ok_or_else(|| EdgelinkError::BadArgument("flow,node"))?;
+                .ok_or_else(|| N2linkError::BadArgument("flow,node"))?;
 
             let msg_env = msg.map(|m| SmallVec::from([PropexEnv::ExtRef("msg", m.as_variant())])).unwrap_or_default();
             if let Some(ctx_value) = ctx.get_one(ctx_prop.store, ctx_prop.key, &msg_env).await {
                 ctx_value
             } else {
-                return Err(EdgelinkError::BadArgument("value"))
+                return Err(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Cannot found the flow context variable `{value}`"));
             }
         }
@@ -222,7 +222,7 @@ pub async fn evaluate_node_property_value(
             #[cfg(not(feature = "jsonata"))]
             {
                 let _ = value;
-                return Err(EdgelinkError::NotSupported("JSONata support is not compiled in".to_owned()).into());
+                return Err(N2linkError::NotSupported("JSONata support is not compiled in".to_owned()).into());
             }
         }
 
@@ -230,13 +230,13 @@ pub async fn evaluate_node_property_value(
         {
             Some(ev) => ev,
             _ => {
-                return Err(EdgelinkError::BadArgument("value"))
+                return Err(N2linkError::BadArgument("value"))
                     .with_context(|| format!("Cannot found the environment variable: '{s}'"));
             }
         },
 
         (_, _) => {
-            return Err(EdgelinkError::BadArgument("value")).with_context(|| "cannot parse the expr".to_owned());
+            return Err(N2linkError::BadArgument("value")).with_context(|| "cannot parse the expr".to_owned());
         }
     };
 

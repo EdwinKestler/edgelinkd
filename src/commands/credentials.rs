@@ -2,12 +2,12 @@
 
 use std::path::PathBuf;
 
-use edgelink_core::runtime::credential_storage::CredentialStore;
+use n2link_core::runtime::credential_storage::CredentialStore;
 
 use crate::cliargs::{CliArgs, CredentialCommand};
 use crate::config::load_config;
 
-pub async fn execute(args: &CliArgs, command: &CredentialCommand) -> edgelink_core::Result<()> {
+pub async fn execute(args: &CliArgs, command: &CredentialCommand) -> n2link_core::Result<()> {
     let cfg = load_config(args)?;
     let flows =
         PathBuf::from(cfg.get_string("flows_path").map_err(|_| anyhow::anyhow!("flows_path is not configured"))?);
@@ -36,7 +36,7 @@ pub async fn execute(args: &CliArgs, command: &CredentialCommand) -> edgelink_co
     Ok(())
 }
 
-fn print_json(value: &impl serde::Serialize) -> edgelink_core::Result<()> {
+fn print_json(value: &impl serde::Serialize) -> n2link_core::Result<()> {
     println!("{}", serde_json::to_string_pretty(value).map_err(anyhow::Error::from)?);
     Ok(())
 }

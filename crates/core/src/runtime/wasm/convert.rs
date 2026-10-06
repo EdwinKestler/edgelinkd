@@ -1,8 +1,8 @@
 //! Variant ↔ EVE/1.
 
-use edgelink_eve::{EveValue, Limits, decode, encode};
+use n2link_eve::{EveValue, Limits, decode, encode};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::model::Variant;
 
 pub(crate) fn variant_to_eve(value: &Variant) -> crate::Result<EveValue> {
@@ -17,7 +17,7 @@ pub(crate) fn variant_to_eve(value: &Variant) -> crate::Result<EveValue> {
             } else if let Some(n) = number.as_f64() {
                 EveValue::F64(n)
             } else {
-                return Err(EdgelinkError::invalid_operation("number has no EVE form"));
+                return Err(N2linkError::invalid_operation("number has no EVE form"));
             }
         }
         Variant::String(text) => EveValue::String(text.clone()),
@@ -43,7 +43,7 @@ pub(crate) fn eve_to_variant(value: &EveValue) -> crate::Result<Variant> {
         EveValue::U64(n) => Variant::from(*n),
         EveValue::F64(n) => serde_json::Number::from_f64(*n)
             .map(Variant::Number)
-            .ok_or_else(|| EdgelinkError::invalid_operation("WASM output: non-finite number"))?,
+            .ok_or_else(|| N2linkError::invalid_operation("WASM output: non-finite number"))?,
         EveValue::String(text) => Variant::String(text.clone()),
         EveValue::Bytes(bytes) => Variant::Bytes(bytes.clone()),
         EveValue::Array(items) => Variant::Array(items.iter().map(eve_to_variant).collect::<crate::Result<Vec<_>>>()?),
@@ -61,7 +61,7 @@ pub(crate) fn eve_to_variant(value: &EveValue) -> crate::Result<Variant> {
                 .size_limit(REGEX_SIZE_LIMIT)
                 .dfa_size_limit(REGEX_SIZE_LIMIT)
                 .build()
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("WASM output regexp: {err}")))?;
+                .map_err(|err| N2linkError::invalid_operation(&format!("WASM output regexp: {err}")))?;
             Variant::Regexp(re)
         }
     })
@@ -70,7 +70,7 @@ pub(crate) fn eve_to_variant(value: &EveValue) -> crate::Result<Variant> {
 const REGEX_SIZE_LIMIT: usize = 1024 * 1024;
 
 fn date_to_ms(time: std::time::SystemTime) -> crate::Result<i64> {
-    let out_of_range = || EdgelinkError::invalid_operation("date is out of the EVE/1 range");
+    let out_of_range = || N2linkError::invalid_operation("date is out of the EVE/1 range");
     match time.duration_since(std::time::UNIX_EPOCH) {
         Ok(after) => i64::try_from(after.as_millis()).map_err(|_| out_of_range()),
         Err(before) => i64::try_from(before.duration().as_millis()).map(|ms| -ms).map_err(|_| out_of_range()),
@@ -81,16 +81,16 @@ fn ms_to_date(ms: i64) -> crate::Result<std::time::SystemTime> {
     let offset = std::time::Duration::from_millis(ms.unsigned_abs());
     let date =
         if ms >= 0 { std::time::UNIX_EPOCH.checked_add(offset) } else { std::time::UNIX_EPOCH.checked_sub(offset) };
-    date.ok_or_else(|| EdgelinkError::invalid_operation("WASM output: date is not representable"))
+    date.ok_or_else(|| N2linkError::invalid_operation("WASM output: date is not representable"))
 }
 
 pub(crate) fn encode_variant(value: &Variant) -> crate::Result<Vec<u8>> {
-    encode(&variant_to_eve(value)?).map_err(|err| EdgelinkError::invalid_operation(&err.to_string()))
+    encode(&variant_to_eve(value)?).map_err(|err| N2linkError::invalid_operation(&err.to_string()))
 }
 
 pub(crate) fn decode_variant(bytes: &[u8], max_len: u32) -> crate::Result<Variant> {
     let value = decode(bytes, Limits { max_depth: 32, max_values: 65_536, max_len })
-        .map_err(|err| EdgelinkError::invalid_operation(&err.to_string()))?;
+        .map_err(|err| N2linkError::invalid_operation(&err.to_string()))?;
     eve_to_variant(&value)
 }
 

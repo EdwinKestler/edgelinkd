@@ -1,12 +1,12 @@
 [package]
-name = "edgelink-core"
+name = "n2link-core"
 version = "0.3.0"
 edition = "2024"
 readme = "README.md"
 authors = ["Li Wei <oldrev@gmail.com>"]
 
 [lib]
-name = "edgelink_core"
+name = "n2link_core"
 
 [dependencies]
 anyhow.workspace = true
@@ -61,7 +61,7 @@ url = "2.5"
 quick-xml = { workspace = true, optional = true, features = ["serialize"] }
 serde-xml-rs = { workspace = true, optional = true }
 # Crates in this project
-edgelink-macro = { path = "../macro" }
+n2link-macro = { path = "../macro" }
 dashmap.workspace = true
 itertools.workspace = true
 smallvec.workspace = true
@@ -79,7 +79,7 @@ rusqlite = { optional = true, workspace = true }
 tokio-postgres = { optional = true, workspace = true }
 redis = { optional = true, workspace = true }
 wasmi = { optional = true, workspace = true }
-edgelink-eve = { path = "../eve", optional = true }
+n2link-eve = { path = "../eve", optional = true }
 toml_edit = { workspace = true, optional = true }
 
 # The exec node delivers a real SIGTERM/SIGINT on Unix. Windows has no equivalent (Node.js
@@ -132,4 +132,4 @@ nodes_postgres = ["dep:tokio-postgres"]
 # Redis GET/SET/DEL/PING. The app default enables this; omit from a minimal core build.
 nodes_redis = ["dep:redis"]
 # Optional WASM plugin host. Off in default and full.
-nodes_wasm = ["dep:wasmi", "dep:edgelink-eve", "dep:fs2", "dep:toml_edit"]
+nodes_wasm = ["dep:wasmi", "dep:n2link-eve", "dep:fs2", "dep:toml_edit"]

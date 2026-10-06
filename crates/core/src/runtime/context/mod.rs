@@ -66,7 +66,7 @@ impl ContextStoreOptions {
                 })
                 .collect::<crate::Result<config::Map<String, config::Value>>>()?,
             other => {
-                return Err(EdgelinkError::BadArgument("options"))
+                return Err(N2linkError::BadArgument("options"))
                     .with_context(|| format!("The store options must be an object, but got: {other}"));
             }
         };
@@ -81,7 +81,7 @@ impl ContextStoreOptions {
     pub fn deserialize_options<T: serde::de::DeserializeOwned>(&self) -> crate::Result<T> {
         let table: config::Map<String, config::Value> = self.options.clone().into_iter().collect();
         let value = config::Value::new(None, config::ValueKind::Table(table));
-        value.try_deserialize::<T>().map_err(EdgelinkError::from)
+        value.try_deserialize::<T>().map_err(N2linkError::from)
     }
 }
 
@@ -93,7 +93,7 @@ pub fn create_context_store(name: &str, options: &ContextStoreOptions) -> crate:
     let metadata = inventory::iter::<ProviderMetadata>
         .into_iter()
         .find(|x| x.type_ == options.provider)
-        .ok_or(EdgelinkError::Configuration)
+        .ok_or(N2linkError::Configuration)
         .with_context(|| format!("Unknown context store provider: '{}'", options.provider))?;
     (metadata.factory)(name.to_owned(), Some(options))
 }
@@ -254,7 +254,7 @@ impl Context {
         let store = manager
             .configured_store(&store_name)
             .cloned()
-            .ok_or(EdgelinkError::BadArgument("storage"))
+            .ok_or(N2linkError::BadArgument("storage"))
             .with_context(|| format!("Cannot found the storage: '{store_name}'"))?;
         let mut path = propex::parse(key)?;
         expand_propex_segments(&mut path, eval_env)?;
@@ -265,7 +265,7 @@ impl Context {
             return if value.is_some() {
                 Ok(())
             } else {
-                Err(EdgelinkError::InvalidOperation(format!("context key '{root}' is forced")))
+                Err(N2linkError::InvalidOperation(format!("context key '{root}' is forced")))
             };
         }
         let removing = value.is_none();
@@ -406,7 +406,7 @@ impl ContextManagerBuilder {
         let mut settings: ContextStorageSettings = config.get("runtime.context")?;
         if !settings.stores.contains_key(&settings.default) {
             use crate::ErrorContext as _;
-            return Err(EdgelinkError::Configuration).with_context(|| {
+            return Err(N2linkError::Configuration).with_context(|| {
                 format!(
                     "Cannot found the default context storage '{}', check your configuration file.",
                     settings.default
@@ -460,7 +460,7 @@ impl ContextManagerBuilder {
         let default_store = self
             .stores
             .get(&self.default_store)
-            .ok_or(EdgelinkError::Configuration)
+            .ok_or(N2linkError::Configuration)
             .with_context(|| format!("Cannot found the default context store '{}'", self.default_store))?
             .clone();
         let cm = ContextManager {
@@ -650,7 +650,7 @@ fn resolved_store_name_required(manager: &ContextManager, storage: Option<&str>)
         None => Ok(manager.default_store_name()),
         Some(name) => manager
             .canonical_store_name(name)
-            .ok_or(EdgelinkError::BadArgument("storage"))
+            .ok_or(N2linkError::BadArgument("storage"))
             .with_context(|| format!("Cannot found the storage: '{name}'")),
     }
 }
@@ -668,7 +668,7 @@ fn force_target(manager: &ContextManager, storage: Option<&str>, key: &str) -> R
     let path = propex::parse(key)?;
     match path.as_slice() {
         [PropexSegment::Property(name)] => Ok((store_name, name.as_ref().to_owned())),
-        _ => Err(EdgelinkError::NotSupported(format!("forcing a nested context key is not supported: '{key}'"))),
+        _ => Err(N2linkError::NotSupported(format!("forcing a nested context key is not supported: '{key}'"))),
     }
 }
 
@@ -703,7 +703,7 @@ fn context_store_parser(input: &str) -> nom::IResult<&str, ContextKey<'_>, nom::
 /// # Examples
 /// For example, `#:(file)::foo.bar` results in ` ContextKey { store: Some("file"), key: "foo.bar" }`.
 /// ```
-/// use edgelink_core::runtime::context::evaluate_key;
+/// use n2link_core::runtime::context::evaluate_key;
 ///
 /// let res = evaluate_key("#:(file)::foo.bar").unwrap();
 /// assert_eq!(Some("file"), res.store);
@@ -712,7 +712,7 @@ fn context_store_parser(input: &str) -> nom::IResult<&str, ContextKey<'_>, nom::
 pub fn evaluate_key(key: &str) -> crate::Result<ContextKey<'_>> {
     match context_store_parser(key) {
         Ok(res) => Ok(res.1),
-        Err(e) => Err(EdgelinkError::BadArgument("key")).with_context(|| format!("Can not parse the key: '{e}'")),
+        Err(e) => Err(N2linkError::BadArgument("key")).with_context(|| format!("Can not parse the key: '{e}'")),
     }
 }
 
@@ -796,7 +796,7 @@ mod tests {
         flow.set_one(Some("memory"), "motor", Some(Variant::from("run")), &[]).await.unwrap();
         assert_eq!(flow.get_one(None, "motor", &[]).await.unwrap(), Variant::from(false));
         let err = flow.set_one(None, "motor", None, &[]).await.unwrap_err();
-        assert!(matches!(err, crate::EdgelinkError::InvalidOperation(_)));
+        assert!(matches!(err, crate::N2linkError::InvalidOperation(_)));
 
         flow.clear_force(None, "motor").unwrap();
         assert_eq!(flow.get_one(None, "motor", &[]).await.unwrap(), Variant::from(true));
@@ -827,7 +827,7 @@ mod tests {
         flow.set_one(None, "pose", Some(stored.clone()), &[]).await.unwrap();
         let err = flow.force_one(None, "pose.speed", Variant::from(serde_json::json!(4))).unwrap_err();
         match err {
-            crate::EdgelinkError::NotSupported(message) => assert!(message.contains("pose.speed"), "{message}"),
+            crate::N2linkError::NotSupported(message) => assert!(message.contains("pose.speed"), "{message}"),
             other => panic!("expected NotSupported, got {other}"),
         }
 

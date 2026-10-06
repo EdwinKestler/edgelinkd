@@ -605,7 +605,7 @@ mod tests {
     use crate::api::create_all_routes;
     use axum::body::Body;
     use axum::http::Request;
-    use edgelink_core::runtime::registry::RegistryBuilder;
+    use n2link_core::runtime::registry::RegistryBuilder;
     use tower::ServiceExt;
 
     #[tokio::test]

@@ -14,7 +14,7 @@ use wasmi::{
     TypedFunc, TypedResumableCall, ValType, WasmResults,
 };
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 pub(crate) const ABI_MODULE: &str = "edgelink:node/v1";
 use ValType::I32;
@@ -208,8 +208,8 @@ fn fail_host(mut caller: Caller<'_, HostState>, ptr: i32, len: i32) -> Result<i3
     Ok(0)
 }
 
-fn config_error(err: impl std::fmt::Display) -> EdgelinkError {
-    EdgelinkError::invalid_operation(&err.to_string())
+fn config_error(err: impl std::fmt::Display) -> N2linkError {
+    N2linkError::invalid_operation(&err.to_string())
 }
 
 impl EngineCell {
@@ -241,7 +241,7 @@ impl EngineCell {
         for import in module.imports() {
             let granted = ABI_IMPORTS.iter().find(|(name, ..)| import.module() == ABI_MODULE && import.name() == *name);
             let Some((name, params, results)) = granted else {
-                return Err(EdgelinkError::NotSupported(format!(
+                return Err(N2linkError::NotSupported(format!(
                     "import {}::{} is not granted by ABI {ABI_MODULE}",
                     import.module(),
                     import.name()
@@ -250,14 +250,14 @@ impl EngineCell {
             match import.ty() {
                 ExternType::Func(ty) if ty.params() == *params && ty.results() == *results => {}
                 ExternType::Func(ty) => {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "import {ABI_MODULE}::{name} has type {}, expected {}",
                         signature(ty.params(), ty.results()),
                         signature(params, results)
                     )));
                 }
                 _ => {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "import {ABI_MODULE}::{name} must be a function (imported memories, tables and globals are not granted)"
                     )));
                 }
@@ -277,21 +277,21 @@ impl EngineCell {
             match export.ty() {
                 ExternType::Func(ty) if ty.params() == params && ty.results() == results => found[index] = true,
                 ExternType::Func(ty) => {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "export {name} has type {}, expected {}",
                         signature(ty.params(), ty.results()),
                         signature(params, results)
                     )));
                 }
-                _ => return Err(EdgelinkError::NotSupported(format!("export {name} must be a function"))),
+                _ => return Err(N2linkError::NotSupported(format!("export {name} must be a function"))),
             }
         }
         if !memory {
-            return Err(EdgelinkError::NotSupported("plugin must export its linear memory as \"memory\"".to_owned()));
+            return Err(N2linkError::NotSupported("plugin must export its linear memory as \"memory\"".to_owned()));
         }
         for (index, (name, _, _, required)) in ABI_EXPORTS.iter().enumerate() {
             if *required && !found[index] {
-                return Err(EdgelinkError::NotSupported(format!("plugin does not export {name}")));
+                return Err(N2linkError::NotSupported(format!("plugin does not export {name}")));
             }
         }
         Ok(module)
@@ -352,7 +352,7 @@ impl EngineCell {
             .map_err(|err| config_error(format!("el_abi_version: {err}")))?;
         let version = abi.call(&mut store, ()).map_err(|err| config_error(format!("el_abi_version: {err}")))?;
         if version != 1 {
-            return Err(EdgelinkError::NotSupported(format!("unsupported WASM ABI {version}")));
+            return Err(N2linkError::NotSupported(format!("unsupported WASM ABI {version}")));
         }
         Ok(Instance {
             alloc: instance
@@ -365,7 +365,7 @@ impl EngineCell {
             close: instance.get_typed_func(&store, "el_close").ok(),
             memory: instance
                 .get_memory(&store, "memory")
-                .ok_or_else(|| EdgelinkError::invalid_operation("plugin does not export memory"))?,
+                .ok_or_else(|| N2linkError::invalid_operation("plugin does not export memory"))?,
             store,
         })
     }

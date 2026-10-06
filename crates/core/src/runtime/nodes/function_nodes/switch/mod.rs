@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[cfg(test)]
 mod tests;
@@ -232,7 +232,7 @@ impl SwitchRuleOperator {
             // Node-RED: `'jsonata_exp': function(a, b) { return (b === true); }`
             Self::JsonataExp => Ok(b.as_bool() == Some(true)),
 
-            _ => Err(EdgelinkError::NotSupported("Unsupported operator".to_owned())),
+            _ => Err(N2linkError::NotSupported("Unsupported operator".to_owned())),
         }
     }
 }
@@ -272,7 +272,7 @@ impl SwitchPropertyType {
 }
 
 impl TryFrom<SwitchPropertyType> for RedPropertyType {
-    type Error = EdgelinkError;
+    type Error = N2linkError;
 
     fn try_from(value: SwitchPropertyType) -> Result<Self, Self::Error> {
         match value {
@@ -283,7 +283,7 @@ impl TryFrom<SwitchPropertyType> for RedPropertyType {
             SwitchPropertyType::Num => Ok(RedPropertyType::Num),
             SwitchPropertyType::Jsonata => Ok(RedPropertyType::Jsonata),
             SwitchPropertyType::Env => Ok(RedPropertyType::Env),
-            SwitchPropertyType::Prev => Err(EdgelinkError::BadArgument("self")),
+            SwitchPropertyType::Prev => Err(N2linkError::BadArgument("self")),
         }
     }
 }

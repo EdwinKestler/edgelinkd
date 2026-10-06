@@ -9,7 +9,7 @@ use crate::runtime::flow::Flow;
 use crate::runtime::http_registry::HttpResponse;
 use crate::runtime::model::json::deser::str_to_option_u16;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 crate::node_hints!("http response", caps = ["network"]);
 

@@ -9,7 +9,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-edgelink-wasm-guest = { path = "../.." }
+n2link-wasm-guest = { path = "../.." }
 
 [profile.release]
 opt-level = "z"

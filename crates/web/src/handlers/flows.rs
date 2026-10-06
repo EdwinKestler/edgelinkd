@@ -5,7 +5,7 @@ use crate::models::*;
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, extract::Path, http::StatusCode, response::Json};
-use edgelink_core::runtime::engine::Engine;
+use n2link_core::runtime::engine::Engine;
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -373,9 +373,9 @@ mod tests {
 
     #[cfg(feature = "credential_encryption")]
     async fn encrypted_router()
-    -> (axum::Router, TempDir, std::path::PathBuf, edgelink_core::runtime::credential_storage::CredentialStore) {
-        use edgelink_core::runtime::credential_storage::{CredentialStore, previous_credential_path};
-        use edgelink_core::runtime::flow_credentials::sidecar_path;
+    -> (axum::Router, TempDir, std::path::PathBuf, n2link_core::runtime::credential_storage::CredentialStore) {
+        use n2link_core::runtime::credential_storage::{CredentialStore, previous_credential_path};
+        use n2link_core::runtime::flow_credentials::sidecar_path;
 
         let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-encrypted-flows-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
@@ -649,7 +649,7 @@ mod tests {
         std::fs::write(&flows, b"[]").unwrap();
         let state = WebState::new();
         state.set_flows_file_path(flows.clone()).await;
-        let registry = edgelink_core::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let registry = n2link_core::runtime::registry::RegistryBuilder::default().build().unwrap();
         let engine = Engine::with_json(&registry, json!([{ "id": "a", "type": "tab" }]), None).unwrap();
         engine.start().await.unwrap();
         state.set_registry(registry).await;
@@ -683,7 +683,7 @@ mod tests {
         std::fs::write(&flows, br#"[{"id":"a","type":"tab"}]"#).unwrap();
         let state = WebState::new();
         state.set_flows_file_path(flows.clone()).await;
-        let registry = edgelink_core::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let registry = n2link_core::runtime::registry::RegistryBuilder::default().build().unwrap();
         let engine = Engine::with_json(&registry, json!([{ "id": "a", "type": "tab" }]), None).unwrap();
         engine.start().await.unwrap();
         state.set_registry(registry).await;
@@ -719,7 +719,7 @@ mod tests {
         std::fs::write(&flows, br#"[{"id":"a","type":"tab"}]"#).unwrap();
         let state = WebState::new();
         state.set_flows_file_path(flows.clone()).await;
-        let registry = edgelink_core::runtime::registry::RegistryBuilder::default().build().unwrap();
+        let registry = n2link_core::runtime::registry::RegistryBuilder::default().build().unwrap();
         let engine = Engine::with_json(&registry, json!([{ "id": "a", "type": "tab" }]), None).unwrap();
         engine.start().await.unwrap();
         state.set_registry(registry).await;

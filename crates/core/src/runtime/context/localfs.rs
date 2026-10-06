@@ -46,7 +46,7 @@ use propex::PropexSegment;
 use serde::Deserialize;
 use tokio::{fs, sync::Mutex, task::JoinHandle};
 
-use super::{EdgelinkError, ElementId, GLOBAL_CONTEXT_NAME, Variant, memory::MemoryContextStore};
+use super::{ElementId, GLOBAL_CONTEXT_NAME, N2linkError, Variant, memory::MemoryContextStore};
 use crate::Result;
 use crate::runtime::context::*;
 
@@ -115,7 +115,7 @@ fn resolve_storage_base_dir(options: &LocalFileSystemOptions) -> crate::Result<P
             return Ok(PathBuf::from(home).join(EDGELINK_HOME_DIR_NAME).join(&options.base));
         }
     }
-    Err(EdgelinkError::Configuration).with_context(|| {
+    Err(N2linkError::Configuration).with_context(|| {
         "Cannot determine the base directory of the 'localfilesystem' context store: set 'dir' on the store, \
          or EDGELINK_HOME in the environment"
             .to_owned()
@@ -298,7 +298,7 @@ impl InnerStore {
         let _guard = self.write_chain.lock().await;
         let mut root = load_scope(&self.storage_base_dir, scope).await?.unwrap_or_else(Variant::empty_object);
         if !root.is_object() {
-            return Err(EdgelinkError::InvalidOperation(format!(
+            return Err(N2linkError::InvalidOperation(format!(
                 "The context file of scope '{scope}' does not hold an object"
             )));
         }
@@ -342,9 +342,9 @@ impl LocalFileSystemContextStore {
 }
 
 /// The stores report a missing value the same way the memory store does, with
-/// [`EdgelinkError::OutOfRange`]; this is how the multi-key read tells that apart from a real
+/// [`N2linkError::OutOfRange`]; this is how the multi-key read tells that apart from a real
 /// failure such as a corrupt file.
-fn is_missing(err: &EdgelinkError) -> bool {
+fn is_missing(err: &N2linkError) -> bool {
     err.is_out_of_range()
 }
 
@@ -385,7 +385,7 @@ impl ContextStore for LocalFileSystemContextStore {
             };
             let scope = file.scope();
             let Variant::Object(values) = value else {
-                return Err(EdgelinkError::InvalidOperation(format!(
+                return Err(N2linkError::InvalidOperation(format!(
                     "The context file '{}' does not hold an object",
                     file.path.display()
                 )));
@@ -410,9 +410,9 @@ impl ContextStore for LocalFileSystemContextStore {
             return cache.get_one(scope, path).await;
         }
         let Some(value) = load_scope(&self.inner.storage_base_dir, scope).await? else {
-            return Err(EdgelinkError::OutOfRange);
+            return Err(N2linkError::OutOfRange);
         };
-        value.get_segs(path).cloned().ok_or_else(|| EdgelinkError::OutOfRange)
+        value.get_segs(path).cloned().ok_or_else(|| N2linkError::OutOfRange)
     }
 
     async fn get_many(&self, scope: &str, keys: &[&str]) -> Result<Vec<Variant>> {
@@ -503,7 +503,7 @@ impl ContextStore for LocalFileSystemContextStore {
         let _guard = self.inner.write_chain.lock().await;
         let mut root = load_scope(&self.inner.storage_base_dir, scope).await?.unwrap_or_else(Variant::empty_object);
         let removed =
-            root.as_object_mut().and_then(|map| map.remove_segs_property(path)).ok_or(EdgelinkError::OutOfRange)?;
+            root.as_object_mut().and_then(|map| map.remove_segs_property(path)).ok_or(N2linkError::OutOfRange)?;
         write_scope(&storage_path(&self.inner.storage_base_dir, scope), &root).await?;
         Ok(removed)
     }

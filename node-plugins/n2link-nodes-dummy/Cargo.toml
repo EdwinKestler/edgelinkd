@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-nodes-dummy"
+name = "n2link-nodes-dummy"
 version = "0.3.0"
 edition = "2024"
 
@@ -9,7 +9,7 @@ tokio-util.workspace = true
 log.workspace = true
 config.workspace = true
 inventory.workspace = true
-edgelink-core = { path = "../../crates/core", default-features = false, features = [
+n2link-core = { path = "../../crates/core", default-features = false, features = [
     "core",
 ] }
-edgelink-macro = { path = "../../crates/macro" }
+n2link-macro = { path = "../../crates/macro" }

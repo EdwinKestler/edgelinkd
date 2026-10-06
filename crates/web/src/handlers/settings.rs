@@ -6,7 +6,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse, Json},
 };
-use edgelink_core::runtime::paths;
+use n2link_core::runtime::paths;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -7,12 +7,12 @@ use serde::Deserialize;
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::{MsgHandle, Variant};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 const MAX_INPUT_BYTES: usize = 1_048_576;
 
@@ -63,22 +63,22 @@ impl AiSplitNode {
         let raw = SplitConfig::deserialize(&config.rest)?;
         let chunk_size = raw.chunk_size.unwrap_or(512);
         if !(1..=8192).contains(&chunk_size) {
-            return Err(EdgelinkError::invalid_operation("ai-split chunkSize is out of range"));
+            return Err(N2linkError::invalid_operation("ai-split chunkSize is out of range"));
         }
         let overlap = raw.overlap.unwrap_or(0);
         if overlap >= chunk_size {
-            return Err(EdgelinkError::invalid_operation("ai-split overlap must be less than chunkSize"));
+            return Err(N2linkError::invalid_operation("ai-split overlap must be less than chunkSize"));
         }
         let separator = raw.separator;
         if separator.chars().count() > 16 {
-            return Err(EdgelinkError::invalid_operation("ai-split separator is too long"));
+            return Err(N2linkError::invalid_operation("ai-split separator is too long"));
         }
         if !separator.is_empty() && separator.chars().count() >= chunk_size {
-            return Err(EdgelinkError::invalid_operation("ai-split separator must be shorter than chunkSize"));
+            return Err(N2linkError::invalid_operation("ai-split separator must be shorter than chunkSize"));
         }
         let max_chunks = raw.max_chunks.unwrap_or(256);
         if !(1..=256).contains(&max_chunks) {
-            return Err(EdgelinkError::invalid_operation("ai-split maxChunks is out of range"));
+            return Err(N2linkError::invalid_operation("ai-split maxChunks is out of range"));
         }
         let property = if raw.property.trim().is_empty() { "payload".to_owned() } else { raw.property };
         Ok(Box::new(AiSplitNode {
@@ -93,23 +93,23 @@ impl AiSplitNode {
             let guard = msg.read().await;
             let value = guard
                 .get(&self.config.property)
-                .ok_or_else(|| EdgelinkError::invalid_operation("ai-split input is empty"))?;
+                .ok_or_else(|| N2linkError::invalid_operation("ai-split input is empty"))?;
             let text =
-                value.as_str().ok_or_else(|| EdgelinkError::invalid_operation("ai-split input must be a string"))?;
+                value.as_str().ok_or_else(|| N2linkError::invalid_operation("ai-split input must be a string"))?;
             if text.is_empty() {
-                return Err(EdgelinkError::invalid_operation("ai-split input is empty"));
+                return Err(N2linkError::invalid_operation("ai-split input is empty"));
             }
             if text.len() > MAX_INPUT_BYTES {
-                return Err(EdgelinkError::invalid_operation("ai-split input exceeds 1 MiB"));
+                return Err(N2linkError::invalid_operation("ai-split input exceeds 1 MiB"));
             }
             text.to_owned()
         };
         let chunks = split_text(&source, self.config.chunk_size, self.config.overlap, &self.config.separator)?;
         if chunks.len() > self.config.max_chunks {
-            return Err(EdgelinkError::invalid_operation("ai-split maxChunks exceeded"));
+            return Err(N2linkError::invalid_operation("ai-split maxChunks exceeded"));
         }
         if chunks.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-split produced no chunks"));
+            return Err(N2linkError::invalid_operation("ai-split produced no chunks"));
         }
         let msgid = {
             let guard = msg.read().await;
@@ -158,7 +158,7 @@ async fn write_chunk(msg: &MsgHandle, property: &str, chunk: &Chunk, index: usiz
 
 fn split_text(source: &str, chunk_size: usize, overlap: usize, separator: &str) -> crate::Result<Vec<Chunk>> {
     if source.is_empty() {
-        return Err(EdgelinkError::invalid_operation("ai-split input is empty"));
+        return Err(N2linkError::invalid_operation("ai-split input is empty"));
     }
     if separator.is_empty() {
         return Ok(window_chars(&source.chars().collect::<Vec<_>>(), chunk_size, overlap, 0));
@@ -236,7 +236,7 @@ fn reject_unsupported(value: &Value) -> crate::Result<()> {
             .get(key)
             .is_some_and(|item| !item.is_null() && item != &Value::Bool(false) && item != &Value::String(String::new()))
         {
-            return Err(EdgelinkError::NotSupported(format!("AI option '{key}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("AI option '{key}' is not supported")));
         }
     }
     Ok(())

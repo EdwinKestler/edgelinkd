@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-web"
+name = "n2link-web"
 version = "0.3.0"
 edition = "2024"
 
@@ -26,23 +26,23 @@ tokio-tungstenite = { workspace = true, optional = true, features = ["rustls-tls
 config = { workspace = true }
 reqwest = { workspace = true }
 
-edgelink-core = { path = "../core" }
+n2link-core = { path = "../core" }
 
 [features]
 default = ["admin_bcrypt", "credential_encryption", "history_sqlite", "nodes_postgres", "nodes_redis"]
 admin_bcrypt = ["dep:bcrypt"]
-credential_encryption = ["edgelink-core/credential_encryption"]
-nodes_modbus = ["edgelink-core/nodes_modbus"]
-runtime_scan = ["edgelink-core/runtime_scan"]
-nodes_ai = ["edgelink-core/nodes_ai"]
-nodes_ai_text = ["edgelink-core/nodes_ai_text"]
-nodes_ai_embeddings = ["edgelink-core/nodes_ai_embeddings"]
-nodes_ai_agent = ["nodes_ai", "nodes_ai_text", "edgelink-core/nodes_ai_agent"]
+credential_encryption = ["n2link-core/credential_encryption"]
+nodes_modbus = ["n2link-core/nodes_modbus"]
+runtime_scan = ["n2link-core/runtime_scan"]
+nodes_ai = ["n2link-core/nodes_ai"]
+nodes_ai_text = ["n2link-core/nodes_ai_text"]
+nodes_ai_embeddings = ["n2link-core/nodes_ai_embeddings"]
+nodes_ai_agent = ["nodes_ai", "nodes_ai_text", "n2link-core/nodes_ai_agent"]
 # Adds the `/history` query route and `/status` history health.
-history_sqlite = ["edgelink-core/history_sqlite"]
-nodes_postgres = ["edgelink-core/nodes_postgres"]
-nodes_redis = ["edgelink-core/nodes_redis"]
-nodes_wasm = ["edgelink-core/nodes_wasm"]
+history_sqlite = ["n2link-core/history_sqlite"]
+nodes_postgres = ["n2link-core/nodes_postgres"]
+nodes_redis = ["n2link-core/nodes_redis"]
+nodes_wasm = ["n2link-core/nodes_wasm"]
 
 [dev-dependencies]
 tokio-tungstenite = { workspace = true }

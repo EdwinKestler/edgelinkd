@@ -46,10 +46,10 @@ use serde::Deserialize;
 use tokio::sync::RwLock;
 
 use super::mqtt_broker::{self, BrokerSession, qos_of};
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MqttQoS {
@@ -133,14 +133,14 @@ struct MqttInNodeConfig {
 fn reject_v5(config: &MqttInNodeConfig, v5: bool) -> crate::Result<()> {
     let rh = config.rh.unwrap_or(0);
     if rh > 2 {
-        return Err(EdgelinkError::NotSupported(format!("MQTT retain handling {rh} is not supported")));
+        return Err(N2linkError::NotSupported(format!("MQTT retain handling {rh} is not supported")));
     }
     let non_default = config.subscription_identifier.unwrap_or(0) != 0
         || config.nl == Some(true)
         || rh != 0
         || config.rap == Some(false);
     if non_default && !v5 {
-        return Err(EdgelinkError::NotSupported("MQTT v5 subscription properties are not supported".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT v5 subscription properties are not supported".to_owned()));
     }
     Ok(())
 }
@@ -203,7 +203,7 @@ impl MqttInNode {
             return Ok(());
         }
         if !self.is_valid_subscription_topic(&self.config.topic) {
-            return Err(EdgelinkError::invalid_operation(&format!(
+            return Err(N2linkError::invalid_operation(&format!(
                 "Invalid topic for subscription: '{}'",
                 self.config.topic
             )));
@@ -291,7 +291,7 @@ impl MqttInNode {
                 Some(1) => MqttQoS::AtLeast,
                 Some(2) => MqttQoS::Exactly,
                 Some(level) => {
-                    return Err(EdgelinkError::invalid_operation(&format!("MQTT qos {level} is out of range")));
+                    return Err(N2linkError::invalid_operation(&format!("MQTT qos {level} is out of range")));
                 }
             };
             self.session.subscribe(&self.owner(), self.subscription_for(&topic, qos)).await?;
@@ -329,7 +329,7 @@ impl MqttInNode {
             match action {
                 "connect" => {
                     if msg.get("broker").is_some() {
-                        return Err(EdgelinkError::NotSupported(
+                        return Err(N2linkError::NotSupported(
                             "a broker supplied on the message is not supported".to_owned(),
                         ));
                     }
@@ -388,7 +388,7 @@ impl MqttInNode {
                     return Ok(Some(response_msg));
                 }
                 _ => {
-                    return Err(crate::EdgelinkError::invalid_operation(&format!(
+                    return Err(crate::N2linkError::invalid_operation(&format!(
                         "Invalid MQTT In action: '{action}'. Valid actions are 'connect', 'disconnect', 'subscribe', 'unsubscribe', 'getSubscriptions'"
                     )));
                 }
@@ -416,10 +416,10 @@ impl MqttInNode {
                     }
                     Ok(topics)
                 }
-                _ => Err(crate::EdgelinkError::invalid_operation("Invalid topic format in message")),
+                _ => Err(crate::N2linkError::invalid_operation("Invalid topic format in message")),
             }
         } else {
-            Err(crate::EdgelinkError::invalid_operation("No topic specified in message"))
+            Err(crate::N2linkError::invalid_operation("No topic specified in message"))
         }
     }
 }
@@ -659,10 +659,10 @@ fn decode_payload(
 
 /// Node-RED `datatype === "json"` reports `node.error` and does not send the message.
 fn decode_json_mode(payload: &[u8]) -> crate::Result<Variant> {
-    let text = std::str::from_utf8(payload).map_err(|_| EdgelinkError::invalid_operation("Invalid JSON string"))?;
+    let text = std::str::from_utf8(payload).map_err(|_| N2linkError::invalid_operation("Invalid JSON string"))?;
     serde_json::from_str::<serde_json::Value>(text)
         .map(MqttInNode::json_value_to_variant)
-        .map_err(|_| EdgelinkError::invalid_operation("Failed to parse JSON string"))
+        .map_err(|_| N2linkError::invalid_operation("Failed to parse JSON string"))
 }
 
 fn decode_auto(
@@ -690,7 +690,7 @@ fn decode_auto(
 fn decode_json_media(payload: &[u8], datatype: &MqttDataType) -> crate::Result<Variant> {
     let text = text_payload(payload);
     let parsed = serde_json::from_str::<serde_json::Value>(&text)
-        .map_err(|_| EdgelinkError::invalid_operation("Failed to parse JSON string"))?;
+        .map_err(|_| N2linkError::invalid_operation("Failed to parse JSON string"))?;
     if datatype == &MqttDataType::AutoDetect {
         Ok(MqttInNode::json_value_to_variant(parsed))
     } else {

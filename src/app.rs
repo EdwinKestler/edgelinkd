@@ -5,11 +5,11 @@ use runtime::registry::RegistryHandle;
 use tokio::sync::{Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
 
-use edgelink_core::runtime::model::*;
-use edgelink_core::*;
+use n2link_core::runtime::model::*;
+use n2link_core::*;
 
 use crate::cliargs::CliArgs;
-use crate::env::EdgelinkEnv;
+use crate::env::N2linkEnv;
 use crate::flows::ensure_flows_file_exists;
 use crate::registry::create_registry;
 
@@ -25,22 +25,22 @@ pub struct App {
     _registry: RegistryHandle,
     /// Holds the plugin store lock while the runtime runs (only when `[runtime.wasm] enabled`).
     #[cfg(feature = "nodes_wasm")]
-    plugin_store: Option<Arc<edgelink_core::runtime::wasm::PluginStore>>,
+    plugin_store: Option<Arc<n2link_core::runtime::wasm::PluginStore>>,
     engine: Arc<RwLock<Engine>>,
     msgs_to_inject: Mutex<Vec<MsgInjectionEntry>>,
     flows_path: String, // Store the resolved flows path
-    env: Arc<EdgelinkEnv>,
+    env: Arc<N2linkEnv>,
 }
 
 impl App {
     pub async fn new(
         _elargs: Arc<CliArgs>,
-        env: Arc<EdgelinkEnv>,
+        env: Arc<N2linkEnv>,
         _flows_path: Option<String>,
-    ) -> edgelink_core::Result<Self> {
+    ) -> n2link_core::Result<Self> {
         let reg = create_registry()?;
         #[cfg(feature = "nodes_wasm")]
-        let (reg, plugin_store) = edgelink_core::runtime::wasm::attach_store(&reg, &env.config)?;
+        let (reg, plugin_store) = n2link_core::runtime::wasm::attach_store(&reg, &env.config)?;
 
         let msgs_to_inject = Vec::new();
 
@@ -121,7 +121,7 @@ impl App {
 
     /// The plugin store, when `[runtime.wasm] enabled = true`. The admin API shares it.
     #[cfg(feature = "nodes_wasm")]
-    pub fn plugin_store(&self) -> Option<Arc<edgelink_core::runtime::wasm::PluginStore>> {
+    pub fn plugin_store(&self) -> Option<Arc<n2link_core::runtime::wasm::PluginStore>> {
         self.plugin_store.clone()
     }
 
@@ -130,7 +130,7 @@ impl App {
         &self.engine
     }
 
-    pub fn env(&self) -> &Arc<EdgelinkEnv> {
+    pub fn env(&self) -> &Arc<N2linkEnv> {
         &self.env
     }
 

@@ -32,7 +32,7 @@ without source. Anything that needs I/O is split in two: a built-in node moves t
 
 ```text
 my-plugin/
-  Cargo.toml          [lib] crate-type = ["cdylib", "rlib"]; edgelink-wasm-guest dependency
+  Cargo.toml          [lib] crate-type = ["cdylib", "rlib"]; n2link-wasm-guest dependency
   .cargo/config.toml  64 KiB stack for wasm32-unknown-unknown
   plugin.toml         the manifest (section 3)
   src/lib.rs          impl Node, export_node!, manifest!
@@ -50,7 +50,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-edgelink-wasm-guest = { path = "../edgelinkd/crates/wasm-guest" }
+n2link-wasm-guest = { path = "../edgelinkd/crates/wasm-guest" }
 
 [profile.release]
 opt-level = "z"
@@ -69,7 +69,7 @@ rustflags = ["-C", "link-arg=-zstack-size=65536"]
 `src/lib.rs`:
 
 ```rust
-use edgelink_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Msg, Node, Shape};
+use n2link_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Msg, Node, Shape};
 
 manifest!("../plugin.toml");
 

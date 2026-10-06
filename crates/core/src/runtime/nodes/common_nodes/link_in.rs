@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug)]
 #[flow_node("link in", red_name = "link", inputs = 0, outputs = 1)]

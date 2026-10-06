@@ -225,13 +225,13 @@ mod tests {
         let registry = RegistryBuilder::default().build().unwrap();
         for name in registry.all().keys() {
             if name.starts_with("ai-") || matches!(*name, "postgres" | "postgres-config" | "redis" | "redis-config") {
-                assert!(crate::runtime::nodes::edgelink_owned_node_type(name), "{name}");
+                assert!(crate::runtime::nodes::n2link_owned_node_type(name), "{name}");
             }
         }
-        assert!(crate::runtime::nodes::edgelink_owned_node_type("ai-agent"));
+        assert!(crate::runtime::nodes::n2link_owned_node_type("ai-agent"));
         #[cfg(not(feature = "nodes_ai_agent"))]
         assert!(registry.get("ai-agent").is_none());
-        assert!(!crate::runtime::nodes::edgelink_owned_node_type("nodered-foo"));
+        assert!(!crate::runtime::nodes::n2link_owned_node_type("nodered-foo"));
         for name in registry.all().keys() {
             assert!(!name.starts_with("wasm-"), "built-in type {name} uses the reserved wasm- prefix");
         }

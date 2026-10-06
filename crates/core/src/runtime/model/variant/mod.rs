@@ -51,7 +51,7 @@ pub struct UndefinableVariant(pub Option<Variant>);
 ///
 /// ```rust
 /// use std::collections::BTreeMap;
-/// use edgelink_core::runtime::model::Variant;
+/// use n2link_core::runtime::model::Variant;
 ///
 /// // Create a null variant
 /// let null_variant = Variant::Null;
@@ -137,17 +137,17 @@ impl Variant {
                 for e in array.iter() {
                     if let Some(byte) = e.as_i64() {
                         if !(0..=0xFF).contains(&byte) {
-                            return Err(EdgelinkError::NotSupported("Invalid byte value".to_owned()));
+                            return Err(N2linkError::NotSupported("Invalid byte value".to_owned()));
                         }
                         bytes.push(byte as u8)
                     } else {
-                        return Err(EdgelinkError::NotSupported("Invalid byte JSON value type".to_owned()));
+                        return Err(N2linkError::NotSupported("Invalid byte JSON value type".to_owned()));
                     }
                 }
                 Ok(Variant::Bytes(bytes))
             }
             serde_json::Value::String(string) => Ok(Variant::from(string.as_bytes())),
-            _ => Err(EdgelinkError::NotSupported("Invalid byte JSON Value".to_owned())),
+            _ => Err(N2linkError::NotSupported("Invalid byte JSON Value".to_owned())),
         }
     }
 
@@ -159,25 +159,25 @@ impl Variant {
                     if (0..=255).contains(&i) {
                         bytes.push(i as u8);
                     } else {
-                        return Err(EdgelinkError::OutOfRange);
+                        return Err(N2linkError::OutOfRange);
                     }
                 } else if let Some(u) = n.as_u64() {
                     if u <= 255 {
                         bytes.push(u as u8);
                     } else {
-                        return Err(EdgelinkError::OutOfRange);
+                        return Err(N2linkError::OutOfRange);
                     }
                 } else if let Some(f) = n.as_f64() {
                     if (0.0..=255.0).contains(&f) {
                         bytes.push(f as u8);
                     } else {
-                        return Err(EdgelinkError::OutOfRange);
+                        return Err(N2linkError::OutOfRange);
                     }
                 } else {
                     unreachable!();
                 }
             } else {
-                return Err(EdgelinkError::InvalidOperation("Invalid Variant type".into()));
+                return Err(N2linkError::InvalidOperation("Invalid Variant type".into()));
             }
         }
         Ok(Variant::Bytes(bytes))
@@ -323,7 +323,7 @@ impl Variant {
             Variant::String(s) => Ok(s.clone()),
             Variant::Number(f) => Ok(f.to_string()),
             Variant::Bool(b) => Ok(b.to_string()),
-            _ => Err(EdgelinkError::InvalidOperation("Bad type".into())),
+            _ => Err(N2linkError::InvalidOperation("Bad type".into())),
         }
     }
 
@@ -501,23 +501,23 @@ impl Variant {
                     this_arr.push(value);
                     Ok(())
                 } else {
-                    Err(EdgelinkError::InvalidOperation("Bad array".into()))
+                    Err(N2linkError::InvalidOperation("Bad array".into()))
                 }
             }
             Variant::Bytes(this_bytes) => {
                 if let Some(existed) = this_bytes.get_mut(index) {
-                    *existed = value.as_u8().ok_or(EdgelinkError::InvalidOperation("Bad casting".into()))?;
+                    *existed = value.as_u8().ok_or(N2linkError::InvalidOperation("Bad casting".into()))?;
                     Ok(())
                 } else if index == this_bytes.len() {
                     // insert to tail
-                    let buf = value.as_u8().ok_or(EdgelinkError::InvalidOperation("Bad casting".into()))?;
+                    let buf = value.as_u8().ok_or(N2linkError::InvalidOperation("Bad casting".into()))?;
                     this_bytes.push(buf);
                     Ok(())
                 } else {
-                    Err(EdgelinkError::OutOfRange)
+                    Err(N2linkError::OutOfRange)
                 }
             }
-            _ => Err(EdgelinkError::InvalidOperation("Bad type".into())),
+            _ => Err(N2linkError::InvalidOperation("Bad type".into())),
         }
     }
 
@@ -526,7 +526,7 @@ impl Variant {
             PropexSegment::Index(index) => self.set_array_item(*index, value),
             PropexSegment::Property(prop) => {
                 self.as_object_mut()
-                    .ok_or(EdgelinkError::InvalidOperation("Failed to convert".into()))?
+                    .ok_or(N2linkError::InvalidOperation("Failed to convert".into()))?
                     .set_property(prop.to_string(), value);
                 Ok(())
             }
@@ -541,7 +541,7 @@ impl Variant {
         create_missing: bool,
     ) -> crate::Result<()> {
         if segs.is_empty() {
-            return Err(EdgelinkError::BadArgument("path"));
+            return Err(N2linkError::BadArgument("path"));
         }
 
         if segs.len() == 1 {
@@ -551,7 +551,7 @@ impl Variant {
 
         let first_prop_name = match segs.first() {
             Some(PropexSegment::Property(name)) => name,
-            _ => return Err(EdgelinkError::BadArgument("path")),
+            _ => return Err(N2linkError::BadArgument("path")),
         };
 
         // If create_missing is true and first_prop doesn't exist, we should create it here.
@@ -564,23 +564,23 @@ impl Variant {
                     Some(PropexSegment::Property(_)) => Variant::empty_object(),
                     Some(PropexSegment::Index(_)) => Variant::empty_array(),
                     _ => {
-                        return Err(crate::EdgelinkError::BadArgument("segs"))
+                        return Err(crate::N2linkError::BadArgument("segs"))
                             .with_context(|| format!("Not allowed to set first property: '{first_prop_name}'"));
                     }
                 };
                 self.as_object_mut()
                     .ok_or_else(|| {
-                        EdgelinkError::InvalidOperation(format!(
+                        N2linkError::InvalidOperation(format!(
                             "Cannot create the property '{first_prop_name}' beneath a non-object value"
                         ))
                     })?
                     .insert(first_prop_name.to_string(), var);
                 self.get_nav_mut(first_prop_name, &[]).ok_or_else(|| {
-                    EdgelinkError::InvalidOperation(format!("Failed to create the property '{first_prop_name}'"))
+                    N2linkError::InvalidOperation(format!("Failed to create the property '{first_prop_name}'"))
                 })?
             }
             (None, _) => {
-                return Err(crate::EdgelinkError::BadArgument("segs"))
+                return Err(crate::N2linkError::BadArgument("segs"))
                     .with_context(|| format!("Failed to set first property: '{first_prop_name}'"));
             }
         };
@@ -596,7 +596,7 @@ impl Variant {
                 Ok(())
             }
             None if create_missing => first_prop.set_segs_property(&segs[1..], value, true),
-            None => Err(crate::EdgelinkError::InvalidOperation(
+            None => Err(crate::N2linkError::InvalidOperation(
                 "Unable to set property: missing intermediate segments".into(),
             )),
         }
@@ -624,20 +624,20 @@ impl Variant {
                 let nested_var = match nested_segs.first() {
                     Some(PropexSegment::Property(s)) => eval_env.find(s, self),
                     // We do not support recursion here
-                    _ => return Err(EdgelinkError::OutOfRange),
+                    _ => return Err(N2linkError::OutOfRange),
                 };
                 if let Some(nested_var) = nested_var {
-                    *seg = match nested_var.get_segs(&nested_segs[1..]).ok_or(EdgelinkError::OutOfRange)? {
+                    *seg = match nested_var.get_segs(&nested_segs[1..]).ok_or(N2linkError::OutOfRange)? {
                         Variant::String(str_index) => PropexSegment::Property(Cow::Owned(str_index.clone())),
                         Variant::Number(num_index)
                             if (num_index.is_u64() || num_index.is_i64()) && num_index.as_u64() >= Some(0) =>
                         {
                             PropexSegment::Index(num_index.as_u64().unwrap() as usize)
                         }
-                        _ => return Err(EdgelinkError::OutOfRange), // We cannot found the nested property
+                        _ => return Err(N2linkError::OutOfRange), // We cannot found the nested property
                     };
                 } else {
-                    return Err(EdgelinkError::OutOfRange);
+                    return Err(N2linkError::OutOfRange);
                 }
             }
         }
@@ -739,20 +739,20 @@ pub fn expand_propex_segments(segs: &mut [PropexSegment], eval_env: &[PropexEnv]
             let nested_var = match nested_segs.first() {
                 Some(PropexSegment::Property(s)) => eval_env.find_ext(s),
                 // We do not support recursion here
-                _ => return Err(EdgelinkError::OutOfRange),
+                _ => return Err(N2linkError::OutOfRange),
             };
             if let Some(nested_var) = nested_var {
-                *seg = match nested_var.get_segs(&nested_segs[1..]).ok_or(EdgelinkError::OutOfRange)? {
+                *seg = match nested_var.get_segs(&nested_segs[1..]).ok_or(N2linkError::OutOfRange)? {
                     Variant::String(str_index) => PropexSegment::Property(Cow::Owned(str_index.clone())),
                     Variant::Number(num_index)
                         if (num_index.is_u64() || num_index.is_i64()) && num_index.as_u64() >= Some(0) =>
                     {
                         PropexSegment::Index(num_index.as_u64().unwrap() as usize)
                     }
-                    _ => return Err(EdgelinkError::OutOfRange), // We cannot found the nested property
+                    _ => return Err(N2linkError::OutOfRange), // We cannot found the nested property
                 };
             } else {
-                return Err(EdgelinkError::OutOfRange);
+                return Err(N2linkError::OutOfRange);
             }
         }
     }

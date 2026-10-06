@@ -3,13 +3,13 @@ use std::sync::Arc;
 use async_trait::*;
 use tokio_util::sync::CancellationToken;
 
-use edgelink_core::Result;
-use edgelink_core::runtime::context::*;
-use edgelink_core::runtime::flow::*;
-use edgelink_core::runtime::model::json::*;
-use edgelink_core::runtime::model::*;
-use edgelink_core::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_core::Result;
+use n2link_core::runtime::context::*;
+use n2link_core::runtime::flow::*;
+use n2link_core::runtime::model::json::*;
+use n2link_core::runtime::model::*;
+use n2link_core::runtime::nodes::*;
+use n2link_macro::*;
 
 #[flow_node("dummy", red_name = "dummy")]
 struct DummyNode {

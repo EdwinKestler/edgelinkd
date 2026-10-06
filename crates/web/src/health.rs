@@ -5,7 +5,7 @@ use serde_json::Value;
 pub async fn health_check() -> Result<Json<Value>, StatusCode> {
     Ok(Json(serde_json::json!({
         "status": "healthy",
-        "service": "edgelink-web",
+        "service": "n2link-web",
         "version": env!("CARGO_PKG_VERSION"),
     })))
 }

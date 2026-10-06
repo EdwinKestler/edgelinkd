@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 type ClientWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -41,7 +41,7 @@ impl WebSocketOutNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let ws_config = WebSocketOutConfig::deserialize(&config.rest)?;
         let engine =
-            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("websocket out has no engine"))?;
+            flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("websocket out has no engine"))?;
         let node = WebSocketOutNode {
             base: state,
             config: ws_config,
@@ -108,7 +108,7 @@ impl WebSocketOutNode {
             .config
             .url
             .as_ref()
-            .ok_or_else(|| crate::EdgelinkError::InvalidOperation("WebSocket URL not specified".to_string()))?;
+            .ok_or_else(|| crate::N2linkError::InvalidOperation("WebSocket URL not specified".to_string()))?;
 
         log::debug!("WebSocket out: Connecting");
 
@@ -116,7 +116,7 @@ impl WebSocketOutNode {
             .egress
             .connect_websocket(url)
             .await
-            .map_err(|_| crate::EdgelinkError::invalid_operation("WebSocket out connection failed"))?;
+            .map_err(|_| crate::N2linkError::invalid_operation("WebSocket out connection failed"))?;
 
         log::info!("WebSocket out: Connected");
         *conn_guard = Some(ws_stream);
@@ -170,7 +170,7 @@ impl WebSocketOutNode {
             }
         }
 
-        Err(crate::EdgelinkError::InvalidOperation("Failed to send WebSocket message".to_string()))
+        Err(crate::N2linkError::InvalidOperation("Failed to send WebSocket message".to_string()))
     }
 
     async fn handle_input_message(&self, msg: MsgHandle, _stop_token: CancellationToken) -> crate::Result<()> {

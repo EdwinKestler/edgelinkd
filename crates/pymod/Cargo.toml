@@ -1,10 +1,10 @@
 [package]
-name = "edgelink-pymod"
+name = "n2link-pymod"
 version = "0.3.0"
 edition = "2024"
 
 [lib]
-name = "edgelink_pymod"
+name = "n2link_pymod"
 crate-type = ["cdylib"]
 
 [dependencies]
@@ -18,8 +18,8 @@ config.workspace = true
 log4rs.workspace = true
 log.workspace = true
 
-edgelink-core = { path = "../../crates/core", default-features = true, features = [
+n2link-core = { path = "../../crates/core", default-features = true, features = [
     "pymod", "default", "nodes_ai", "nodes_ai_text"
 ] }
 # Node plug-ins:
-edgelink-nodes-dummy = { path = "../../node-plugins/edgelink-nodes-dummy" }
+n2link-nodes-dummy = { path = "../../node-plugins/n2link-nodes-dummy" }

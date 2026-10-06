@@ -22,7 +22,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::model::Variant;
 
 use super::convert::{decode_variant, encode_variant};
@@ -110,12 +110,12 @@ impl std::fmt::Debug for PluginStore {
     }
 }
 
-fn io_err(path: &Path, err: std::io::Error) -> EdgelinkError {
-    EdgelinkError::invalid_operation(&format!("plugin store {}: {err}", path.display()))
+fn io_err(path: &Path, err: std::io::Error) -> N2linkError {
+    N2linkError::invalid_operation(&format!("plugin store {}: {err}", path.display()))
 }
 
-fn store_err(text: impl Into<String>) -> EdgelinkError {
-    EdgelinkError::InvalidOperation(text.into())
+fn store_err(text: impl Into<String>) -> N2linkError {
+    N2linkError::InvalidOperation(text.into())
 }
 
 pub(crate) fn hex(bytes: &[u8]) -> String {
@@ -212,7 +212,7 @@ impl PluginStore {
         } else {
             let home = cfg
                 .get_string("home_dir")
-                .map_err(|_| EdgelinkError::invalid_operation("home_dir is not set; cannot locate the plugin store"))?;
+                .map_err(|_| N2linkError::invalid_operation("home_dir is not set; cannot locate the plugin store"))?;
             PathBuf::from(home).join(dir)
         };
         Self::open_at(root, settings)
@@ -233,7 +233,7 @@ impl PluginStore {
             .open(&lock_path)
             .map_err(|e| io_err(&lock_path, e))?;
         fs2::FileExt::try_lock_exclusive(&lock).map_err(|_| {
-            EdgelinkError::invalid_operation(&format!(
+            N2linkError::invalid_operation(&format!(
                 "plugin store {} is in use by another edgelinkd process; stop it or use the admin API",
                 root.display()
             ))
@@ -267,7 +267,7 @@ impl PluginStore {
     fn step(&self, _name: &'static str) -> crate::Result<()> {
         #[cfg(test)]
         if *self.fail_at.lock().unwrap() == Some(_name) {
-            return Err(EdgelinkError::invalid_operation(&format!("injected failure at {_name}")));
+            return Err(N2linkError::invalid_operation(&format!("injected failure at {_name}")));
         }
         Ok(())
     }
@@ -304,7 +304,7 @@ impl PluginStore {
         }
         self.step("pointer-prev-written")?;
         let text = toml_edit::ser::to_string_pretty(file)
-            .map_err(|err| EdgelinkError::invalid_operation(&format!("active.toml: {err}")))?;
+            .map_err(|err| N2linkError::invalid_operation(&format!("active.toml: {err}")))?;
         let tmp = self.root.join(ACTIVE_TMP);
         let mut out = open_options().write(true).create(true).truncate(true).open(&tmp).map_err(|e| io_err(&tmp, e))?;
         out.write_all(text.as_bytes()).and_then(|_| out.sync_all()).map_err(|e| io_err(&tmp, e))?;
@@ -422,7 +422,7 @@ impl PluginStore {
             report.status = PackageStatus::Rejected;
             report.reason = Some(err.to_string());
         }
-        let json = serde_json::to_vec_pretty(&report).map_err(|e| EdgelinkError::invalid_operation(&e.to_string()))?;
+        let json = serde_json::to_vec_pretty(&report).map_err(|e| N2linkError::invalid_operation(&e.to_string()))?;
         write_atomic(&self.path("quarantine", &sha, "json"), &json)?;
         Ok(report)
     }
@@ -436,7 +436,7 @@ impl PluginStore {
         let module = EngineCell::new()?.compile(bytes)?;
         let initial = EngineCell::min_memory_pages(&module);
         if initial > u64::from(limits.memory_pages) {
-            return Err(EdgelinkError::NotSupported(format!(
+            return Err(N2linkError::NotSupported(format!(
                 "module starts with {initial} pages of linear memory but plugin {} may use {} \
                  ([limits] memory_pages, else [runtime.wasm] default_memory_pages); request \
                  memory_pages = {initial} in the manifest, or link a Rust guest with \
@@ -445,7 +445,7 @@ impl PluginStore {
             )));
         }
         if !manifest.node.config.is_empty() && !EngineCell::exports(&module, "el_init") {
-            return Err(EdgelinkError::NotSupported(
+            return Err(N2linkError::NotSupported(
                 "manifest declares [[node.config]] but the module does not export el_init".to_owned(),
             ));
         }
@@ -800,7 +800,7 @@ mod tests {
         let c = store.stage(&package("1.2.0")).unwrap().sha256;
         store.activate("acme/upper", &a, &ok).unwrap();
         store.activate("acme/upper", &b, &ok).unwrap();
-        let refuse = |_: Arc<ActivePlugins>| -> crate::Result<()> { Err(EdgelinkError::invalid_operation("graph")) };
+        let refuse = |_: Arc<ActivePlugins>| -> crate::Result<()> { Err(N2linkError::invalid_operation("graph")) };
         assert!(store.activate("acme/upper", &c, &refuse).is_err());
         let entry = &store.list().unwrap().active["acme/upper"];
         assert_eq!((entry.current.as_str(), entry.previous.as_deref()), (b.as_str(), Some(a.as_str())));

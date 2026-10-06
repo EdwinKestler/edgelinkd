@@ -32,9 +32,9 @@ pub enum PropexError {
     InvalidDigit,
 }
 
-impl From<PropexError> for crate::EdgelinkError {
+impl From<PropexError> for crate::N2linkError {
     fn from(err: PropexError) -> Self {
-        crate::EdgelinkError::Other(anyhow::Error::from(err))
+        crate::N2linkError::Other(anyhow::Error::from(err))
     }
 }
 

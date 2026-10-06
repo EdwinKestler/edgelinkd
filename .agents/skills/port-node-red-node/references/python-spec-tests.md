@@ -8,7 +8,7 @@ because `scripts/specs_diff.py` compares titles.
 
 ```
 tests/
-  __init__.py          # harness helpers + the edgelink_pymod loader
+  __init__.py          # harness helpers + the n2link_pymod loader
   conftest.py          # makes pytest-json-report emit "fullTitle" from the describe/it markers
   nodes/
     common/test_inject_node.py
@@ -106,7 +106,7 @@ async def test_invalid_xml_string(self):
 
 ## 3. The harness helpers (`tests/__init__.py`)
 
-All of them build a flow, run it through `edgelink_pymod.run_flows_once(expected, timeout,
+All of them build a flow, run it through `n2link_pymod.run_flows_once(expected, timeout,
 flows, msgs_to_inject, config)` (which maps to `Engine::run_once_with_inject`) and return
 the list of messages that reached a `test-once` node.
 
@@ -184,7 +184,7 @@ Notes:
 The suite imports the compiled extension, it does not launch `edgelinkd`:
 
 ```bash
-cargo build --all                       # produces edgelink_pymod next to the binary
+cargo build --all                       # produces n2link_pymod next to the binary
 
 # target dir defaults to target/debug; CI sets these for other profiles/targets:
 export EDGELINK_BUILD_TARGET=""         # e.g. x86_64-unknown-linux-gnu
@@ -194,7 +194,7 @@ pytest ./tests/nodes/function/test_range_node.py -v
 pytest ./tests -v                       # whole suite (this is what CI runs)
 ```
 
-On Windows the loader copies `edgelink_pymod.dll` to `edgelink_pymod.pyd` when the DLL is
+On Windows the loader copies `n2link_pymod.dll` to `n2link_pymod.pyd` when the DLL is
 newer, so **rebuild before running** or you will silently test the previous binary.
 
 ## 5. Workflow when porting a spec

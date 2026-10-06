@@ -14,11 +14,11 @@ use axum::body::Bytes;
 use axum::extract::Path;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use edgelink_core::EdgelinkError;
-use edgelink_core::runtime::engine::Engine;
-use edgelink_core::runtime::flow_credentials;
-use edgelink_core::runtime::registry::RegistryHandle;
-use edgelink_core::runtime::wasm::{
+use n2link_core::N2linkError;
+use n2link_core::runtime::engine::Engine;
+use n2link_core::runtime::flow_credentials;
+use n2link_core::runtime::registry::RegistryHandle;
+use n2link_core::runtime::wasm::{
     ActiveEntry, ActivePlugins, ConfigKind, PackageStatus, PendingChange, PluginStore, PluginView,
 };
 use serde::Deserialize;
@@ -66,7 +66,7 @@ const PREPARE_FAILED: &str = "deployed flows do not build with this plugin set";
 
 /// Stable error codes for clients and history. Store, manifest and host errors are matched by
 /// their wording; anything unrecognised is `invalid_package` (or `store_error` for I/O).
-fn reason_code(err: &EdgelinkError) -> &'static str {
+fn reason_code(err: &N2linkError) -> &'static str {
     let text = err.to_string();
     let has = |needle: &str| text.contains(needle);
     if has(PREPARE_FAILED) {
@@ -107,7 +107,7 @@ fn status_for(code: &str) -> StatusCode {
     }
 }
 
-fn store_error(err: &EdgelinkError) -> Response {
+fn store_error(err: &N2linkError) -> Response {
     let code = reason_code(err);
     if code == "store_error" {
         log::error!("[WASM] {err}");
@@ -133,7 +133,7 @@ async fn store_of(state: &WebState) -> Result<Arc<PluginStore>, Box<Response>> {
 /// Run a blocking store operation (file I/O, compile, self-test) off the async runtime.
 async fn blocking<T: Send + 'static>(
     store: &Arc<PluginStore>,
-    op: impl FnOnce(&PluginStore) -> edgelink_core::Result<T> + Send + 'static,
+    op: impl FnOnce(&PluginStore) -> n2link_core::Result<T> + Send + 'static,
 ) -> Result<T, Box<Response>> {
     let store = store.clone();
     match tokio::task::spawn_blocking(move || op(&store)).await {
@@ -303,7 +303,7 @@ async fn change(
     let pointer = blocking(&store, move |store| {
         let prepare = move |set: Arc<ActivePlugins>| {
             Engine::prepare_flows(&flows, &registry.with_wasm(set), cfg.clone())
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("{PREPARE_FAILED}: {err}")))
+                .map_err(|err| N2linkError::invalid_operation(&format!("{PREPARE_FAILED}: {err}")))
         };
         let (entry, pending) = match change {
             Change::Activate => store.activate_pending(&id_for_op, &sha_for_op, &prepare)?,
@@ -361,7 +361,7 @@ async fn undo(
     id: &str,
     sha: &str,
     change: Change,
-    err: EdgelinkError,
+    err: N2linkError,
 ) -> Response {
     let reverted = blocking(store, move |store| store.revert(pending)).await;
     state.set_registry(current.clone()).await;
@@ -650,7 +650,7 @@ pub fn catalog_entries(plugins: &ActivePlugins) -> Vec<Value> {
                     )
                 })
                 .collect();
-            let (input_payload, output_ports) = edgelink_core::runtime::nodes::catalog_ports_json(
+            let (input_payload, output_ports) = n2link_core::runtime::nodes::catalog_ports_json(
                 node.inputs,
                 node.outputs,
                 false,
@@ -686,8 +686,8 @@ mod tests {
     use crate::api::create_all_routes;
     use axum::body::Body;
     use axum::http::Request;
-    use edgelink_core::runtime::registry::RegistryBuilder;
-    use edgelink_core::runtime::wasm::append_manifest;
+    use n2link_core::runtime::registry::RegistryBuilder;
+    use n2link_core::runtime::wasm::append_manifest;
     use tower::ServiceExt;
 
     const IDENTITY: &str = r#"(module

@@ -1,18 +1,18 @@
 use crate::flows::ensure_flows_file_exists;
 use config::Config;
-use edgelink_core::EdgelinkError;
+use n2link_core::N2linkError;
 use once_cell::sync::OnceCell;
 use std::path::Path;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub struct EdgelinkEnv {
+pub struct N2linkEnv {
     pub config: Config,
     pub exe_dir: String,
     pub ui_static_dir: OnceCell<String>,
 }
 
-impl EdgelinkEnv {
+impl N2linkEnv {
     pub fn new(config: Config) -> Self {
         let exe_dir = std::env::current_exe()
             .ok()
@@ -44,10 +44,10 @@ impl EdgelinkEnv {
     }
 
     /// Prepare the runtime environment: ensure flows file exists or error if user-specified and missing
-    pub fn prepare(&self) -> Result<(), EdgelinkError> {
+    pub fn prepare(&self) -> Result<(), N2linkError> {
         // Parse and validate this before creating files or starting any runtime tasks.
-        edgelink_core::runtime::egress::EgressPolicy::load(Some(&self.config))?;
-        edgelink_core::runtime::credential_storage::CredentialStore::from_config(Some(&self.config))
+        n2link_core::runtime::egress::EgressPolicy::load(Some(&self.config))?;
+        n2link_core::runtime::credential_storage::CredentialStore::from_config(Some(&self.config))
             .map_err(anyhow::Error::msg)?;
         let flows_path =
             self.config.get_string("flows_path").expect("Config must provide flows_path after normalization");
@@ -82,7 +82,7 @@ mod tests {
             .unwrap()
             .build()
             .unwrap();
-        let err = EdgelinkEnv::new(config).prepare().unwrap_err();
+        let err = N2linkEnv::new(config).prepare().unwrap_err();
         assert!(err.to_string().contains("invalid egress configuration"), "{err}");
     }
 }

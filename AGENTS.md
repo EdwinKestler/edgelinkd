@@ -14,7 +14,7 @@ editor built in. Rust workspace layout:
 | `crates/core/` | the runtime: engine, flows, nodes, context, message model, JS bridge |
 | `crates/web/` | admin API + web UI server (axum) |
 | `crates/macro/` | `#[flow_node]` / `#[global_node]` proc macros (self-registration) |
-| `crates/pymod/` | `edgelink_pymod`, the Python extension the test suite drives |
+| `crates/pymod/` | `n2link_pymod`, the Python extension the test suite drives |
 | `node-plugins/` | statically linked node plug-ins |
 | `tests/` | pytest port of Node-RED's mocha spec suite |
 | `scripts/` | build/packaging helpers + the spec coverage audit |
@@ -45,7 +45,7 @@ Two consequences for day-to-day work:
    against EdgeLinkd — the workflow this project optimises for is authoring in the editor and
    running immediately, not "design in Node-RED, test there, then copy `flows.json` over".
    Anything the editor can produce must therefore either work, or fail loudly and at once
-   (deploy error, node error/status, `EdgelinkError::NotSupported`). It must never be silently
+   (deploy error, node error/status, `N2linkError::NotSupported`). It must never be silently
    ignored or silently reinterpreted.
 2. **Never fake support.** No `todo!()`, no silent no-op, no stub returning a plausible
    value, no option that is accepted and then ignored. A half-working feature that looks fine
@@ -58,7 +58,7 @@ Where scope decisions are declared:
 | `README.md` roadmap | feature-level ✅/⬜ status |
 | `tests/REDNODES-SPECS-DIFF.md` (generated) | per-node spec coverage against upstream |
 | `@pytest.mark.skip(reason=...)` in `tests/` | a spec we deliberately do not support |
-| `EdgelinkError::NotSupported` at runtime | configuration that is recognised but out of scope |
+| `N2linkError::NotSupported` at runtime | configuration that is recognised but out of scope |
 
 ## Commands
 
@@ -66,12 +66,12 @@ Where scope decisions are declared:
 |---|---|
 | Build everything (including the Python extension) | `cargo build --all` |
 | Default `cargo run -- run` | includes `nodes_ai`, `nodes_ai_text`, `nodes_ai_embeddings`, `nodes_ai_agent`, `history_sqlite`, `nodes_postgres`, `nodes_redis`, `admin_bcrypt`. `nodes_wasm`, `nodes_modbus` and `runtime_scan` stay off. Drop shipped features with `--no-default-features`. |
-| Rust tests | `cargo test -p edgelink-core` while iterating, `cargo test --workspace --features full` for the full set |
+| Rust tests | `cargo test -p n2link-core` while iterating, `cargo test --workspace --features full` for the full set |
 | Node-RED spec tests (pytest) | `pytest ./tests -v` — needs `cargo build --all` first |
 | Format check (CI gate) | `cargo fmt --check` |
 | Lint (CI gate) | `cargo clippy --all-features --tests --all` |
 | Spec coverage report | `python scripts/specs_diff.py 3rd-party/node-red -o tests/REDNODES-SPECS-DIFF.md` |
-| WASM plugin host tests | `cargo test -p edgelink-core --features nodes_wasm --lib` and `cargo test -p edgelink-web --features nodes_wasm --lib` |
+| WASM plugin host tests | `cargo test -p n2link-core --features nodes_wasm --lib` and `cargo test -p n2link-web --features nodes_wasm --lib` |
 | WASM example plugins + end to end | `scripts/wasm-examples.sh --e2e` (needs `rustup target add wasm32-unknown-unknown`) |
 | WASM size/startup/RSS (G2) | `scripts/wasm-measure.sh <default-bin> <nodes_wasm-bin> target/wasm-examples/uppercase.wasm` |
 
@@ -109,7 +109,7 @@ missing `it()` for an out-of-scope feature as a decision to record, not work to 
    `rustfmt.toml` (120 columns, `use_small_heuristics = "Max"`). Edition-2024 crates
    repeat that file with `edition = "2024"` so a direct `rustfmt` invocation parses
    `let` chains. CI runs `cargo fmt --check`, which uses each crate's Cargo.toml edition.
-6. **Keep clippy clean.** `cargo clippy -p edgelink-core --tests` is a fast local check;
+6. **Keep clippy clean.** `cargo clippy -p n2link-core --tests` is a fast local check;
    CI runs the stricter `--all-features --tests --all`.
 7. **Commits**: English, present tense, imperative, subject ≤ 72 characters. Do not mix
    unrelated changes into a commit, and do not commit local environment edits (for example
@@ -123,7 +123,7 @@ missing `it()` for an out-of-scope feature as a decision to record, not work to 
    to justify its memory and binary-size cost and be feature-gated so minimal builds can drop
    it.
 10. **Fail loudly on out-of-scope config.** A runtime path that reaches an unsupported feature
-    returns an error (`EdgelinkError::NotSupported`) or a node error/status — never a
+    returns an error (`N2linkError::NotSupported`) or a node error/status — never a
     `log::warn!`, a silent no-op or a fabricated value. The fallback that turns an
     unregistered node type into the `unknown` node (`crates/core/src/runtime/flow.rs`) is a
     backstop, not a pattern to extend.
@@ -155,7 +155,7 @@ and `inventory`, so there is no central node list — only the `mod` declaration
 - Node-RED is a git submodule: `git submodule update --init --recursive`. The editor build
   (`npm run build` in that checkout) needs Node.js >= 22.9; CI uses Node 24. The audit
   script also needs `node_modules` inside it (mocha).
-- The pytest suite loads `target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/edgelink_pymod.*`,
+- The pytest suite loads `target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/n2link_pymod.*`,
   so those two env vars must match how you built (`EDGELINK_BUILD_PROFILE` is `debug` by
   default, `ci` in CI). On Windows the loader copies the `.dll` to `.pyd`, so **rebuild
   before running tests** or you test the previous binary.

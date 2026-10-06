@@ -6,14 +6,14 @@ use std::sync::Arc;
 use crate::cliargs::{CliArgs, PluginCommand};
 
 #[cfg(not(feature = "nodes_wasm"))]
-pub async fn execute(_args: &Arc<CliArgs>, _command: &PluginCommand) -> edgelink_core::Result<()> {
-    Err(edgelink_core::EdgelinkError::NotSupported(
+pub async fn execute(_args: &Arc<CliArgs>, _command: &PluginCommand) -> n2link_core::Result<()> {
+    Err(n2link_core::N2linkError::NotSupported(
         "WASM plugins are not compiled in this build (requires --features nodes_wasm)".to_owned(),
     ))
 }
 
 #[cfg(feature = "nodes_wasm")]
-pub async fn execute(args: &Arc<CliArgs>, command: &PluginCommand) -> edgelink_core::Result<()> {
+pub async fn execute(args: &Arc<CliArgs>, command: &PluginCommand) -> n2link_core::Result<()> {
     imp::execute(args, command).await
 }
 
@@ -22,17 +22,17 @@ mod imp {
     use std::path::Path;
     use std::sync::Arc;
 
-    use edgelink_core::runtime::engine::Engine;
-    use edgelink_core::runtime::flow_credentials::flows_value_with_credentials;
-    use edgelink_core::runtime::wasm::{append_manifest, ActivePlugins, PluginStore};
-    use edgelink_core::EdgelinkError;
+    use n2link_core::runtime::engine::Engine;
+    use n2link_core::runtime::flow_credentials::flows_value_with_credentials;
+    use n2link_core::runtime::wasm::{append_manifest, ActivePlugins, PluginStore};
+    use n2link_core::N2linkError;
     use serde_json::Value;
 
     use crate::cliargs::{CliArgs, PluginCommand};
     use crate::config::load_config;
     use crate::registry::create_registry;
 
-    pub async fn execute(args: &Arc<CliArgs>, command: &PluginCommand) -> edgelink_core::Result<()> {
+    pub async fn execute(args: &Arc<CliArgs>, command: &PluginCommand) -> n2link_core::Result<()> {
         if let PluginCommand::Pack { module, manifest, output } = command {
             return pack(module, manifest, output);
         }
@@ -58,7 +58,7 @@ mod imp {
                 let flows = deployed_flows(&cfg).await?;
                 let users = nodes_using(&flows, id);
                 if !users.is_empty() {
-                    return Err(EdgelinkError::invalid_operation(&format!(
+                    return Err(N2linkError::invalid_operation(&format!(
                         "plugin {id} is used by deployed node(s) {}; remove them from the flows first",
                         users.join(", ")
                     )));
@@ -76,7 +76,7 @@ mod imp {
                 if problems.is_empty() {
                     Ok(())
                 } else {
-                    Err(EdgelinkError::invalid_operation(&format!("{} plugin store problem(s)", problems.len())))
+                    Err(N2linkError::invalid_operation(&format!("{} plugin store problem(s)", problems.len())))
                 }
             }
             PluginCommand::Pack { .. } => unreachable!("handled above"),
@@ -90,13 +90,13 @@ mod imp {
     }
 
     /// Read at most `limit` bytes; a larger file is refused without being read whole.
-    fn read_bounded(path: &Path, limit: u64) -> edgelink_core::Result<Vec<u8>> {
+    fn read_bounded(path: &Path, limit: u64) -> n2link_core::Result<Vec<u8>> {
         use std::io::Read;
         let file = std::fs::File::open(path)?;
         let mut bytes = Vec::new();
         file.take(limit + 1).read_to_end(&mut bytes)?;
         if bytes.len() as u64 > limit {
-            return Err(EdgelinkError::invalid_operation(&format!(
+            return Err(N2linkError::invalid_operation(&format!(
                 "{} is larger than {limit} bytes; raise [runtime.wasm] max_module_kib if this is intended",
                 path.display()
             )));
@@ -104,9 +104,9 @@ mod imp {
         Ok(bytes)
     }
 
-    fn pack(module: &Path, manifest: &Path, output: &Path) -> edgelink_core::Result<()> {
+    fn pack(module: &Path, manifest: &Path, output: &Path) -> n2link_core::Result<()> {
         if output.exists() {
-            return Err(EdgelinkError::invalid_operation(&format!("{} already exists", output.display())));
+            return Err(N2linkError::invalid_operation(&format!("{} already exists", output.display())));
         }
         let module_bytes = read_bounded(module, 64 * 1024 * 1024)?;
         let text = std::fs::read_to_string(manifest)?;
@@ -116,10 +116,9 @@ mod imp {
     }
 
     /// The flows the runtime would deploy on its next start (`[]` when there is no flows file).
-    async fn deployed_flows(cfg: &config::Config) -> edgelink_core::Result<Value> {
-        let path = cfg
-            .get_string("flows_path")
-            .map_err(|_| EdgelinkError::invalid_operation("flows_path is not configured"))?;
+    async fn deployed_flows(cfg: &config::Config) -> n2link_core::Result<Value> {
+        let path =
+            cfg.get_string("flows_path").map_err(|_| N2linkError::invalid_operation("flows_path is not configured"))?;
         let path = Path::new(&path);
         if !path.exists() {
             return Ok(Value::Array(Vec::new()));
@@ -132,13 +131,13 @@ mod imp {
     fn preparer(
         cfg: &config::Config,
         flows: &Value,
-    ) -> edgelink_core::Result<impl Fn(Arc<ActivePlugins>) -> edgelink_core::Result<()>> {
+    ) -> n2link_core::Result<impl Fn(Arc<ActivePlugins>) -> n2link_core::Result<()>> {
         let reg = create_registry()?;
         let enabled = config::Config::builder()
             .add_source(cfg.clone())
             .set_override("runtime.wasm.enabled", true)
             .and_then(|builder| builder.build())
-            .map_err(|e| EdgelinkError::invalid_operation(&e.to_string()))?;
+            .map_err(|e| N2linkError::invalid_operation(&e.to_string()))?;
         let flows = flows.clone();
         Ok(move |plugins: Arc<ActivePlugins>| {
             Engine::prepare_flows(&flows, &reg.with_wasm(plugins), Some(enabled.clone()))
@@ -157,7 +156,7 @@ mod imp {
             .collect()
     }
 
-    fn print_json(value: &impl serde::Serialize) -> edgelink_core::Result<()> {
+    fn print_json(value: &impl serde::Serialize) -> n2link_core::Result<()> {
         println!("{}", serde_json::to_string_pretty(value).map_err(anyhow::Error::from)?);
         Ok(())
     }

@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[flow_node("catch", red_name = "catch", inputs = 0, outputs = 1)]
 #[derive(Debug)]

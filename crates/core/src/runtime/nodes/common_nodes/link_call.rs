@@ -10,7 +10,7 @@ use tokio::task::JoinSet;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::deser::parse_red_id_str;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 enum LinkType {
@@ -83,7 +83,7 @@ impl LinkCallNode {
                     linked_nodes.push(Arc::downgrade(&link_in));
                 } else {
                     log::error!("LinkCallNode: Cannot found the required `link in` node(id={link_in_id})!");
-                    return Err(EdgelinkError::BadFlowsJson("Cannot found the required `link in`".to_owned()));
+                    return Err(N2linkError::BadFlowsJson("Cannot found the required `link in`".to_owned()));
                 }
             }
         }
@@ -126,7 +126,7 @@ impl LinkCallNode {
                     } else {
                         let err_msg =
                             format!("The required `link in` was unavailable in `link out` node(id={})!", self.id());
-                        return Err(EdgelinkError::InvalidOperation(err_msg));
+                        return Err(N2linkError::InvalidOperation(err_msg));
                     }
                 }
             }
@@ -141,7 +141,7 @@ impl LinkCallNode {
                     target_node.inject_msg(msg.clone(), cancel.clone()).await?;
                 } else {
                     let err_msg = "Cannot found node by msg.target";
-                    return Err(EdgelinkError::InvalidOperation(err_msg.to_owned()));
+                    return Err(N2linkError::InvalidOperation(err_msg.to_owned()));
                 }
             }
         }
@@ -151,7 +151,7 @@ impl LinkCallNode {
     fn get_dynamic_target_node(&self, msg: &Msg) -> crate::Result<Option<Arc<dyn FlowNodeBehavior>>> {
         let target_field = msg
             .get("target")
-            .ok_or(EdgelinkError::InvalidOperation("There are no `target` field in the msg!".to_owned()))?;
+            .ok_or(N2linkError::InvalidOperation("There are no `target` field in the msg!".to_owned()))?;
 
         let result = match target_field {
             Variant::String(target_name) => {
@@ -171,7 +171,7 @@ impl LinkCallNode {
             }
             _ => {
                 let err_msg = format!("Unsupported dynamic target in `msg.target`: {target_field:?}");
-                return Err(EdgelinkError::InvalidOperation(err_msg));
+                return Err(N2linkError::InvalidOperation(err_msg));
             }
         };
         if let Some(node) = &result {
@@ -179,9 +179,9 @@ impl LinkCallNode {
                 .get_base()
                 .flow
                 .upgrade()
-                .ok_or(EdgelinkError::InvalidOperation("The flow cannot be released".to_owned()))?;
+                .ok_or(N2linkError::InvalidOperation("The flow cannot be released".to_owned()))?;
             if flow.is_subflow() {
-                return Err(EdgelinkError::InvalidOperation(
+                return Err(N2linkError::InvalidOperation(
                     "A `link call` cannot call a `link in` node inside a subflow".to_owned(),
                 ));
             }
@@ -242,7 +242,7 @@ impl LinkCallNodeBehavior for LinkCallNode {
             drop(event);
             Ok(())
         } else {
-            Err(EdgelinkError::InvalidOperation(format!("Cannot find and(or) remove the event id: '{stack_id}'")))
+            Err(N2linkError::InvalidOperation(format!("Cannot find and(or) remove the event id: '{stack_id}'")))
         }
     }
 }

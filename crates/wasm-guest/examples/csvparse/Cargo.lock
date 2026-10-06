@@ -3,19 +3,19 @@
 version = 4
 
 [[package]]
-name = "edgelink-eve"
-version = "0.3.0"
-
-[[package]]
 name = "edgelink-plugin-csvparse"
 version = "1.0.0"
 dependencies = [
- "edgelink-wasm-guest",
+ "n2link-wasm-guest",
 ]
 
 [[package]]
-name = "edgelink-wasm-guest"
+name = "n2link-eve"
+version = "0.3.0"
+
+[[package]]
+name = "n2link-wasm-guest"
 version = "0.3.0"
 dependencies = [
- "edgelink-eve",
+ "n2link-eve",
 ]

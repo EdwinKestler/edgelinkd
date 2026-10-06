@@ -17,7 +17,7 @@ use super::engine::{Engine, WeakEngine};
 use super::group::{Group, GroupParent};
 use super::registry::RegistryHandle;
 use super::subflow::SubflowState;
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::model::json::*;
 use crate::runtime::model::*;
 use crate::runtime::nodes::*;
@@ -68,7 +68,7 @@ impl FlowSettings {
         // configuration here instead of aborting a node task later.
         if flow_settings.node_msg_queue_capacity == 0 {
             use crate::ErrorContext as _;
-            return Err(EdgelinkError::Configuration)
+            return Err(N2linkError::Configuration)
                 .with_context(|| "`runtime.flow.node_msg_queue_capacity` must be greater than zero");
         }
 
@@ -109,13 +109,13 @@ pub enum FlowKind {
 }
 
 impl std::str::FromStr for FlowKind {
-    type Err = EdgelinkError;
+    type Err = N2linkError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "tab" => Ok(FlowKind::GlobalFlow),
             "subflow" => Ok(FlowKind::Subflow),
-            _ => Err(EdgelinkError::BadArgument("s")),
+            _ => Err(N2linkError::BadArgument("s")),
         }
     }
 }
@@ -266,7 +266,7 @@ impl Flow {
             ]),
             FlowKind::Subflow => {
                 if subflow_instance.is_none() {
-                    return Err(EdgelinkError::BadFlowsJson("The ID of Sub-flow instance node is None".to_owned()));
+                    return Err(N2linkError::BadFlowsJson("The ID of Sub-flow instance node is None".to_owned()));
                 }
                 let subflow_instance = subflow_instance.as_ref().unwrap().clone();
                 envs_builder.extends([
@@ -332,18 +332,19 @@ impl Flow {
         // Adding root groups
         let root_group_configs = flow_config.groups.iter().filter(|gc| gc.z == self.id());
         for gc in root_group_configs {
-            let group = match &gc.g {
-                // Subgroup
-                Some(parent_id) => Group::new_subgroup(
-                    gc,
-                    &self.inner.groups.get(parent_id).map(|x| x.value().clone()).ok_or(
-                        EdgelinkError::InvalidOperation(format!("cannot found parent group id `{parent_id}`")),
+            let group =
+                match &gc.g {
+                    // Subgroup
+                    Some(parent_id) => Group::new_subgroup(
+                        gc,
+                        &self.inner.groups.get(parent_id).map(|x| x.value().clone()).ok_or(
+                            N2linkError::InvalidOperation(format!("cannot found parent group id `{parent_id}`")),
+                        )?,
                     )?,
-                )?,
 
-                // Root group
-                None => Group::new_flow_group(gc, self)?,
-            };
+                    // Root group
+                    None => Group::new_flow_group(gc, self)?,
+                };
             self.inner.groups.insert(group.id(), group);
         }
         Ok(())
@@ -364,7 +365,7 @@ impl Flow {
                 reg.get("subflow").expect("The `subflow` node must be existed")
             } else if crate::runtime::nodes::is_wasm_plugin_type(&node_config.type_name) {
                 crate::runtime::wasm::resolve_plugin_meta(engine, &node_config.type_name)?
-            } else if crate::runtime::nodes::edgelink_owned_node_type(&node_config.type_name) {
+            } else if crate::runtime::nodes::n2link_owned_node_type(&node_config.type_name) {
                 return Err(crate::runtime::nodes::missing_owned_node_type(&node_config.type_name));
             } else {
                 log::warn!(
@@ -401,7 +402,7 @@ impl Flow {
                                     let node_wire = PortWire { msg_sender: subflow_tx_port.msg_tx.clone() };
                                     node_port.wires.push(node_wire)
                                 } else {
-                                    return Err(EdgelinkError::BadFlowsJson(format!(
+                                    return Err(N2linkError::BadFlowsJson(format!(
                                         "Invalid port '{}' for subflow: {:?}",
                                         red_wire.port, subflow_state
                                     )));
@@ -426,7 +427,7 @@ impl Flow {
                     }
                 }
                 NodeFactory::Global(_) => {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "Must be a flow node: Node(id={0}, type='{1}')",
                         flow_config.id, flow_config.type_name
                     )));
@@ -516,7 +517,7 @@ impl Flow {
                         if !complete_nodes.iter().any(|x| x.id() == node.id()) {
                             complete_nodes.push(node.clone());
                         } else {
-                            return Err(EdgelinkError::InvalidOperation(format!(
+                            return Err(N2linkError::InvalidOperation(format!(
                                 "The connection of the {node} to the `complete` node already existed!"
                             )));
                         }
@@ -527,7 +528,7 @@ impl Flow {
             }
             Ok(())
         } else {
-            Err(EdgelinkError::BadFlowsJson(format!("CompleteNode has no 'scope' property: {node}")))
+            Err(N2linkError::BadFlowsJson(format!("CompleteNode has no 'scope' property: {node}")))
         }
     }
 
@@ -551,7 +552,7 @@ impl Flow {
         } else if nfound == 0 {
             Ok(None)
         } else {
-            Err(EdgelinkError::InvalidOperation(format!("There are multiple node with name '{name}'")))
+            Err(N2linkError::InvalidOperation(format!("There are multiple node with name '{name}'")))
         }
     }
 
@@ -639,7 +640,7 @@ impl Flow {
 
             _ = cancel.cancelled() => {
                 // The token was cancelled
-                Err(EdgelinkError::TaskCancelled)
+                Err(N2linkError::TaskCancelled)
             }
         }
     }
@@ -658,7 +659,7 @@ impl Flow {
             }
             Ok(())
         } else {
-            Err(EdgelinkError::InvalidOperation("This is not a subflow!".into()))
+            Err(N2linkError::InvalidOperation("This is not a subflow!".into()))
         }
     }
 
@@ -678,7 +679,7 @@ impl Flow {
                 let node_in_flow = self.inner.nodes.get(nid).map(|x| x.value().clone());
                 // Next we find the node in the entire engine, otherwise there is an error
                 let node_in_engine = engine.find_flow_node_by_id(nid);
-                let node_entry = node_in_flow.or(node_in_engine).ok_or(EdgelinkError::InvalidOperation(format!(
+                let node_entry = node_in_flow.or(node_in_engine).ok_or(N2linkError::InvalidOperation(format!(
                     "[flow:{}] Referenced node not found [this_node.id='{}' this_node.name='{}', referenced_node.id='{}']",
                     self.name(), node_config.id, node_config.name, nid
                 )))?;
@@ -698,7 +699,7 @@ impl Flow {
             Some(gid) => match self.inner.groups.get(gid) {
                 Some(g) => Some(g.value().clone()),
                 None => {
-                    return Err(EdgelinkError::InvalidOperation(format!(
+                    return Err(N2linkError::InvalidOperation(format!(
                         "Can not found the group id in groups: id='{gid}'"
                     )));
                 }

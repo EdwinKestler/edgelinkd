@@ -6,9 +6,9 @@
 
 use std::{str::FromStr, sync::Arc};
 
-use edgelink_core::EdgelinkError;
-use edgelink_core::runtime::context::{ContextStore, ContextStoreOptions, create_context_store};
-use edgelink_core::runtime::model::{ElementId, Variant, propex};
+use n2link_core::N2linkError;
+use n2link_core::runtime::context::{ContextStore, ContextStoreOptions, create_context_store};
+use n2link_core::runtime::model::{ElementId, Variant, propex};
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
@@ -17,10 +17,10 @@ use crate::json;
 
 /// Map a core error onto the Python one that matches its meaning.
 ///
-/// The stores signal "no such value" with [`EdgelinkError::OutOfRange`] — the same thing
+/// The stores signal "no such value" with [`N2linkError::OutOfRange`] — the same thing
 /// Node-RED reports as `undefined` — which is a `KeyError` here. Anything else is a real
 /// failure, such as a corrupt context file, and surfaces as a `RuntimeError`.
-fn to_py_err(err: EdgelinkError) -> PyErr {
+fn to_py_err(err: N2linkError) -> PyErr {
     if err.is_out_of_range() {
         PyKeyError::new_err("The context key is not set")
     } else {
@@ -56,7 +56,7 @@ fn py_to_variant(obj: &Bound<'_, PyAny>) -> PyResult<Variant> {
         return Ok(Variant::Array(items));
     }
     if let Ok(dict) = obj.downcast::<PyDict>() {
-        let mut map = edgelink_core::runtime::model::VariantObjectMap::new();
+        let mut map = n2link_core::runtime::model::VariantObjectMap::new();
         for (key, value) in dict.iter() {
             map.insert(key.extract::<String>()?, py_to_variant(&value)?);
         }
@@ -86,7 +86,7 @@ fn variant_to_py(py: Python<'_>, value: &Variant) -> PyResult<PyObject> {
 ///
 /// Every method is a coroutine; see `tests/context/test_localfilesystem_store.py` for the
 /// behaviour each one is expected to have.
-#[pyclass(name = "ContextStore", module = "edgelink_pymod")]
+#[pyclass(name = "ContextStore", module = "n2link_pymod")]
 pub struct PyContextStore {
     store: Arc<dyn ContextStore>,
 }

@@ -11,12 +11,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::Variant;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Check {
@@ -62,13 +62,13 @@ struct RawConfig {
 
 fn compile(raw: RawConfig) -> crate::Result<ValidateConfig> {
     if raw.property.is_empty() {
-        return Err(EdgelinkError::invalid_operation("validate property is empty"));
+        return Err(N2linkError::invalid_operation("validate property is empty"));
     }
     let check = match raw.check.as_str() {
         "type" => Check::Type,
         "range" => Check::Range,
         "age" => Check::Age,
-        other => return Err(EdgelinkError::NotSupported(format!("validate check '{other}' is not supported"))),
+        other => return Err(N2linkError::NotSupported(format!("validate check '{other}' is not supported"))),
     };
     let expect = match (check, raw.expect.as_deref()) {
         (Check::Type, Some("string")) => Some(Expect::String),
@@ -79,18 +79,18 @@ fn compile(raw: RawConfig) -> crate::Result<ValidateConfig> {
         (Check::Type, Some("buffer")) => Some(Expect::Buffer),
         (Check::Type, Some("null")) => Some(Expect::Null),
         (Check::Type, Some(other)) => {
-            return Err(EdgelinkError::NotSupported(format!("validate type '{other}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("validate type '{other}' is not supported")));
         }
         (Check::Type, None) => {
-            return Err(EdgelinkError::invalid_operation("validate type check has no expect"));
+            return Err(N2linkError::invalid_operation("validate type check has no expect"));
         }
         _ => None,
     };
     if check == Check::Range && raw.min.is_none() && raw.max.is_none() {
-        return Err(EdgelinkError::invalid_operation("validate range has no min or max"));
+        return Err(N2linkError::invalid_operation("validate range has no min or max"));
     }
     if check == Check::Age && raw.max_age_ms.is_none() {
-        return Err(EdgelinkError::invalid_operation("validate age has no maxAgeMs"));
+        return Err(N2linkError::invalid_operation("validate age has no maxAgeMs"));
     }
     Ok(ValidateConfig { property: raw.property, check, expect, min: raw.min, max: raw.max, max_age_ms: raw.max_age_ms })
 }
@@ -132,16 +132,16 @@ fn matches_type(value: &Variant, expect: Expect) -> bool {
 /// `now_ms` is Unix milliseconds. Tests pass a fixed clock.
 fn judge(config: &ValidateConfig, value: Option<&Variant>, now_ms: u64) -> crate::Result<()> {
     let Some(value) = value else {
-        return Err(EdgelinkError::InvalidOperation(format!("validate property '{}' is missing", config.property)));
+        return Err(N2linkError::InvalidOperation(format!("validate property '{}' is missing", config.property)));
     };
     match config.check {
         Check::Type => {
             let expect =
-                config.expect.ok_or_else(|| EdgelinkError::invalid_operation("validate type check has no expect"))?;
+                config.expect.ok_or_else(|| N2linkError::invalid_operation("validate type check has no expect"))?;
             if matches_type(value, expect) {
                 Ok(())
             } else {
-                Err(EdgelinkError::InvalidOperation(format!(
+                Err(N2linkError::InvalidOperation(format!(
                     "validate property '{}' is {}, expected {}",
                     config.property,
                     type_name(value),
@@ -151,13 +151,13 @@ fn judge(config: &ValidateConfig, value: Option<&Variant>, now_ms: u64) -> crate
         }
         Check::Range => {
             let Some(number) = number_of(value) else {
-                return Err(EdgelinkError::InvalidOperation(format!(
+                return Err(N2linkError::InvalidOperation(format!(
                     "validate property '{}' is not a number",
                     config.property
                 )));
             };
             if config.min.is_some_and(|min| number < min) || config.max.is_some_and(|max| number > max) {
-                return Err(EdgelinkError::InvalidOperation(format!(
+                return Err(N2linkError::InvalidOperation(format!(
                     "validate property '{}' is outside the range",
                     config.property
                 )));
@@ -166,15 +166,15 @@ fn judge(config: &ValidateConfig, value: Option<&Variant>, now_ms: u64) -> crate
         }
         Check::Age => {
             let limit =
-                config.max_age_ms.ok_or_else(|| EdgelinkError::invalid_operation("validate age has no maxAgeMs"))?;
+                config.max_age_ms.ok_or_else(|| N2linkError::invalid_operation("validate age has no maxAgeMs"))?;
             let Some(stamp) = number_of(value) else {
-                return Err(EdgelinkError::InvalidOperation(format!(
+                return Err(N2linkError::InvalidOperation(format!(
                     "validate property '{}' is not a timestamp",
                     config.property
                 )));
             };
             if stamp < 0.0 {
-                return Err(EdgelinkError::InvalidOperation(format!(
+                return Err(N2linkError::InvalidOperation(format!(
                     "validate property '{}' is not a timestamp",
                     config.property
                 )));
@@ -182,7 +182,7 @@ fn judge(config: &ValidateConfig, value: Option<&Variant>, now_ms: u64) -> crate
             let stamp = stamp as u64;
             let age = now_ms.saturating_sub(stamp);
             if age > limit {
-                Err(EdgelinkError::InvalidOperation(format!(
+                Err(N2linkError::InvalidOperation(format!(
                     "validate property '{}' is older than {limit} ms",
                     config.property
                 )))

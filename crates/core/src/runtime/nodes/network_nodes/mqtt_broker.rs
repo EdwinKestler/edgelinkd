@@ -18,12 +18,12 @@ use tokio::sync::{Mutex, Notify, mpsc, watch};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::model::{Msg, MsgHandle};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 use rumqttc::v5::mqttbytes::QoS as V5Qos;
 use rumqttc::v5::mqttbytes::v5::{
     ConnectProperties, Filter, LastWill as V5LastWill, LastWillProperties, Packet as V5Packet, PublishProperties,
@@ -303,7 +303,7 @@ impl SharedClient {
             SharedClient::V4(client) => client
                 .publish(notice.topic.clone(), notice.qos, notice.retain, notice.payload.clone())
                 .await
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("MQTT publish failed: {err}"))),
+                .map_err(|err| N2linkError::invalid_operation(&format!("MQTT publish failed: {err}"))),
             SharedClient::V5(client) => {
                 let payload = bytes::Bytes::from(notice.payload.clone());
                 let qos = v5_qos(notice.qos);
@@ -313,7 +313,7 @@ impl SharedClient {
                     }
                     None => client.publish(notice.topic.clone(), qos, notice.retain, payload).await,
                 };
-                sent.map_err(|err| EdgelinkError::invalid_operation(&format!("MQTT publish failed: {err}")))
+                sent.map_err(|err| N2linkError::invalid_operation(&format!("MQTT publish failed: {err}")))
             }
         }
     }
@@ -323,14 +323,14 @@ impl SharedClient {
             SharedClient::V4(client) => client
                 .subscribe(sub.topic.clone(), sub.qos)
                 .await
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("MQTT subscribe failed: {err}"))),
+                .map_err(|err| N2linkError::invalid_operation(&format!("MQTT subscribe failed: {err}"))),
             SharedClient::V5(client) => {
                 let filter = v5_filter(sub);
                 let sent = match v5_subscribe_properties(sub) {
                     Some(props) => client.subscribe_many_with_properties(vec![filter], props).await,
                     None => client.subscribe_many(vec![filter]).await,
                 };
-                sent.map_err(|err| EdgelinkError::invalid_operation(&format!("MQTT subscribe failed: {err}")))
+                sent.map_err(|err| N2linkError::invalid_operation(&format!("MQTT subscribe failed: {err}")))
             }
         }
     }
@@ -341,7 +341,7 @@ impl SharedClient {
             SharedClient::V5(client) => client.unsubscribe(topic).await.err().map(|err| err.to_string()),
         };
         match failed {
-            Some(err) => Err(EdgelinkError::invalid_operation(&format!("MQTT unsubscribe failed: {err}"))),
+            Some(err) => Err(N2linkError::invalid_operation(&format!("MQTT unsubscribe failed: {err}"))),
             None => Ok(()),
         }
     }
@@ -538,7 +538,7 @@ impl BrokerSession {
 
     pub(crate) async fn ensure_started(&self) -> crate::Result<()> {
         if self.inner.manual_down.load(Ordering::Acquire) {
-            return Err(EdgelinkError::invalid_operation("mqtt broker is disconnected"));
+            return Err(N2linkError::invalid_operation("mqtt broker is disconnected"));
         }
         if matches!(self.state().phase, Phase::Up) && self.inner.client.lock().await.is_some() {
             return Ok(());
@@ -559,7 +559,7 @@ impl BrokerSession {
         props: PublishProps,
     ) -> crate::Result<()> {
         if !self.options().is_v5() && props.is_set() {
-            return Err(EdgelinkError::NotSupported("MQTT v5 publish properties are not supported".to_owned()));
+            return Err(N2linkError::NotSupported("MQTT v5 publish properties are not supported".to_owned()));
         }
         let notice = MqttNotice { topic: topic.to_owned(), payload, qos, retain, props, will_delay: None };
         let client = if self.options().auto_connect() {
@@ -573,10 +573,10 @@ impl BrokerSession {
 
     pub(crate) async fn subscribe(&self, owner: &str, sub: Subscription) -> crate::Result<()> {
         if !self.options().is_v5() && subscription_uses_v5(&sub) {
-            return Err(EdgelinkError::NotSupported("MQTT v5 subscription properties are not supported".to_owned()));
+            return Err(N2linkError::NotSupported("MQTT v5 subscription properties are not supported".to_owned()));
         }
         if self.identifier_rejected(&sub) {
-            return Err(EdgelinkError::invalid_operation("MQTT subscription identifiers are not available"));
+            return Err(N2linkError::invalid_operation("MQTT subscription identifiers are not available"));
         }
         let (effective, send) = {
             let mut subs = self.inner.subs.lock().await;
@@ -704,12 +704,12 @@ impl BrokerSession {
     }
 
     async fn require_client(&self) -> crate::Result<SharedClient> {
-        self.inner.client.lock().await.clone().ok_or_else(|| EdgelinkError::invalid_operation("MQTT connection failed"))
+        self.inner.client.lock().await.clone().ok_or_else(|| N2linkError::invalid_operation("MQTT connection failed"))
     }
 
     async fn connected_client(&self) -> crate::Result<SharedClient> {
         if self.inner.manual_down.load(Ordering::Acquire) || !matches!(self.state().phase, Phase::Up) {
-            return Err(EdgelinkError::invalid_operation("mqtt broker is not connected"));
+            return Err(N2linkError::invalid_operation("mqtt broker is not connected"));
         }
         self.require_client().await
     }
@@ -768,19 +768,19 @@ impl BrokerSession {
                     match &state.phase {
                         Phase::Up => return Ok(()),
                         Phase::Refused(text) | Phase::Down(text) => {
-                            return Err(EdgelinkError::invalid_operation(&format!("MQTT connection failed: {text}")));
+                            return Err(N2linkError::invalid_operation(&format!("MQTT connection failed: {text}")));
                         }
                         Phase::Idle | Phase::Connecting => {}
                     }
                 }
                 if status.changed().await.is_err() {
-                    return Err(EdgelinkError::invalid_operation("MQTT connection failed"));
+                    return Err(N2linkError::invalid_operation("MQTT connection failed"));
                 }
             }
         };
         match tokio::time::timeout(limit, wait).await {
             Ok(result) => result,
-            Err(_) => Err(EdgelinkError::invalid_operation("MQTT connection timed out")),
+            Err(_) => Err(N2linkError::invalid_operation("MQTT connection timed out")),
         }
     }
 
@@ -900,7 +900,7 @@ fn qos_rank(qos: QoS) -> u8 {
 fn effective_subscription(owners: &HashMap<String, Subscription>) -> crate::Result<Subscription> {
     let mut iter = owners.values();
     let Some(first) = iter.next() else {
-        return Err(EdgelinkError::invalid_operation("mqtt topic has no owners"));
+        return Err(N2linkError::invalid_operation("mqtt topic has no owners"));
     };
     let mut effective = first.clone();
     for other in iter {
@@ -909,7 +909,7 @@ fn effective_subscription(owners: &HashMap<String, Subscription>) -> crate::Resu
             || other.retain_handling != effective.retain_handling
             || other.subscription_identifier != effective.subscription_identifier
         {
-            return Err(EdgelinkError::invalid_operation("MQTT subscription options conflict on the same topic"));
+            return Err(N2linkError::invalid_operation("MQTT subscription options conflict on the same topic"));
         }
         if qos_rank(other.qos) > qos_rank(effective.qos) {
             effective.qos = other.qos;
@@ -990,20 +990,20 @@ where
 /// Look up the broker config node. A missing or wrong id is an error.
 pub(crate) fn attach_broker(flow: &Flow, broker_id: &str) -> crate::Result<BrokerSession> {
     if broker_id.is_empty() {
-        return Err(EdgelinkError::invalid_operation("mqtt node has no broker"));
+        return Err(N2linkError::invalid_operation("mqtt node has no broker"));
     }
     let id: ElementId = broker_id
         .parse()
-        .map_err(|_| EdgelinkError::invalid_operation(&format!("mqtt broker id '{broker_id}' is not a node id")))?;
-    let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("mqtt node has no engine"))?;
+        .map_err(|_| N2linkError::invalid_operation(&format!("mqtt broker id '{broker_id}' is not a node id")))?;
+    let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("mqtt node has no engine"))?;
     let global = engine
         .find_global_node_by_id(&id)
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("mqtt broker '{id}' was not loaded")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("mqtt broker '{id}' was not loaded")))?;
     global
         .as_any()
         .downcast_ref::<MqttBrokerNode>()
         .map(|node| node.session.clone())
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("node '{id}' is not an mqtt-broker")))
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("node '{id}' is not an mqtt-broker")))
 }
 
 pub(crate) fn topic_matches(filter: &str, topic: &str) -> bool {
@@ -1059,14 +1059,14 @@ pub(crate) fn resolve_broker(value: &Value) -> crate::Result<BrokerOptions> {
     let keepalive_secs = match value.get("keepalive") {
         None | Some(Value::Null) => DEFAULT_KEEPALIVE_SECS,
         Some(other) => {
-            number_u64(other).ok_or_else(|| EdgelinkError::invalid_operation("mqtt keepalive is not a number"))?
+            number_u64(other).ok_or_else(|| N2linkError::invalid_operation("mqtt keepalive is not a number"))?
         }
     };
     if keepalive_secs > u64::from(u16::MAX) {
-        return Err(EdgelinkError::invalid_operation("mqtt keepalive is out of range"));
+        return Err(N2linkError::invalid_operation("mqtt keepalive is out of range"));
     }
     if protocol == Protocol::V5 && keepalive_secs < 5 {
-        return Err(EdgelinkError::NotSupported("MQTT v5 keep alive below 5 seconds is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT v5 keep alive below 5 seconds is not supported".to_owned()));
     }
     let connect = connect_settings(value, protocol)?;
     let (username, password) = credentials(value);
@@ -1099,40 +1099,40 @@ fn protocol_of(value: &Value) -> crate::Result<Protocol> {
         Some(other) => match number_u64(other) {
             Some(4) => Ok(Protocol::V4),
             Some(5) => Ok(Protocol::V5),
-            Some(3) => Err(EdgelinkError::NotSupported("MQTT 3.1 compatibility mode is not supported".to_owned())),
+            Some(3) => Err(N2linkError::NotSupported("MQTT 3.1 compatibility mode is not supported".to_owned())),
             Some(version) => {
-                Err(EdgelinkError::NotSupported(format!("MQTT protocol version {version} is not supported")))
+                Err(N2linkError::NotSupported(format!("MQTT protocol version {version} is not supported")))
             }
-            None => Err(EdgelinkError::invalid_operation("mqtt protocolVersion is not a number")),
+            None => Err(N2linkError::invalid_operation("mqtt protocolVersion is not a number")),
         },
     }
 }
 
 fn reject_transport(value: &Value) -> crate::Result<()> {
     if json_bool(value, "usetls").unwrap_or(false) || matches!(json_str(value, "tls"), Some(tls) if !tls.is_empty()) {
-        return Err(EdgelinkError::NotSupported("MQTT TLS is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT TLS is not supported".to_owned()));
     }
     if json_bool(value, "compatmode").unwrap_or(false) {
-        return Err(EdgelinkError::NotSupported("MQTT 3.1 compatibility mode is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT 3.1 compatibility mode is not supported".to_owned()));
     }
     for key in ["topicAliasMaximum", "maximumPacketSize", "receiveMaximum"] {
         if value.get(key).and_then(number_u64).unwrap_or(0) != 0 {
-            return Err(EdgelinkError::NotSupported(format!("MQTT {key} is not supported")));
+            return Err(N2linkError::NotSupported(format!("MQTT {key} is not supported")));
         }
     }
     for key in ["authenticationMethod", "authMethod"] {
         if json_str(value, key).is_some_and(|text| !text.trim().is_empty()) {
-            return Err(EdgelinkError::NotSupported("MQTT enhanced authentication is not supported".to_owned()));
+            return Err(N2linkError::NotSupported("MQTT enhanced authentication is not supported".to_owned()));
         }
     }
     for key in ["url", "broker"] {
         if let Some(raw) = json_str(value, key) {
             let lower = raw.trim().to_ascii_lowercase();
             if lower.starts_with("ws://") || lower.starts_with("wss://") {
-                return Err(EdgelinkError::NotSupported("MQTT WebSocket URLs are not supported".to_owned()));
+                return Err(N2linkError::NotSupported("MQTT WebSocket URLs are not supported".to_owned()));
             }
             if lower.starts_with("mqtts://") || lower.starts_with("ssl://") {
-                return Err(EdgelinkError::NotSupported("MQTT TLS is not supported".to_owned()));
+                return Err(N2linkError::NotSupported("MQTT TLS is not supported".to_owned()));
             }
         }
     }
@@ -1159,7 +1159,7 @@ fn user_properties_field(value: &Value, protocol: Protocol) -> crate::Result<Vec
     }
     if protocol != Protocol::V5 {
         if field_is_set(Some(raw)) {
-            return Err(EdgelinkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
+            return Err(N2linkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
         }
         return Ok(Vec::new());
     }
@@ -1174,7 +1174,7 @@ fn session_expiry_field(value: &Value, protocol: Protocol) -> crate::Result<Opti
         return Ok(None);
     }
     if protocol != Protocol::V5 {
-        return Err(EdgelinkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
     }
     optional_u32(raw, "sessionExpiry")
 }
@@ -1193,9 +1193,8 @@ fn endpoint(value: &Value) -> crate::Result<(String, u16, String)> {
         None | Some(Value::Null) => DEFAULT_PORT,
         Some(Value::String(text)) if text.trim().is_empty() => DEFAULT_PORT,
         Some(other) => {
-            let port =
-                number_u64(other).ok_or_else(|| EdgelinkError::invalid_operation("mqtt port is not a number"))?;
-            u16::try_from(port).map_err(|_| EdgelinkError::invalid_operation("mqtt port is out of range"))?
+            let port = number_u64(other).ok_or_else(|| N2linkError::invalid_operation("mqtt port is not a number"))?;
+            u16::try_from(port).map_err(|_| N2linkError::invalid_operation("mqtt port is out of range"))?
         }
     };
     let port = if port == 0 { DEFAULT_PORT } else { port };
@@ -1206,12 +1205,12 @@ fn endpoint(value: &Value) -> crate::Result<(String, u16, String)> {
 
 fn split_endpoint(raw: &str) -> crate::Result<(String, u16, String)> {
     let parsed =
-        url::Url::parse(raw).map_err(|_| EdgelinkError::invalid_operation(&format!("mqtt url '{raw}' is invalid")))?;
+        url::Url::parse(raw).map_err(|_| N2linkError::invalid_operation(&format!("mqtt url '{raw}' is invalid")))?;
     match parsed.scheme() {
         "mqtt" | "tcp" => {}
-        "ws" | "wss" => return Err(EdgelinkError::NotSupported("MQTT WebSocket URLs are not supported".to_owned())),
-        "mqtts" | "ssl" => return Err(EdgelinkError::NotSupported("MQTT TLS is not supported".to_owned())),
-        other => return Err(EdgelinkError::NotSupported(format!("MQTT URL scheme '{other}' is not supported"))),
+        "ws" | "wss" => return Err(N2linkError::NotSupported("MQTT WebSocket URLs are not supported".to_owned())),
+        "mqtts" | "ssl" => return Err(N2linkError::NotSupported("MQTT TLS is not supported".to_owned())),
+        other => return Err(N2linkError::NotSupported(format!("MQTT URL scheme '{other}' is not supported"))),
     }
     let host = parsed.host_str().filter(|host| !host.is_empty()).unwrap_or("localhost").to_owned();
     let port = parsed.port().unwrap_or(DEFAULT_PORT);
@@ -1227,12 +1226,12 @@ fn notice(value: &Value, prefix: &str, protocol: Protocol) -> crate::Result<Opti
         let section_key = format!("{prefix}Msg");
         if protocol != Protocol::V5 && field_is_set(value.get(&section_key)) && section_has_v5(value.get(&section_key))
         {
-            return Err(EdgelinkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
+            return Err(N2linkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
         }
         return Ok(None);
     }
     if !valid_publish_topic(&topic) {
-        return Err(EdgelinkError::invalid_operation(&format!("mqtt {prefix} topic '{topic}' is invalid")));
+        return Err(N2linkError::invalid_operation(&format!("mqtt {prefix} topic '{topic}' is invalid")));
     }
     let payload_key = format!("{prefix}Payload");
     let payload = match value.get(&payload_key) {
@@ -1256,10 +1255,10 @@ fn section_props(value: &Value, prefix: &str, protocol: Protocol) -> crate::Resu
         return Ok((PublishProps::default(), None));
     }
     if protocol != Protocol::V5 {
-        return Err(EdgelinkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT v5 properties are not supported".to_owned()));
     }
     let Value::Object(_) = section else {
-        return Err(EdgelinkError::invalid_operation(&format!("mqtt {key} is not an object")));
+        return Err(N2linkError::invalid_operation(&format!("mqtt {key} is not an object")));
     };
     let props = PublishProps {
         response_topic: optional_text(section, "respTopic")?,
@@ -1281,7 +1280,7 @@ fn section_props(value: &Value, prefix: &str, protocol: Protocol) -> crate::Resu
             Some(raw) => optional_u32(raw, "delay")?,
         }
     } else if field_is_set(section.get("delay")) {
-        return Err(EdgelinkError::NotSupported("MQTT will delay is only valid on the will".to_owned()));
+        return Err(N2linkError::NotSupported("MQTT will delay is only valid on the will".to_owned()));
     } else {
         None
     };
@@ -1304,7 +1303,7 @@ fn optional_text(section: &Value, key: &str) -> crate::Result<Option<String>> {
             let text = text.trim();
             if text.is_empty() { Ok(None) } else { Ok(Some(text.to_owned())) }
         }
-        Some(_) => Err(EdgelinkError::invalid_operation(&format!("mqtt {key} is not a string"))),
+        Some(_) => Err(N2linkError::invalid_operation(&format!("mqtt {key} is not a string"))),
     }
 }
 
@@ -1325,16 +1324,16 @@ fn field_is_set(value: Option<&Value>) -> bool {
 fn parse_user_properties(raw: &Value) -> crate::Result<Vec<(String, String)>> {
     let value = match raw {
         Value::String(text) => serde_json::from_str::<Value>(text.trim())
-            .map_err(|_| EdgelinkError::invalid_operation("mqtt userProps is not a JSON object of strings"))?,
+            .map_err(|_| N2linkError::invalid_operation("mqtt userProps is not a JSON object of strings"))?,
         other => other.clone(),
     };
     let Value::Object(map) = value else {
-        return Err(EdgelinkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
+        return Err(N2linkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
     };
     let mut pairs = Vec::with_capacity(map.len());
     for (key, item) in map {
         let Value::String(text) = item else {
-            return Err(EdgelinkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
+            return Err(N2linkError::invalid_operation("mqtt userProps is not a JSON object of strings"));
         };
         pairs.push((key, text));
     }
@@ -1350,13 +1349,13 @@ fn optional_u32(raw: &Value, name: &str) -> crate::Result<Option<u32>> {
             .as_u64()
             .and_then(|value| u32::try_from(value).ok())
             .map(Some)
-            .ok_or_else(|| EdgelinkError::invalid_operation(&format!("mqtt {name} is out of range"))),
+            .ok_or_else(|| N2linkError::invalid_operation(&format!("mqtt {name} is out of range"))),
         Value::String(text) => text
             .trim()
             .parse::<u32>()
             .map(|value| if value == 0 { None } else { Some(value) })
-            .map_err(|_| EdgelinkError::invalid_operation(&format!("mqtt {name} is not a number"))),
-        _ => Err(EdgelinkError::invalid_operation(&format!("mqtt {name} is not a number"))),
+            .map_err(|_| N2linkError::invalid_operation(&format!("mqtt {name} is not a number"))),
+        _ => Err(N2linkError::invalid_operation(&format!("mqtt {name} is not a number"))),
     }
 }
 

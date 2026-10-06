@@ -5,7 +5,7 @@ use std::sync::Arc;
 // 3rd-party libs
 use clap::Parser;
 
-use edgelink_core::Result;
+use n2link_core::Result;
 
 include!(concat!(env!("OUT_DIR"), "/__use_node_plugins.rs"));
 

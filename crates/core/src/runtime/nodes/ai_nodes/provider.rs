@@ -3,13 +3,13 @@
 use reqwest::Client;
 use serde_json::Value;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::engine::Engine;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedGlobalNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 use super::adapter::{ProviderKind, ProviderSettings};
 
@@ -32,9 +32,9 @@ impl AiProviderNode {
     ) -> crate::Result<Box<dyn GlobalNodeBehavior>> {
         let settings = resolve_provider(&config.rest)?;
         let default_model = json_string(&config.rest, "defaultModel")
-            .ok_or_else(|| EdgelinkError::invalid_operation("ai-provider defaultModel is required"))?;
+            .ok_or_else(|| N2linkError::invalid_operation("ai-provider defaultModel is required"))?;
         if default_model.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-provider defaultModel is required"));
+            return Err(N2linkError::invalid_operation("ai-provider defaultModel is required"));
         }
         let node = AiProviderNode {
             base: BaseGlobalNodeState {
@@ -49,7 +49,7 @@ impl AiProviderNode {
             default_model,
             client: Client::builder()
                 .build()
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("ai HTTP client failed: {err}")))?,
+                .map_err(|err| N2linkError::invalid_operation(&format!("ai HTTP client failed: {err}")))?,
             egress: engine.egress_policy().clone(),
         };
         Ok(Box::new(node))
@@ -68,19 +68,19 @@ pub(crate) fn provider_from_flow(
     provider_id: &str,
 ) -> crate::Result<(ProviderSettings, String, Client, EgressPolicyHandle)> {
     if provider_id.is_empty() {
-        return Err(EdgelinkError::invalid_operation("ai-chat has no provider"));
+        return Err(N2linkError::invalid_operation("ai-chat has no provider"));
     }
     let id: crate::runtime::model::ElementId = provider_id
         .parse()
-        .map_err(|_| EdgelinkError::invalid_operation(&format!("ai provider id '{provider_id}' is not a node id")))?;
-    let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("ai-chat has no engine"))?;
+        .map_err(|_| N2linkError::invalid_operation(&format!("ai provider id '{provider_id}' is not a node id")))?;
+    let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("ai-chat has no engine"))?;
     let global = engine
         .find_global_node_by_id(&id)
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("ai provider '{id}' was not loaded")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("ai provider '{id}' was not loaded")))?;
     let node = global
         .as_any()
         .downcast_ref::<AiProviderNode>()
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("node '{id}' is not an ai-provider")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("node '{id}' is not an ai-provider")))?;
     Ok((node.settings.clone(), node.default_model.clone(), node.client.clone(), node.egress.clone()))
 }
 
@@ -90,14 +90,14 @@ pub(crate) fn resolve_provider(value: &Value) -> crate::Result<ProviderSettings>
     let base_url = json_string(value, "baseUrl")
         .filter(|text| !text.is_empty())
         .or_else(|| kind.default_base().map(str::to_owned))
-        .ok_or_else(|| EdgelinkError::invalid_operation("cortex baseUrl is required"))?;
+        .ok_or_else(|| N2linkError::invalid_operation("cortex baseUrl is required"))?;
     let api_key = json_string(value, "apiKey")
         .or_else(|| {
             value.get("credentials").and_then(|creds| json_string(creds, "apiKey")).filter(|text| !text.is_empty())
         })
-        .ok_or_else(|| EdgelinkError::invalid_operation("ai-provider apiKey is required"))?;
+        .ok_or_else(|| N2linkError::invalid_operation("ai-provider apiKey is required"))?;
     if api_key.is_empty() {
-        return Err(EdgelinkError::invalid_operation("ai-provider apiKey is required"));
+        return Err(N2linkError::invalid_operation("ai-provider apiKey is required"));
     }
     Ok(ProviderSettings {
         kind,
@@ -110,7 +110,7 @@ pub(crate) fn resolve_provider(value: &Value) -> crate::Result<ProviderSettings>
 fn reject_unsupported(value: &Value) -> crate::Result<()> {
     for key in ["stream", "tools", "functions", "tool_choice", "response_format", "usetls", "tls"] {
         if value.get(key).is_some_and(option_is_set) {
-            return Err(EdgelinkError::NotSupported(format!("AI option '{key}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("AI option '{key}' is not supported")));
         }
     }
     Ok(())

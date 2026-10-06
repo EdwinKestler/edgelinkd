@@ -33,11 +33,11 @@ complete.)
 git submodule update --init --recursive     # populates 3rd-party/node-red (v4.0.9)
 (cd 3rd-party/node-red && npm install)      # mocha, needed by scripts/specs_diff.py
 pip install -r ./tests/requirements.txt     # pytest, pytest-asyncio, pytest-it, pytest-json-report, ...
-cargo build --all                           # also builds the edgelink_pymod Python extension
+cargo build --all                           # also builds the n2link_pymod Python extension
 ```
 
 The pytest suite does **not** run the `edgelinkd` binary: `tests/__init__.py` loads
-`target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/edgelink_pymod.{pyd,dll,so}`,
+`target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/n2link_pymod.{pyd,dll,so}`,
 so those two env vars must match the way you built:
 
 ```powershell
@@ -150,7 +150,7 @@ python scripts/specs_diff.py "$PWD/3rd-party/node-red" -o tests/REDNODES-SPECS-D
 
 cargo fmt --check
 cargo clippy --all-features --tests --all
-cargo test -p edgelink-core           # or: cargo test --workspace --features full
+cargo test -p n2link-core           # or: cargo test --workspace --features full
 ```
 
 Read the checker's output for your node: `[✓] "range" (13/13)` means complete, `[×]`
@@ -180,7 +180,7 @@ tracked — refresh it deliberately only when it is part of the change you inten
 - **Half-working behaviour that looks supported.** An option that is accepted and then
   ignored, a `todo!()`, or a fabricated value is worse than an honest gap, because the user
   cannot tell the difference. When a code path reaches something we do not support, return
-  `EdgelinkError::NotSupported` (or a node error/status) — and port the corresponding spec as
+  `N2linkError::NotSupported` (or a node error/status) — and port the corresponding spec as
   a `skip` carrying the reason.
 - **Never copy an upstream node id into flow JSON.** An `ElementId` is a `u64` written in hex
   (1..16 digits), so a copied id (`n1`, `splitNode1`) — and even a hex-encoded long name —

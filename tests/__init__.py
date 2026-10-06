@@ -24,7 +24,7 @@ TEST_EDGELINLKD_CONFIG = {
     }
 }
 
-class EdgelinkError(Exception):
+class N2linkError(Exception):
     def __init__(self, message: str, output: bytes):
         self.message = message
         self.output = output
@@ -46,8 +46,8 @@ def load_edgelink_mod():
     if platform.system() == 'Windows':
         # On Windows, Python extensions must have .pyd extension
         # Copy .dll to .pyd only if .pyd is older than .dll
-        pyd_path = os.path.join(target_directory, 'edgelink_pymod.pyd')
-        dll_path = os.path.join(target_directory, 'edgelink_pymod.dll')
+        pyd_path = os.path.join(target_directory, 'n2link_pymod.pyd')
+        dll_path = os.path.join(target_directory, 'n2link_pymod.dll')
         
         if os.path.exists(dll_path):
             should_copy = False
@@ -78,11 +78,11 @@ def load_edgelink_mod():
             raise IOError(f"Module file not found. Tried: {dll_path}, {pyd_path}")
     else:
         # On Unix-like systems
-        module_path = os.path.join(target_directory, 'libedgelink_pymod.so')
+        module_path = os.path.join(target_directory, 'libn2link_pymod.so')
         if not os.path.exists(module_path):
             raise IOError(f"Module file not found: {module_path}")
 
-    spec = importlib.util.spec_from_file_location("edgelink_pymod", module_path)
+    spec = importlib.util.spec_from_file_location("n2link_pymod", module_path)
     if spec == None:
         raise RuntimeError(f"Bad Python module!")
     edgelink = importlib.util.module_from_spec(spec)
@@ -161,7 +161,7 @@ async def read_json_from_process(process, nexpected: int, timeout=5):
                         await process.wait()  # Wait for the process to finish
                         return
                 except json.JSONDecodeError as e:
-                    raise EdgelinkError(
+                    raise N2linkError(
                         f"JSON decode error: {e}", bytes(all_output))
             else:
                 break

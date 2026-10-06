@@ -4,7 +4,7 @@
 //! [`export_node!`] and [`manifest!`]:
 //!
 //! ```ignore
-//! use edgelink_wasm_guest::{export_node, manifest, Ctx, EveValue, Msg, Node};
+//! use n2link_wasm_guest::{export_node, manifest, Ctx, EveValue, Msg, Node};
 //!
 //! manifest!("../plugin.toml");
 //!
@@ -35,7 +35,7 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
-pub use edgelink_eve::{decode, encode, EveValue, Limits};
+pub use n2link_eve::{decode, encode, EveValue, Limits};
 
 /// Host bounds (`exec.rs`); the SDK checks them first so a plugin gets an `Err`, not a trap.
 pub const MAX_EMIT_BYTES: usize = 64 * 1024;

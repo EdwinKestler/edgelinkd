@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 // Helper function to deserialize string or number as f64
 fn deserialize_string_or_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>

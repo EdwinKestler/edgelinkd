@@ -17,13 +17,13 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::context::Context;
 use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 const MIN_PERIOD_MS: u64 = 10;
 const IO_TIMEOUT: Duration = Duration::from_secs(2);
@@ -84,7 +84,7 @@ impl ModbusNode {
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let compiled = compile(&config.rest)?;
-        let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("modbus node has no engine"))?;
+        let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("modbus node has no engine"))?;
         Ok(Box::new(ModbusNode {
             base: base_node,
             config: compiled,
@@ -100,11 +100,11 @@ impl ModbusNode {
             Scope::Flow => self
                 .flow()
                 .map(|flow| flow.context().clone())
-                .ok_or_else(|| EdgelinkError::invalid_operation("modbus node has no flow context")),
+                .ok_or_else(|| N2linkError::invalid_operation("modbus node has no flow context")),
             Scope::Global => self
                 .engine()
                 .map(|engine| engine.context().clone())
-                .ok_or_else(|| EdgelinkError::invalid_operation("modbus node has no global context")),
+                .ok_or_else(|| N2linkError::invalid_operation("modbus node has no global context")),
         }
     }
 
@@ -119,8 +119,8 @@ impl ModbusNode {
             );
             let stream = tokio::time::timeout(IO_TIMEOUT.min(self.egress.connect_timeout()), connect)
                 .await
-                .map_err(|_| EdgelinkError::invalid_operation("modbus connect timed out"))?
-                .map_err(|_| EdgelinkError::invalid_operation("modbus connect failed"))?;
+                .map_err(|_| N2linkError::invalid_operation("modbus connect timed out"))?
+                .map_err(|_| N2linkError::invalid_operation("modbus connect failed"))?;
             *link = Some(stream);
         }
         let stream = link.as_mut().expect("stream");
@@ -273,30 +273,30 @@ fn read_access() -> String {
 
 fn compile(value: &serde_json::Value) -> crate::Result<ModbusConfig> {
     if value.get("serial").is_some() || value.get("baudrate").is_some() || value.get("device").is_some() {
-        return Err(EdgelinkError::NotSupported("Modbus serial RTU is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("Modbus serial RTU is not supported".to_owned()));
     }
     let raw = RawConfig::deserialize(value)?;
     if raw.transport != "tcp" {
-        return Err(EdgelinkError::NotSupported(format!("Modbus {} is not supported", raw.transport)));
+        return Err(N2linkError::NotSupported(format!("Modbus {} is not supported", raw.transport)));
     }
     if raw.host.trim().is_empty() {
-        return Err(EdgelinkError::invalid_operation("modbus host is empty"));
+        return Err(N2linkError::invalid_operation("modbus host is empty"));
     }
     if raw.period > 0 && raw.period < MIN_PERIOD_MS {
-        return Err(EdgelinkError::invalid_operation(&format!(
+        return Err(N2linkError::invalid_operation(&format!(
             "modbus period {0} is below the {MIN_PERIOD_MS} ms scheduling floor",
             raw.period
         )));
     }
     if raw.points.is_empty() {
-        return Err(EdgelinkError::invalid_operation("modbus node has no points"));
+        return Err(N2linkError::invalid_operation("modbus node has no points"));
     }
     let mut points = Vec::with_capacity(raw.points.len());
     let mut seen = BTreeMap::new();
     for point in raw.points {
         let compiled = compile_point(point)?;
         if seen.insert(compiled.key.clone(), ()).is_some() {
-            return Err(EdgelinkError::invalid_operation(&format!("modbus key '{}' is duplicated", compiled.key)));
+            return Err(N2linkError::invalid_operation(&format!("modbus key '{}' is duplicated", compiled.key)));
         }
         points.push(compiled);
     }
@@ -305,23 +305,23 @@ fn compile(value: &serde_json::Value) -> crate::Result<ModbusConfig> {
 
 fn compile_point(raw: RawPoint) -> crate::Result<Point> {
     if raw.quantity.is_some_and(|quantity| quantity != 1) {
-        return Err(EdgelinkError::NotSupported("Modbus quantity other than 1 is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("Modbus quantity other than 1 is not supported".to_owned()));
     }
     let kind = match raw.kind.as_str() {
         "coil" => Kind::Coil,
         "discrete" => Kind::Discrete,
         "holding" => Kind::Holding,
         "input" => Kind::Input,
-        other => return Err(EdgelinkError::NotSupported(format!("Modbus point kind '{other}' is not supported"))),
+        other => return Err(N2linkError::NotSupported(format!("Modbus point kind '{other}' is not supported"))),
     };
     let access = match raw.access.as_str() {
         "read" => Access::Read,
         "write" => Access::Write,
         "readwrite" => Access::ReadWrite,
-        other => return Err(EdgelinkError::NotSupported(format!("Modbus access '{other}' is not supported"))),
+        other => return Err(N2linkError::NotSupported(format!("Modbus access '{other}' is not supported"))),
     };
     if matches!(kind, Kind::Discrete | Kind::Input) && matches!(access, Access::Write | Access::ReadWrite) {
-        return Err(EdgelinkError::NotSupported(format!("writing a Modbus {} is not supported", raw.kind)));
+        return Err(N2linkError::NotSupported(format!("writing a Modbus {} is not supported", raw.kind)));
     }
     if let Some(function) = raw.function {
         let allowed: &[u8] = match (kind, access) {
@@ -336,17 +336,17 @@ fn compile_point(raw: RawPoint) -> crate::Result<Point> {
             _ => &[],
         };
         if !allowed.contains(&function) {
-            return Err(EdgelinkError::NotSupported(format!("Modbus function {function} is not supported")));
+            return Err(N2linkError::NotSupported(format!("Modbus function {function} is not supported")));
         }
     }
     let scope = match raw.scope.as_str() {
         "flow" => Scope::Flow,
         "global" => Scope::Global,
         "node" => Scope::Node,
-        other => return Err(EdgelinkError::NotSupported(format!("Modbus context scope '{other}' is not supported"))),
+        other => return Err(N2linkError::NotSupported(format!("Modbus context scope '{other}' is not supported"))),
     };
     if raw.key.trim().is_empty() {
-        return Err(EdgelinkError::invalid_operation("modbus point key is empty"));
+        return Err(N2linkError::invalid_operation("modbus point key is empty"));
     }
     Ok(Point { kind, access, scope, address: raw.address, key: raw.key })
 }
@@ -376,7 +376,7 @@ async fn write_point(
                 Variant::Bool(flag) => *flag,
                 Variant::Number(number) => number.as_u64().unwrap_or(0) != 0,
                 _ => {
-                    return Err(EdgelinkError::invalid_operation(&format!(
+                    return Err(N2linkError::invalid_operation(&format!(
                         "modbus coil '{}' is not a boolean",
                         point.key
                     )));
@@ -387,15 +387,15 @@ async fn write_point(
         }
         Kind::Holding => {
             let number = value.as_u64().ok_or_else(|| {
-                EdgelinkError::invalid_operation(&format!("modbus register '{}' is not a number", point.key))
+                N2linkError::invalid_operation(&format!("modbus register '{}' is not a number", point.key))
             })?;
             let register = u16::try_from(number).map_err(|_| {
-                EdgelinkError::invalid_operation(&format!("modbus register '{}' does not fit in 16 bits", point.key))
+                N2linkError::invalid_operation(&format!("modbus register '{}' does not fit in 16 bits", point.key))
             })?;
             write_pdu(6, point.address, register)
         }
         Kind::Discrete | Kind::Input => {
-            return Err(EdgelinkError::NotSupported(format!("writing a Modbus {} is not supported", point.key)));
+            return Err(N2linkError::NotSupported(format!("writing a Modbus {} is not supported", point.key)));
         }
     };
     let _ = transact(stream, tid, unit, &pdu).await?;
@@ -426,12 +426,12 @@ async fn transact(stream: &mut TcpStream, tid: &AtomicU16, unit: u8, pdu: &[u8])
     let write = stream.write_all(&request);
     tokio::time::timeout(IO_TIMEOUT, write)
         .await
-        .map_err(|_| EdgelinkError::invalid_operation("modbus write timed out"))?
-        .map_err(|err| EdgelinkError::invalid_operation(&format!("modbus write failed: {err}")))?;
+        .map_err(|_| N2linkError::invalid_operation("modbus write timed out"))?
+        .map_err(|err| N2linkError::invalid_operation(&format!("modbus write failed: {err}")))?;
     let response = tokio::time::timeout(IO_TIMEOUT, read_mbap(stream))
         .await
-        .map_err(|_| EdgelinkError::invalid_operation("modbus read timed out"))?
-        .map_err(|err| EdgelinkError::invalid_operation(&format!("modbus read failed: {err}")))?;
+        .map_err(|_| N2linkError::invalid_operation("modbus read timed out"))?
+        .map_err(|err| N2linkError::invalid_operation(&format!("modbus read failed: {err}")))?;
     check_response(id, unit, pdu, &response)?;
     Ok(response.pdu)
 }
@@ -466,50 +466,50 @@ async fn read_mbap(stream: &mut TcpStream) -> std::io::Result<Mbap> {
 
 fn check_response(tid: u16, unit: u8, request: &[u8], response: &Mbap) -> crate::Result<()> {
     if response.tid != tid {
-        return Err(EdgelinkError::invalid_operation("modbus transaction id mismatch"));
+        return Err(N2linkError::invalid_operation("modbus transaction id mismatch"));
     }
     if response.protocol != 0 {
-        return Err(EdgelinkError::invalid_operation("modbus protocol id is not zero"));
+        return Err(N2linkError::invalid_operation("modbus protocol id is not zero"));
     }
     if response.unit != unit {
-        return Err(EdgelinkError::invalid_operation("modbus unit id mismatch"));
+        return Err(N2linkError::invalid_operation("modbus unit id mismatch"));
     }
     if request.is_empty() || response.pdu.is_empty() {
-        return Err(EdgelinkError::invalid_operation("modbus response is short"));
+        return Err(N2linkError::invalid_operation("modbus response is short"));
     }
     let function = request[0];
     let reply = response.pdu[0];
     if reply == function | 0x80 {
         if response.pdu.len() != 2 {
-            return Err(EdgelinkError::invalid_operation("modbus exception length"));
+            return Err(N2linkError::invalid_operation("modbus exception length"));
         }
         let code = response.pdu[1];
-        return Err(EdgelinkError::invalid_operation(&format!("modbus exception {code}")));
+        return Err(N2linkError::invalid_operation(&format!("modbus exception {code}")));
     }
     if reply != function {
-        return Err(EdgelinkError::invalid_operation("modbus function code mismatch"));
+        return Err(N2linkError::invalid_operation("modbus function code mismatch"));
     }
     match function {
         1 | 2 => {
             let byte_count =
-                *response.pdu.get(1).ok_or_else(|| EdgelinkError::invalid_operation("modbus response is short"))?;
+                *response.pdu.get(1).ok_or_else(|| N2linkError::invalid_operation("modbus response is short"))?;
             if usize::from(byte_count) != 1 || response.pdu.len() != 3 {
-                return Err(EdgelinkError::invalid_operation("modbus bit byte count mismatch"));
+                return Err(N2linkError::invalid_operation("modbus bit byte count mismatch"));
             }
         }
         3 | 4 => {
             let byte_count =
-                *response.pdu.get(1).ok_or_else(|| EdgelinkError::invalid_operation("modbus response is short"))?;
+                *response.pdu.get(1).ok_or_else(|| N2linkError::invalid_operation("modbus response is short"))?;
             if usize::from(byte_count) != 2 || response.pdu.len() != 4 {
-                return Err(EdgelinkError::invalid_operation("modbus register byte count mismatch"));
+                return Err(N2linkError::invalid_operation("modbus register byte count mismatch"));
             }
         }
         5 | 6 => {
             if response.pdu.as_slice() != request {
-                return Err(EdgelinkError::invalid_operation("modbus write echo mismatch"));
+                return Err(N2linkError::invalid_operation("modbus write echo mismatch"));
             }
         }
-        _ => return Err(EdgelinkError::NotSupported(format!("Modbus function {function} is not supported"))),
+        _ => return Err(N2linkError::NotSupported(format!("Modbus function {function} is not supported"))),
     }
     Ok(())
 }
@@ -517,12 +517,12 @@ fn check_response(tid: u16, unit: u8, request: &[u8], response: &Mbap) -> crate:
 fn decode_read(kind: Kind, pdu: &[u8]) -> crate::Result<Variant> {
     match kind {
         Kind::Coil | Kind::Discrete => {
-            let value = *pdu.get(2).ok_or_else(|| EdgelinkError::invalid_operation("modbus response is short"))?;
+            let value = *pdu.get(2).ok_or_else(|| N2linkError::invalid_operation("modbus response is short"))?;
             Ok(Variant::from(value & 1 == 1))
         }
         Kind::Holding | Kind::Input => {
             if pdu.len() < 4 {
-                return Err(EdgelinkError::invalid_operation("modbus register response is short"));
+                return Err(N2linkError::invalid_operation("modbus register response is short"));
             }
             let value = u16::from_be_bytes([pdu[2], pdu[3]]);
             Ok(Variant::from(u64::from(value)))

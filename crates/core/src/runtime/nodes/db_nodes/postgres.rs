@@ -8,7 +8,7 @@ use serde_json::{Number, Value};
 use tokio_postgres::NoTls;
 use tokio_postgres::types::Type;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::engine::Engine;
 use crate::runtime::flow::Flow;
@@ -16,7 +16,7 @@ use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::json::RedGlobalNodeConfig;
 use crate::runtime::model::{MsgHandle, Variant, VariantObjectMap};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 const DEFAULT_PORT: u16 = 5432;
 const DEFAULT_TIMEOUT_MS: u64 = 10_000;
@@ -49,12 +49,12 @@ fn resolve_settings(value: &Value) -> crate::Result<PostgresSettings> {
     if value.get("ssl").is_some_and(|item| item != &Value::Bool(false))
         || json_string(value, "sslmode").is_some_and(|mode| mode != "disable")
     {
-        return Err(EdgelinkError::NotSupported("PostgreSQL TLS is not supported".to_owned()));
+        return Err(N2linkError::NotSupported("PostgreSQL TLS is not supported".to_owned()));
     }
     let host = json_string(value, "host").unwrap_or_else(|| "127.0.0.1".to_owned());
     let port = value.get("port").and_then(Value::as_u64).unwrap_or(DEFAULT_PORT as u64);
     if !(1..=65535).contains(&port) {
-        return Err(EdgelinkError::invalid_operation("postgres port is out of range"));
+        return Err(N2linkError::invalid_operation("postgres port is out of range"));
     }
     let database = json_string(value, "database").unwrap_or_else(|| "postgres".to_owned());
     let user = json_string(value, "user")
@@ -65,7 +65,7 @@ fn resolve_settings(value: &Value) -> crate::Result<PostgresSettings> {
         .unwrap_or_default();
     let timeout_ms = value.get("timeoutMs").and_then(Value::as_u64).unwrap_or(DEFAULT_TIMEOUT_MS);
     if !(100..=120_000).contains(&timeout_ms) {
-        return Err(EdgelinkError::invalid_operation("postgres timeoutMs is out of range"));
+        return Err(N2linkError::invalid_operation("postgres timeoutMs is out of range"));
     }
     Ok(PostgresSettings {
         host,
@@ -108,18 +108,18 @@ impl GlobalNodeBehavior for PostgresConfigNode {
 
 fn config_from_flow(flow: &Flow, id: &str) -> crate::Result<(PostgresSettings, EgressPolicyHandle)> {
     if id.is_empty() {
-        return Err(EdgelinkError::invalid_operation("postgres node has no postgres-config"));
+        return Err(N2linkError::invalid_operation("postgres node has no postgres-config"));
     }
     let eid: crate::runtime::model::ElementId =
-        id.parse().map_err(|_| EdgelinkError::invalid_operation("postgres-config id is not a node id"))?;
-    let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("postgres node has no engine"))?;
+        id.parse().map_err(|_| N2linkError::invalid_operation("postgres-config id is not a node id"))?;
+    let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("postgres node has no engine"))?;
     let global = engine
         .find_global_node_by_id(&eid)
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("postgres-config '{id}' was not loaded")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("postgres-config '{id}' was not loaded")))?;
     let node = global
         .as_any()
         .downcast_ref::<PostgresConfigNode>()
-        .ok_or_else(|| EdgelinkError::invalid_operation(&format!("node '{id}' is not a postgres-config")))?;
+        .ok_or_else(|| N2linkError::invalid_operation(&format!("node '{id}' is not a postgres-config")))?;
     Ok((node.settings.clone(), node.egress.clone()))
 }
 
@@ -147,13 +147,13 @@ impl PostgresNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let raw = QueryConfig::deserialize(&config.rest)?;
         if raw.postgres.trim().is_empty() {
-            return Err(EdgelinkError::invalid_operation("postgres node requires a postgres-config"));
+            return Err(N2linkError::invalid_operation("postgres node requires a postgres-config"));
         }
         Ok(Box::new(Self { base: base_node, postgres: raw.postgres, query: raw.query }))
     }
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
-        let flow = self.flow().ok_or_else(|| EdgelinkError::invalid_operation("postgres node has no flow"))?;
+        let flow = self.flow().ok_or_else(|| N2linkError::invalid_operation("postgres node has no flow"))?;
         let (settings, egress) = config_from_flow(&flow, &self.postgres)?;
         let query = {
             let guard = msg.read().await;
@@ -164,14 +164,14 @@ impl PostgresNode {
             } else if let Some(text) = guard.get("payload").and_then(Variant::as_str).filter(|t| !t.is_empty()) {
                 text.to_owned()
             } else {
-                return Err(EdgelinkError::invalid_operation("postgres query is empty"));
+                return Err(N2linkError::invalid_operation("postgres query is empty"));
             }
         };
         if query.contains('$') {
-            return Err(EdgelinkError::NotSupported("PostgreSQL bound parameters are not supported".to_owned()));
+            return Err(N2linkError::NotSupported("PostgreSQL bound parameters are not supported".to_owned()));
         }
         tokio::select! {
-            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
+            _ = cancel.cancelled() => Err(N2linkError::TaskCancelled),
             result = run_query(&settings, &egress, &query) => {
                 match result {
                     Ok(rows) => {
@@ -215,7 +215,7 @@ async fn run_query(
     let stream = egress
         .connect_tcp(EgressPurpose::Postgres, NetworkProtocol::Tcp, &settings.host, settings.port)
         .await
-        .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&error_chain(&err), &settings.password)))?;
+        .map_err(|err| N2linkError::invalid_operation(&hide_secret(&error_chain(&err), &settings.password)))?;
     let mut cfg = tokio_postgres::Config::new();
     cfg.user(&settings.user).dbname(&settings.database).connect_timeout(settings.timeout);
     // Always set a password, including empty. tokio-postgres treats a missing password as a
@@ -223,15 +223,15 @@ async fn run_query(
     cfg.password(&settings.password);
     let (client, connection) = tokio::time::timeout(settings.timeout, cfg.connect_raw(stream, NoTls))
         .await
-        .map_err(|_| EdgelinkError::Timeout)?
-        .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&error_chain(&err), &settings.password)))?;
+        .map_err(|_| N2linkError::Timeout)?
+        .map_err(|err| N2linkError::invalid_operation(&hide_secret(&error_chain(&err), &settings.password)))?;
     tokio::spawn(async move {
         let _ = connection.await;
     });
     let rows = tokio::time::timeout(settings.timeout, client.query(query, &[]))
         .await
-        .map_err(|_| EdgelinkError::Timeout)?
-        .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&error_chain(&err), &settings.password)))?;
+        .map_err(|_| N2linkError::Timeout)?
+        .map_err(|err| N2linkError::invalid_operation(&hide_secret(&error_chain(&err), &settings.password)))?;
     Ok(rows.iter().map(row_to_variant).collect())
 }
 
@@ -252,7 +252,7 @@ fn hide_secret(text: &str, secret: &str) -> String {
     if secret.is_empty() { text.to_owned() } else { text.replace(secret, "***") }
 }
 
-fn status_text(err: &EdgelinkError) -> String {
+fn status_text(err: &N2linkError) -> String {
     let text = err.to_string();
     text.rsplit(": ").next().unwrap_or(text.as_str()).chars().take(80).collect()
 }
@@ -396,7 +396,7 @@ mod tests {
             hide_secret("db error: password authentication failed for user x / secret-db", "secret-db"),
             "db error: password authentication failed for user x / ***"
         );
-        let mapped = EdgelinkError::invalid_operation(&error_chain(&err));
+        let mapped = N2linkError::invalid_operation(&error_chain(&err));
         assert_eq!(status_text(&mapped), "password missing");
     }
 

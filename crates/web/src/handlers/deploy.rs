@@ -8,11 +8,11 @@ use std::path::{Path as StdPath, PathBuf};
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use edgelink_core::EdgelinkError;
-use edgelink_core::runtime::credential_storage::CredentialStore;
-use edgelink_core::runtime::engine::Engine;
-use edgelink_core::runtime::flow_credentials::{self, sidecar_path};
-use edgelink_core::utils::atomic_file::{self, FileReplace};
+use n2link_core::N2linkError;
+use n2link_core::runtime::credential_storage::CredentialStore;
+use n2link_core::runtime::engine::Engine;
+use n2link_core::runtime::flow_credentials::{self, sidecar_path};
+use n2link_core::utils::atomic_file::{self, FileReplace};
 use serde_json::{Map, Value};
 
 use super::WebState;
@@ -23,7 +23,7 @@ use super::reply::api_error;
 pub enum DeployErr {
     NotFound,
     MissingFlow,
-    Invalid(EdgelinkError),
+    Invalid(N2linkError),
     Internal(String),
 }
 
@@ -33,10 +33,10 @@ impl IntoResponse for DeployErr {
             Self::NotFound => api_error(StatusCode::NOT_FOUND, "not_found", "no previous flows"),
             Self::MissingFlow => api_error(StatusCode::NOT_FOUND, "not_found", "flow not found"),
             Self::Invalid(err) => match err {
-                EdgelinkError::NotSupported(_)
-                | EdgelinkError::BadFlowsJson(_)
-                | EdgelinkError::InvalidOperation(_)
-                | EdgelinkError::UnsupportedFlowsJsonFormat(_) => {
+                N2linkError::NotSupported(_)
+                | N2linkError::BadFlowsJson(_)
+                | N2linkError::InvalidOperation(_)
+                | N2linkError::UnsupportedFlowsJsonFormat(_) => {
                     api_error(StatusCode::BAD_REQUEST, "invalid_flows", &err.to_string())
                 }
                 _ => {
@@ -298,7 +298,7 @@ async fn restart_engine(state: &WebState) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use edgelink_core::runtime::registry::RegistryBuilder;
+    use n2link_core::runtime::registry::RegistryBuilder;
     use serde_json::json;
     use std::sync::Arc;
 

@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::runtime::egress::{EgressPolicyHandle, EgressPurpose, NetworkProtocol};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
 enum DataType {
@@ -50,7 +50,7 @@ impl TcpInNode {
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let tcp_config = TcpInNodeConfig::deserialize(&config.rest)?;
-        let engine = flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("tcp in has no engine"))?;
+        let engine = flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("tcp in has no engine"))?;
         let node = TcpInNode { base: state, config: tcp_config, egress: engine.egress_policy().clone() };
         Ok(Box::new(node))
     }

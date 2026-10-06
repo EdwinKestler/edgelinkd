@@ -6,12 +6,12 @@ use std::time::Duration;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::{Msg, MsgHandle, Variant};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 use super::adapter::{ChatMessage, ChatRequest, complete_with_policy};
 use super::provider::provider_from_flow;
@@ -69,19 +69,19 @@ impl AiChatNode {
         reject_unsupported(&config.rest)?;
         let raw = ChatConfig::deserialize(&config.rest)?;
         if raw.provider.trim().is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-chat provider is required"));
+            return Err(N2linkError::invalid_operation("ai-chat provider is required"));
         }
         if let Some(temperature) = raw.temperature
             && !(0.0..=2.0).contains(&temperature)
         {
-            return Err(EdgelinkError::invalid_operation("ai-chat temperature must be between 0 and 2"));
+            return Err(N2linkError::invalid_operation("ai-chat temperature must be between 0 and 2"));
         }
         if let Some(0) = raw.max_tokens {
-            return Err(EdgelinkError::invalid_operation("ai-chat maxTokens must be greater than 0"));
+            return Err(N2linkError::invalid_operation("ai-chat maxTokens must be greater than 0"));
         }
         let timeout_ms = raw.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
         if !(MIN_TIMEOUT_MS..=MAX_TIMEOUT_MS).contains(&timeout_ms) {
-            return Err(EdgelinkError::invalid_operation("ai-chat timeoutMs is out of range"));
+            return Err(N2linkError::invalid_operation("ai-chat timeoutMs is out of range"));
         }
         let output = if raw.output.trim().is_empty() { "payload".to_owned() } else { raw.output };
         Ok(Box::new(AiChatNode {
@@ -100,11 +100,11 @@ impl AiChatNode {
     }
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
-        let flow = self.flow().ok_or_else(|| EdgelinkError::invalid_operation("ai-chat has no flow"))?;
+        let flow = self.flow().ok_or_else(|| N2linkError::invalid_operation("ai-chat has no flow"))?;
         let (settings, default_model, client, egress) = provider_from_flow(&flow, &self.config.provider)?;
         let model = if self.config.model.trim().is_empty() { default_model } else { self.config.model.clone() };
         if model.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-chat model is required"));
+            return Err(N2linkError::invalid_operation("ai-chat model is required"));
         }
         let (system, messages) = {
             let guard = msg.read().await;
@@ -120,7 +120,7 @@ impl AiChatNode {
         };
         let egress = egress.snapshot();
         tokio::select! {
-            _ = cancel.cancelled() => Err(EdgelinkError::TaskCancelled),
+            _ = cancel.cancelled() => Err(N2linkError::TaskCancelled),
             reply = complete_with_policy(&client, &egress, &settings, &request) => {
                 let reply = reply?;
                 let mut guard = msg.write().await;
@@ -169,18 +169,18 @@ fn ai_meta(provider: &str, model: &str) -> Variant {
 
 fn payload_text(value: Option<&Variant>) -> crate::Result<String> {
     let Some(value) = value else {
-        return Err(EdgelinkError::invalid_operation("ai-chat prompt is empty"));
+        return Err(N2linkError::invalid_operation("ai-chat prompt is empty"));
     };
     if value.is_null() {
-        return Err(EdgelinkError::invalid_operation("ai-chat prompt is empty"));
+        return Err(N2linkError::invalid_operation("ai-chat prompt is empty"));
     }
     if let Some(text) = value.as_str() {
         if text.is_empty() {
-            return Err(EdgelinkError::invalid_operation("ai-chat prompt is empty"));
+            return Err(N2linkError::invalid_operation("ai-chat prompt is empty"));
         }
         return Ok(text.to_owned());
     }
-    value.to_string().map_err(|err| EdgelinkError::invalid_operation(&format!("ai-chat prompt is not text: {err}")))
+    value.to_string().map_err(|err| N2linkError::invalid_operation(&format!("ai-chat prompt is not text: {err}")))
 }
 
 fn array_messages(value: &Variant) -> Option<crate::Result<Vec<ChatMessage>>> {
@@ -191,15 +191,15 @@ fn array_messages(value: &Variant) -> Option<crate::Result<Vec<ChatMessage>>> {
     let mut messages = Vec::new();
     for item in object_list {
         let Some(object) = item.as_object() else {
-            return Some(Err(EdgelinkError::invalid_operation("ai-chat messages must be objects")));
+            return Some(Err(N2linkError::invalid_operation("ai-chat messages must be objects")));
         };
         let role = object.get("role").and_then(Variant::as_str).unwrap_or("user");
         let content = match object.get("content") {
             Some(content) => match content.as_str() {
                 Some(text) => text.to_owned(),
-                None => return Some(Err(EdgelinkError::invalid_operation("ai-chat message content must be text"))),
+                None => return Some(Err(N2linkError::invalid_operation("ai-chat message content must be text"))),
             },
-            None => return Some(Err(EdgelinkError::invalid_operation("ai-chat message content is required"))),
+            None => return Some(Err(N2linkError::invalid_operation("ai-chat message content is required"))),
         };
         messages.push(ChatMessage { role: role.to_owned(), content });
     }
@@ -248,7 +248,7 @@ where
 fn reject_unsupported(value: &Value) -> crate::Result<()> {
     for key in ["stream", "tools", "functions", "tool_choice", "response_format"] {
         if value.get(key).is_some_and(|item| !item.is_null() && item != &Value::Bool(false)) {
-            return Err(EdgelinkError::NotSupported(format!("AI option '{key}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("AI option '{key}' is not supported")));
         }
     }
     Ok(())

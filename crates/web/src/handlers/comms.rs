@@ -13,7 +13,7 @@ use tokio::sync::broadcast;
 use tokio::time::{Duration, interval, sleep_until};
 
 use crate::handlers::WebState;
-use edgelink_core::runtime::ingress::EndpointClass;
+use n2link_core::runtime::ingress::EndpointClass;
 
 /// Node-RED WebSocket message format
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,7 +124,7 @@ impl CommsManager {
     /// Start status message listener task
     pub async fn start_status_listener(
         &self,
-        mut status_rx: tokio::sync::broadcast::Receiver<edgelink_core::runtime::status_channel::StatusMessage>,
+        mut status_rx: tokio::sync::broadcast::Receiver<n2link_core::runtime::status_channel::StatusMessage>,
         cancel_token: tokio_util::sync::CancellationToken,
     ) {
         let comms_manager = self.clone();
@@ -369,7 +369,7 @@ impl CommsManager {
     /// Start debug message listener task
     pub async fn start_debug_listener(
         &self,
-        debug_rx: tokio::sync::broadcast::Receiver<edgelink_core::runtime::debug_channel::DebugMessage>,
+        debug_rx: tokio::sync::broadcast::Receiver<n2link_core::runtime::debug_channel::DebugMessage>,
         cancel_token: tokio_util::sync::CancellationToken,
     ) {
         let comms_manager = self.clone();
@@ -490,7 +490,7 @@ impl CommsManager {
     pub async fn send_runtime_deploy_initial(
         &self,
         connection_id: &str,
-        engine: Option<&edgelink_core::runtime::engine::Engine>,
+        engine: Option<&n2link_core::runtime::engine::Engine>,
     ) {
         let revision = if let Some(engine) = engine { Some(engine.flows_rev().await) } else { None };
 
@@ -748,7 +748,7 @@ async fn handle_websocket_message(
     tx: &broadcast::Sender<String>,
     connection_id: &str,
     comms_manager: &CommsManager,
-    engine: Option<&edgelink_core::runtime::engine::Engine>,
+    engine: Option<&n2link_core::runtime::engine::Engine>,
     auth: &crate::handlers::auth::AdminAuth,
     authed: &std::sync::atomic::AtomicBool,
     token_slot: &RwLock<SocketAuth>,

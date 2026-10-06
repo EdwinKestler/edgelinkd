@@ -56,7 +56,7 @@ impl PluginSpec {
         let (publisher, name) = split_id(id)?;
         let outputs = manifest.node.outputs;
         if outputs > 16 {
-            return Err(crate::EdgelinkError::invalid_operation("a WASM plugin node has at most 16 outputs"));
+            return Err(crate::N2linkError::invalid_operation("a WASM plugin node has at most 16 outputs"));
         }
         let sha256: [u8; 32] = Sha256::digest(&wasm).into();
         Ok(Self {

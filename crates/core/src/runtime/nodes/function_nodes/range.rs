@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default)]
@@ -75,7 +75,7 @@ impl RangeNode {
             let mut n: f64 = match value {
                 Variant::Number(num_value) => num_value
                     .as_f64()
-                    .ok_or(EdgelinkError::OutOfRange)
+                    .ok_or(N2linkError::OutOfRange)
                     .with_context(|| format!("Cannot convert the number `{num_value}` to float"))?,
                 Variant::String(s) => s.parse::<f64>()?,
                 _ => f64::NAN,
@@ -85,7 +85,7 @@ impl RangeNode {
                 match self.config.action {
                     RangeAction::Drop => {
                         if n < self.config.minin || n > self.config.maxin {
-                            return Err(EdgelinkError::OutOfRange);
+                            return Err(N2linkError::OutOfRange);
                         }
                     }
 
@@ -109,7 +109,7 @@ impl RangeNode {
                 *value = Variant::Number(serde_json::Number::from_f64(new_value).unwrap());
                 Ok(())
             } else {
-                Err(EdgelinkError::OutOfRange).with_context(|| format!("The value is not a numner: {value:?}"))
+                Err(N2linkError::OutOfRange).with_context(|| format!("The value is not a numner: {value:?}"))
             }
         } else {
             Ok(())

@@ -1,4 +1,4 @@
-# edgelink-wasm-guest
+# n2link-wasm-guest
 
 Guest SDK for EdgeLinkd WASM plugins (ABI `edgelink:node/v1`). Experimental; the host is the
 optional `nodes_wasm` feature. Full author manual (manifest schema, ABI, encoding, versioning):
@@ -8,14 +8,14 @@ optional `nodes_wasm` feature. Full author manual (manifest schema, ABI, encodin
 
 ```text
 my-plugin/
-  Cargo.toml          crate-type = ["cdylib"]; depends on edgelink-wasm-guest
+  Cargo.toml          crate-type = ["cdylib"]; depends on n2link-wasm-guest
   .cargo/config.toml  -C link-arg=-zstack-size=65536 for wasm32-unknown-unknown
   plugin.toml         manifest schema 1 (identity, node, config fields, self-tests)
   src/lib.rs          impl Node + export_node! + manifest!
 ```
 
 ```rust
-use edgelink_wasm_guest::{export_node, manifest, Ctx, EveValue, Msg, Node};
+use n2link_wasm_guest::{export_node, manifest, Ctx, EveValue, Msg, Node};
 
 manifest!("../plugin.toml");
 

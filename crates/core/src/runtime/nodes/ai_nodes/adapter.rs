@@ -5,7 +5,7 @@ use std::time::Duration;
 use reqwest::Client;
 use serde_json::{Value, json};
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::egress::{EgressPolicy, EgressPurpose};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,7 +23,7 @@ impl ProviderKind {
             "xai" | "grok" => Ok(Self::Xai),
             "anthropic" | "claude" => Ok(Self::Anthropic),
             "cortex" | "snowflake" => Ok(Self::Cortex),
-            other => Err(EdgelinkError::NotSupported(format!("AI provider '{other}' is not supported"))),
+            other => Err(N2linkError::NotSupported(format!("AI provider '{other}' is not supported"))),
         }
     }
 
@@ -137,7 +137,7 @@ fn hide_secret(text: &str, secret: &str) -> String {
     if secret.is_empty() { text.to_owned() } else { text.replace(secret, "***") }
 }
 
-fn fail(status: reqwest::StatusCode, body: &str, secret: &str) -> EdgelinkError {
+fn fail(status: reqwest::StatusCode, body: &str, secret: &str) -> N2linkError {
     let detail = serde_json::from_str::<Value>(body)
         .ok()
         .and_then(|value| {
@@ -153,7 +153,7 @@ fn fail(status: reqwest::StatusCode, body: &str, secret: &str) -> EdgelinkError 
     } else {
         format!("ai provider returned {status}: {detail}")
     };
-    EdgelinkError::invalid_operation(&hide_secret(&text, secret))
+    N2linkError::invalid_operation(&hide_secret(&text, secret))
 }
 
 async fn send_json(
@@ -179,9 +179,9 @@ async fn send_json(
     }
     let response = req.json(&body).send().await.map_err(|err| {
         if policy.is_some() {
-            EdgelinkError::invalid_operation("ai request failed")
+            N2linkError::invalid_operation("ai request failed")
         } else {
-            EdgelinkError::invalid_operation(&hide_secret(&format!("ai request failed: {err}"), &settings.api_key))
+            N2linkError::invalid_operation(&hide_secret(&format!("ai request failed: {err}"), &settings.api_key))
         }
     })?;
     let status = response.status();
@@ -190,26 +190,26 @@ async fn send_json(
         let mut bytes = Vec::new();
         while let Some(chunk) = tokio::time::timeout(policy.idle_timeout(), response.chunk())
             .await
-            .map_err(|_| EdgelinkError::Timeout)?
-            .map_err(|_| EdgelinkError::invalid_operation("ai response read failed"))?
+            .map_err(|_| N2linkError::Timeout)?
+            .map_err(|_| N2linkError::invalid_operation("ai response read failed"))?
         {
             if bytes.len().saturating_add(chunk.len()) > policy.max_response_bytes() {
-                return Err(EdgelinkError::invalid_operation("ai response exceeds configured limit"));
+                return Err(N2linkError::invalid_operation("ai response exceeds configured limit"));
             }
             bytes.extend_from_slice(&chunk);
         }
-        String::from_utf8(bytes).map_err(|_| EdgelinkError::invalid_operation("ai response is not UTF-8"))?
+        String::from_utf8(bytes).map_err(|_| N2linkError::invalid_operation("ai response is not UTF-8"))?
     } else {
         response
             .text()
             .await
-            .map_err(|err| EdgelinkError::invalid_operation(&hide_secret(&err.to_string(), &settings.api_key)))?
+            .map_err(|err| N2linkError::invalid_operation(&hide_secret(&err.to_string(), &settings.api_key)))?
     };
     if !status.is_success() {
         return Err(fail(status, &text, &settings.api_key));
     }
     serde_json::from_str(&text).map_err(|err| {
-        EdgelinkError::invalid_operation(&hide_secret(&format!("ai response is not JSON: {err}"), &settings.api_key))
+        N2linkError::invalid_operation(&hide_secret(&format!("ai response is not JSON: {err}"), &settings.api_key))
     })
 }
 
@@ -272,7 +272,7 @@ fn responses_text(value: &Value) -> crate::Result<String> {
         }
     }
     if collected.is_empty() {
-        return Err(EdgelinkError::invalid_operation("ai provider returned no text"));
+        return Err(N2linkError::invalid_operation("ai provider returned no text"));
     }
     Ok(collected)
 }
@@ -312,7 +312,7 @@ async fn anthropic_complete(
         }
     }
     if collected.is_empty() {
-        return Err(EdgelinkError::invalid_operation("ai provider returned no text"));
+        return Err(N2linkError::invalid_operation("ai provider returned no text"));
     }
     Ok(ChatResponse {
         text: collected,
@@ -351,7 +351,7 @@ async fn chat_completions_complete(
         .pointer("/choices/0/message/content")
         .and_then(Value::as_str)
         .filter(|text| !text.is_empty())
-        .ok_or_else(|| EdgelinkError::invalid_operation("ai provider returned no text"))?;
+        .ok_or_else(|| N2linkError::invalid_operation("ai provider returned no text"))?;
     Ok(ChatResponse {
         text: text.to_owned(),
         model: value.get("model").and_then(Value::as_str).unwrap_or(&request.model).to_owned(),
@@ -429,8 +429,8 @@ pub(crate) struct ToolCall {
     pub arguments: Value,
 }
 
-fn retryable(err: &EdgelinkError) -> bool {
-    matches!(err, EdgelinkError::Timeout) || {
+fn retryable(err: &N2linkError) -> bool {
+    matches!(err, N2linkError::Timeout) || {
         let text = err.to_string();
         text.contains("ai request failed")
             || text.contains("returned 429")
@@ -451,7 +451,7 @@ pub(crate) async fn embed_with_policy(
     match settings.kind {
         ProviderKind::Openai | ProviderKind::Xai => {}
         ProviderKind::Anthropic | ProviderKind::Cortex => {
-            return Err(EdgelinkError::NotSupported(format!(
+            return Err(N2linkError::NotSupported(format!(
                 "embeddings are not supported for provider '{}'",
                 settings.kind.as_str()
             )));
@@ -481,9 +481,7 @@ async fn embed_once(
     });
     if let Some(dimensions) = request.dimensions {
         if settings.kind == ProviderKind::Xai {
-            return Err(EdgelinkError::NotSupported(
-                "xAI embeddings do not accept dimensions in this build".to_owned(),
-            ));
+            return Err(N2linkError::NotSupported("xAI embeddings do not accept dimensions in this build".to_owned()));
         }
         body["dimensions"] = json!(dimensions);
     }
@@ -500,21 +498,21 @@ fn parse_embed(value: Value, request: &EmbedRequest, settings: &ProviderSettings
     let data = value
         .get("data")
         .and_then(Value::as_array)
-        .ok_or_else(|| EdgelinkError::invalid_operation("ai embedding response has no data"))?;
+        .ok_or_else(|| N2linkError::invalid_operation("ai embedding response has no data"))?;
     let mut indexed: Vec<(u64, Vec<f64>)> = Vec::new();
     for item in data {
         let index = item.get("index").and_then(Value::as_u64).unwrap_or(indexed.len() as u64);
         let embedding = item
             .get("embedding")
             .and_then(Value::as_array)
-            .ok_or_else(|| EdgelinkError::invalid_operation("ai embedding is missing"))?;
+            .ok_or_else(|| N2linkError::invalid_operation("ai embedding is missing"))?;
         if embedding.len() > 4096 {
-            return Err(EdgelinkError::invalid_operation("ai embedding exceeds 4096 dimensions"));
+            return Err(N2linkError::invalid_operation("ai embedding exceeds 4096 dimensions"));
         }
         let mut vector = Vec::with_capacity(embedding.len());
         for component in embedding {
             let number =
-                component.as_f64().ok_or_else(|| EdgelinkError::invalid_operation("ai embedding is not float"))?;
+                component.as_f64().ok_or_else(|| N2linkError::invalid_operation("ai embedding is not float"))?;
             vector.push(number);
         }
         indexed.push((index, vector));
@@ -522,7 +520,7 @@ fn parse_embed(value: Value, request: &EmbedRequest, settings: &ProviderSettings
     indexed.sort_by_key(|(index, _)| *index);
     let vectors: Vec<Vec<f64>> = indexed.into_iter().map(|(_, v)| v).collect();
     if vectors.len() != request.input.len() {
-        return Err(EdgelinkError::invalid_operation("ai embedding count does not match input"));
+        return Err(N2linkError::invalid_operation("ai embedding count does not match input"));
     }
     let prompt_tokens = value.pointer("/usage/prompt_tokens").and_then(Value::as_u64).map(|n| n as u32);
     Ok(EmbedResponse {
@@ -543,7 +541,7 @@ pub(crate) async fn complete_tools_with_policy(
     match settings.kind {
         ProviderKind::Openai | ProviderKind::Xai | ProviderKind::Anthropic => {}
         ProviderKind::Cortex => {
-            return Err(EdgelinkError::NotSupported("agent tools are not supported for cortex".to_owned()));
+            return Err(N2linkError::NotSupported("agent tools are not supported for cortex".to_owned()));
         }
     }
     let policy = if policy.mode() == crate::runtime::egress::EgressMode::Off { None } else { Some(policy) };
@@ -566,7 +564,7 @@ async fn tools_once(
     match settings.kind {
         ProviderKind::Openai | ProviderKind::Xai => responses_tools(client, policy, settings, request).await,
         ProviderKind::Anthropic => anthropic_tools(client, policy, settings, request).await,
-        ProviderKind::Cortex => Err(EdgelinkError::NotSupported("agent tools are not supported for cortex".to_owned())),
+        ProviderKind::Cortex => Err(N2linkError::NotSupported("agent tools are not supported for cortex".to_owned())),
     }
 }
 
@@ -642,7 +640,7 @@ fn parse_responses_tools(
                 let call_id = item
                     .get("call_id")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| EdgelinkError::invalid_operation("tool call is missing call_id"))?
+                    .ok_or_else(|| N2linkError::invalid_operation("tool call is missing call_id"))?
                     .to_owned();
                 let name = item.get("name").and_then(Value::as_str).unwrap_or("").to_owned();
                 let raw = item.get("arguments").and_then(Value::as_str).unwrap_or("{}");
@@ -733,7 +731,7 @@ fn parse_anthropic_tools(
                     let call_id = part
                         .get("id")
                         .and_then(Value::as_str)
-                        .ok_or_else(|| EdgelinkError::invalid_operation("tool_use is missing id"))?
+                        .ok_or_else(|| N2linkError::invalid_operation("tool_use is missing id"))?
                         .to_owned();
                     let name = part.get("name").and_then(Value::as_str).unwrap_or("").to_owned();
                     let arguments = part.get("input").cloned().unwrap_or_else(|| json!({}));
@@ -752,7 +750,7 @@ fn parse_anthropic_tools(
         return Ok(ToolChatOutput::Calls(calls));
     }
     if text.is_empty() {
-        return Err(EdgelinkError::invalid_operation("ai provider returned no text"));
+        return Err(N2linkError::invalid_operation("ai provider returned no text"));
     }
     Ok(ToolChatOutput::Text(ChatResponse {
         text,

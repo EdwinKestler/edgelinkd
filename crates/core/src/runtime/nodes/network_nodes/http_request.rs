@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::runtime::egress::{EgressMode, EgressPolicyHandle, EgressPurpose};
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -111,13 +111,13 @@ impl HttpRequestNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let http_config = HttpRequestNodeConfig::deserialize(&config.rest)?;
         if http_config.proxy.as_deref().is_some_and(|value| !value.trim().is_empty()) {
-            return Err(crate::EdgelinkError::NotSupported(
+            return Err(crate::N2linkError::NotSupported(
                 "per-node HTTP proxies are not supported; configure egress.proxy_url".to_owned(),
             ));
         }
 
         let engine =
-            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("http request has no engine"))?;
+            flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("http request has no engine"))?;
         let node = HttpRequestNode { base: state, config: http_config, egress: engine.egress_policy().clone() };
         Ok(Box::new(node))
     }
@@ -227,11 +227,11 @@ impl HttpRequestNode {
                 url_str.to_string()
             } else {
                 log::error!("HTTP request: Invalid URL in message");
-                return Err(crate::EdgelinkError::BadArgument("url"));
+                return Err(crate::N2linkError::BadArgument("url"));
             }
         } else {
             log::error!("HTTP request: No URL provided");
-            return Err(crate::EdgelinkError::BadArgument("url"));
+            return Err(crate::N2linkError::BadArgument("url"));
         };
 
         // Validate URL
@@ -403,7 +403,7 @@ impl HttpRequestNode {
         let env_vars: std::collections::HashMap<String, String> = std::env::vars().collect();
         context_map = context_map
             .insert("env", &env_vars)
-            .map_err(|e| crate::EdgelinkError::invalid_operation(&format!("Template context error: {e}")))?;
+            .map_err(|e| crate::N2linkError::invalid_operation(&format!("Template context error: {e}")))?;
 
         Ok(context_map.build())
     }
@@ -420,7 +420,7 @@ impl HttpRequestNode {
 
         // Validate protocol
         if !url.starts_with("http://") && !url.starts_with("https://") {
-            return Err(crate::EdgelinkError::BadArgument("invalid protocol"));
+            return Err(crate::N2linkError::BadArgument("invalid protocol"));
         }
 
         // Basic URL encoding fixes for query parameters
@@ -560,7 +560,7 @@ impl HttpRequestNode {
                 }
                 Ok(params.join("&"))
             }
-            _ => Err(crate::EdgelinkError::BadArgument("payload must be object for query string")),
+            _ => Err(crate::N2linkError::BadArgument("payload must be object for query string")),
         }
     }
 
@@ -683,7 +683,7 @@ impl HttpRequestNode {
             let response = request_builder
                 .send()
                 .await
-                .map_err(|_| crate::EdgelinkError::invalid_operation("outbound HTTP request failed"))?;
+                .map_err(|_| crate::N2linkError::invalid_operation("outbound HTTP request failed"))?;
             if !follow_redirects || !response.status().is_redirection() {
                 break response;
             }
@@ -691,12 +691,12 @@ impl HttpRequestNode {
                 .headers()
                 .get(reqwest::header::LOCATION)
                 .and_then(|value| value.to_str().ok())
-                .ok_or_else(|| crate::EdgelinkError::invalid_operation("HTTP redirect has no valid location"))?;
+                .ok_or_else(|| crate::N2linkError::invalid_operation("HTTP redirect has no valid location"))?;
             let base = url::Url::parse(&current)
-                .map_err(|_| crate::EdgelinkError::invalid_operation("HTTP redirect base is invalid"))?;
+                .map_err(|_| crate::N2linkError::invalid_operation("HTTP redirect base is invalid"))?;
             let next = base
                 .join(location)
-                .map_err(|_| crate::EdgelinkError::invalid_operation("HTTP redirect location is invalid"))?;
+                .map_err(|_| crate::N2linkError::invalid_operation("HTTP redirect location is invalid"))?;
             if base.origin() != next.origin() {
                 headers.retain(|name, _| {
                     !name.eq_ignore_ascii_case("authorization")
@@ -719,7 +719,7 @@ impl HttpRequestNode {
             current = next.to_string();
             redirects += 1;
             if redirects > self.egress.max_redirects() {
-                return Err(crate::EdgelinkError::invalid_operation("HTTP redirect limit exceeded").into());
+                return Err(crate::N2linkError::invalid_operation("HTTP redirect limit exceeded").into());
             }
         };
 
@@ -735,12 +735,12 @@ impl HttpRequestNode {
         let mut body_bytes = Vec::new();
         while let Some(chunk) = tokio::time::timeout(self.egress.idle_timeout(), response.chunk())
             .await
-            .map_err(|_| crate::EdgelinkError::Timeout)?
-            .map_err(|_| crate::EdgelinkError::invalid_operation("outbound HTTP response failed"))?
+            .map_err(|_| crate::N2linkError::Timeout)?
+            .map_err(|_| crate::N2linkError::invalid_operation("outbound HTTP response failed"))?
         {
             if body_bytes.len().saturating_add(chunk.len()) > self.egress.max_response_bytes() {
                 return Err(
-                    crate::EdgelinkError::invalid_operation("outbound HTTP response exceeds configured limit").into()
+                    crate::N2linkError::invalid_operation("outbound HTTP response exceeds configured limit").into()
                 );
             }
             body_bytes.extend_from_slice(&chunk);

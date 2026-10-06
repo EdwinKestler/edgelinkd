@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
-#[flow_node("test-once", red_name = "test-once", module = "edgelink_core", inputs = 1, outputs = 0)]
+#[flow_node("test-once", red_name = "test-once", module = "n2link_core", inputs = 1, outputs = 0)]
 struct TestOnceNode {
     base: BaseFlowNodeState,
 }

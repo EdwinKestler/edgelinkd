@@ -2,7 +2,7 @@
 //! custom section. Runs before Wasmi sees the bytes, so malformed framing fails with a precise
 //! message and no allocation proportional to forged lengths.
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 
 pub(crate) const MANIFEST_SECTION: &str = "edgelink.manifest";
 pub(crate) const MAX_MANIFEST_BYTES: usize = 16 * 1024;
@@ -10,8 +10,8 @@ pub(crate) const MAX_MANIFEST_BYTES: usize = 16 * 1024;
 const MAGIC: &[u8; 4] = b"\0asm";
 const VERSION: [u8; 4] = [1, 0, 0, 0];
 
-fn invalid(offset: usize, why: &str) -> EdgelinkError {
-    EdgelinkError::invalid_operation(&format!("invalid WASM package at byte {offset}: {why}"))
+fn invalid(offset: usize, why: &str) -> N2linkError {
+    N2linkError::invalid_operation(&format!("invalid WASM package at byte {offset}: {why}"))
 }
 
 /// Unsigned LEB128, at most 5 bytes (u32).
@@ -34,7 +34,7 @@ fn read_u32(bytes: &[u8], offset: &mut usize) -> crate::Result<u32> {
 /// The manifest text, after checking the module framing and size cap.
 pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Result<String> {
     if bytes.len() > max_module_bytes {
-        return Err(EdgelinkError::NotSupported(format!(
+        return Err(N2linkError::NotSupported(format!(
             "WASM package is {} bytes, more than {max_module_bytes} ([runtime.wasm] max_module_kib)",
             bytes.len()
         )));
@@ -67,13 +67,13 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
                 .map_err(|_| invalid(cursor, "custom section name is not UTF-8"))?;
             if name == MANIFEST_SECTION {
                 if manifest.is_some() {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "WASM package has more than one {MANIFEST_SECTION}"
                     )));
                 }
                 let payload = &bytes[name_end..end];
                 if payload.len() > MAX_MANIFEST_BYTES {
-                    return Err(EdgelinkError::NotSupported(format!(
+                    return Err(N2linkError::NotSupported(format!(
                         "{MANIFEST_SECTION} is {} bytes, more than {MAX_MANIFEST_BYTES}",
                         payload.len()
                     )));
@@ -88,7 +88,7 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
         offset = end;
     }
     manifest.ok_or_else(|| {
-        EdgelinkError::NotSupported(format!(
+        N2linkError::NotSupported(format!(
             "WASM package has no {MANIFEST_SECTION} custom section (use `edgelinkd plugin pack`)"
         ))
     })
@@ -97,14 +97,14 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
 /// Append an `edgelink.manifest` custom section (what `edgelinkd plugin pack` does).
 pub fn append_manifest(module: &[u8], manifest: &str) -> crate::Result<Vec<u8>> {
     if manifest.len() > MAX_MANIFEST_BYTES {
-        return Err(EdgelinkError::NotSupported(format!("manifest is more than {MAX_MANIFEST_BYTES} bytes")));
+        return Err(N2linkError::NotSupported(format!("manifest is more than {MAX_MANIFEST_BYTES} bytes")));
     }
     if module.len() < 8 || &module[0..4] != MAGIC {
         return Err(invalid(0, "not a WebAssembly module"));
     }
     // Refuse to pack a module that already carries a manifest.
     if manifest_text(module, usize::MAX).is_ok() {
-        return Err(EdgelinkError::NotSupported(format!("module already has an {MANIFEST_SECTION} section")));
+        return Err(N2linkError::NotSupported(format!("module already has an {MANIFEST_SECTION} section")));
     }
     let mut payload = Vec::new();
     write_u32(&mut payload, MANIFEST_SECTION.len() as u32);

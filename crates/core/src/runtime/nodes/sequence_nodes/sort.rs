@@ -3,7 +3,7 @@
 // Based on Node-RED 18-sort.js
 
 use async_trait::async_trait;
-use edgelink_macro::*;
+use n2link_macro::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Number;
 use std::collections::HashMap;

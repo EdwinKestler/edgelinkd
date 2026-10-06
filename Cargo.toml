@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-app"
+name = "n2link-app"
 version = "0.3.0"
 edition = "2021"
 rust-version = "1.88"
@@ -157,12 +157,12 @@ log4rs.workspace = true
 async-trait.workspace = true
 once_cell.workspace = true
 
-edgelink-core = { path = "crates/core", default-features = false }
+n2link-core = { path = "crates/core", default-features = false }
 
 # Node plug-ins:
-edgelink-nodes-dummy = { path = "node-plugins/edgelink-nodes-dummy" }
+n2link-nodes-dummy = { path = "node-plugins/n2link-nodes-dummy" }
 
-edgelink-web = { path = "crates/web", default-features = false }
+n2link-web = { path = "crates/web", default-features = false }
 
 [dev-dependencies]
 
@@ -193,34 +193,34 @@ default = [
     "nodes_postgres",
     "nodes_redis",
 ]
-core = ["edgelink-core/core"]
-js = ["edgelink-core/js"]
-jsonata = ["edgelink-core/jsonata"]
-nodes_network = ["edgelink-core/nodes_network"]
-nodes_storage = ["edgelink-core/nodes_storage"]
-rqjs_bindgen = ["js", "edgelink-core/rqjs_bindgen"]
+core = ["n2link-core/core"]
+js = ["n2link-core/js"]
+jsonata = ["n2link-core/jsonata"]
+nodes_network = ["n2link-core/nodes_network"]
+nodes_storage = ["n2link-core/nodes_storage"]
+rqjs_bindgen = ["js", "n2link-core/rqjs_bindgen"]
 # Soft real-time scan task. Off unless a build asks for it.
-runtime_scan = ["edgelink-core/runtime_scan"]
+runtime_scan = ["n2link-core/runtime_scan"]
 # Modbus TCP. Off unless a build asks for it.
-nodes_modbus = ["edgelink-core/nodes_modbus"]
+nodes_modbus = ["n2link-core/nodes_modbus"]
 # OpenAI, xAI, Anthropic, and Snowflake Cortex chat. Included in the application by default.
-nodes_ai = ["edgelink-core/nodes_ai", "edgelink-web/nodes_ai"]
+nodes_ai = ["n2link-core/nodes_ai", "n2link-web/nodes_ai"]
 # Local splitter and structured-output validator. In the default app build.
-nodes_ai_text = ["edgelink-core/nodes_ai_text", "edgelink-web/nodes_ai_text"]
+nodes_ai_text = ["n2link-core/nodes_ai_text", "n2link-web/nodes_ai_text"]
 # Embeddings through ai-provider. In the default app build; README stays experimental until live runs.
-nodes_ai_embeddings = ["nodes_ai", "edgelink-core/nodes_ai_embeddings", "edgelink-web/nodes_ai_embeddings"]
+nodes_ai_embeddings = ["nodes_ai", "n2link-core/nodes_ai_embeddings", "n2link-web/nodes_ai_embeddings"]
 # Bounded agent/tool loop (two concurrent loops). In the default app build; README stays
 # experimental until live OpenAI and Anthropic runs.
-nodes_ai_agent = ["nodes_ai", "nodes_ai_text", "edgelink-core/nodes_ai_agent", "edgelink-web/nodes_ai_agent"]
+nodes_ai_agent = ["nodes_ai", "nodes_ai_text", "n2link-core/nodes_ai_agent", "n2link-web/nodes_ai_agent"]
 # Node-RED-compatible bcrypt password verification. Default-on, but removable from minimal builds.
-admin_bcrypt = ["edgelink-web/admin_bcrypt"]
+admin_bcrypt = ["n2link-web/admin_bcrypt"]
 # Versioned XChaCha20-Poly1305 credential envelopes and migration CLI.
-credential_encryption = ["edgelink-core/credential_encryption", "edgelink-web/credential_encryption"]
+credential_encryption = ["n2link-core/credential_encryption", "n2link-web/credential_encryption"]
 # SQLite operational history (deploy, node health, Copilot, fleet). In the default app build;
 # omit with --no-default-features. See docs/operations/history.md.
-history_sqlite = ["edgelink-core/history_sqlite", "edgelink-web/history_sqlite"]
+history_sqlite = ["n2link-core/history_sqlite", "n2link-web/history_sqlite"]
 # PostgreSQL and Redis clients. In the default app build; omit with --no-default-features.
-nodes_postgres = ["edgelink-core/nodes_postgres", "edgelink-web/nodes_postgres"]
-nodes_redis = ["edgelink-core/nodes_redis", "edgelink-web/nodes_redis"]
+nodes_postgres = ["n2link-core/nodes_postgres", "n2link-web/nodes_postgres"]
+nodes_redis = ["n2link-core/nodes_redis", "n2link-web/nodes_redis"]
 # Optional WASM plugin host. Off in default and full.
-nodes_wasm = ["edgelink-core/nodes_wasm", "edgelink-web/nodes_wasm"]
+nodes_wasm = ["n2link-core/nodes_wasm", "n2link-web/nodes_wasm"]

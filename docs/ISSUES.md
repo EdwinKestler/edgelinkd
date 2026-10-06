@@ -45,7 +45,7 @@ address is kept for the session and its reconnect loop.
 ### `--no-default-features` is not a minimal build
 
 `cargo build --no-default-features` drops the app's optional features (AI nodes, history,
-PostgreSQL, Redis, bcrypt admin passwords), but `edgelink-web` depends on `edgelink-core` with
+PostgreSQL, Redis, bcrypt admin passwords), but `n2link-web` depends on `n2link-core` with
 core's own defaults, so the JavaScript engine, JSONata and the network, storage and parser nodes
 stay in. Do not use it as evidence that one of those was removed. A truly minimal build needs a
 feature-propagation change that has not been made.

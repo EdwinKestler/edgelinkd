@@ -15,7 +15,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 
 use crate::runtime::model::ElementId;
-use crate::{EdgelinkError, Result};
+use crate::{N2linkError, Result};
 
 pub const SCHEMA_VERSION: u32 = 1;
 pub const APPLICATION_ID: u32 = 0x454C_4831; // "ELH1"
@@ -318,13 +318,13 @@ impl HistoryHandle {
             Some(c) => match c.get::<HistoryConfig>("history") {
                 Ok(conf) => conf,
                 Err(config::ConfigError::NotFound(_)) => HistoryConfig::default(),
-                Err(err) => return Err(EdgelinkError::invalid_operation(&err.to_string())),
+                Err(err) => return Err(N2linkError::invalid_operation(&err.to_string())),
             },
             None => HistoryConfig::default(),
         };
 
         if let Err(msg) = history_cfg.validate() {
-            return Err(EdgelinkError::invalid_operation(&msg));
+            return Err(N2linkError::invalid_operation(&msg));
         }
 
         if !history_cfg.enabled {
@@ -333,7 +333,7 @@ impl HistoryHandle {
 
         #[cfg(not(feature = "history_sqlite"))]
         {
-            return Err(EdgelinkError::NotSupported("sqlite history is not compiled in this build".to_string()));
+            return Err(N2linkError::NotSupported("sqlite history is not compiled in this build".to_string()));
         }
 
         #[cfg(feature = "history_sqlite")]

@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::{Envelope, FlowsElement, MsgHandle, Variant};
@@ -52,8 +52,8 @@ pub(crate) struct WasmPluginNode {
     state: Mutex<NodeRuntimeState>,
 }
 
-fn not_supported(text: String) -> EdgelinkError {
-    EdgelinkError::NotSupported(text)
+fn not_supported(text: String) -> N2linkError {
+    N2linkError::NotSupported(text)
 }
 
 impl WasmPluginNode {
@@ -64,7 +64,7 @@ impl WasmPluginNode {
         _options: Option<&config::Config>,
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let type_name = base_node.type_str;
-        let engine = flow.engine().ok_or_else(|| EdgelinkError::invalid_operation("WASM plugin has no engine"))?;
+        let engine = flow.engine().ok_or_else(|| N2linkError::invalid_operation("WASM plugin has no engine"))?;
         let runtime = engine.wasm_runtime();
         if !runtime.settings().enabled {
             return Err(super::settings::disabled_plugin_error(type_name));
@@ -96,8 +96,8 @@ impl WasmPluginNode {
         self.state.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    fn error(&self, text: impl std::fmt::Display) -> EdgelinkError {
-        EdgelinkError::invalid_operation(&format!("wasm {}: {text}", self.spec.id))
+    fn error(&self, text: impl std::fmt::Display) -> N2linkError {
+        N2linkError::invalid_operation(&format!("wasm {}: {text}", self.spec.id))
     }
 
     async fn handle(&self, msg: MsgHandle, cancel: CancellationToken) -> crate::Result<()> {
@@ -195,7 +195,7 @@ impl WasmPluginNode {
     }
 
     /// Record a fault: drop the instance, count it, and enter the failed state at the threshold.
-    async fn fault(&self, text: String, cancel: CancellationToken) -> EdgelinkError {
+    async fn fault(&self, text: String, cancel: CancellationToken) -> N2linkError {
         let failed = {
             let mut state = self.lock();
             state.instance = None;
@@ -338,7 +338,7 @@ pub(crate) fn resolve_config(
         });
         let Some(value) = given.or(field.default.as_ref()) else {
             if field.required {
-                return Err(EdgelinkError::invalid_operation(&format!(
+                return Err(N2linkError::invalid_operation(&format!(
                     "node type '{}' property '{}' is required",
                     spec.type_name, field.name
                 )));
@@ -346,13 +346,13 @@ pub(crate) fn resolve_config(
             continue;
         };
         let value = field.check(value).map_err(|why| {
-            EdgelinkError::invalid_operation(&format!("node type '{}' property '{}' {why}", spec.type_name, field.name))
+            N2linkError::invalid_operation(&format!("node type '{}' property '{}' {why}", spec.type_name, field.name))
         })?;
         object.insert(field.name.clone(), value);
     }
     let variant = Variant::deserialize(serde_json::Value::Object(object))
-        .map_err(|err| EdgelinkError::invalid_operation(&format!("plugin configuration: {err}")))?;
-    encode_variant(&variant).map_err(|err| EdgelinkError::invalid_operation(&format!("plugin configuration: {err}")))
+        .map_err(|err| N2linkError::invalid_operation(&format!("plugin configuration: {err}")))?;
+    encode_variant(&variant).map_err(|err| N2linkError::invalid_operation(&format!("plugin configuration: {err}")))
 }
 
 /// Reject properties the plugin does not declare, check `wasmPlugin` version pinning, and

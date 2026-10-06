@@ -11,7 +11,7 @@ use axum::http::{HeaderMap, Method, StatusCode, header};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
-use edgelink_core::runtime::ingress::{
+use n2link_core::runtime::ingress::{
     EndpointClass, EndpointLimits, IngressProtectionConfig, ProtectionMode, TrustedProxySet,
 };
 use serde_json::json;
@@ -479,8 +479,8 @@ mod tests {
     use axum::Router;
     use axum::http::Request as HttpRequest;
     use axum::routing::post;
-    use edgelink_core::runtime::credential_storage::CredentialStore;
-    use edgelink_core::runtime::egress::EgressPolicyHandle;
+    use n2link_core::runtime::credential_storage::CredentialStore;
+    use n2link_core::runtime::egress::EgressPolicyHandle;
     use std::sync::atomic::{AtomicBool, Ordering};
     use tower::ServiceExt;
 

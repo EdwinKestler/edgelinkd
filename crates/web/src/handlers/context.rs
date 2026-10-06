@@ -15,11 +15,11 @@ use std::sync::Arc;
 use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json, Response};
-use edgelink_core::EdgelinkError;
-use edgelink_core::runtime::context::{Context, ContextManager, ContextStoreHandle, ContextValue};
-use edgelink_core::runtime::debug_channel::format_message_for_display;
-use edgelink_core::runtime::engine::Engine;
-use edgelink_core::runtime::model::{ContextHolder, ElementId, Variant};
+use n2link_core::N2linkError;
+use n2link_core::runtime::context::{Context, ContextManager, ContextStoreHandle, ContextValue};
+use n2link_core::runtime::debug_channel::format_message_for_display;
+use n2link_core::runtime::engine::Engine;
+use n2link_core::runtime::model::{ContextHolder, ElementId, Variant};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
@@ -438,23 +438,23 @@ fn keys_only_value(entry: Option<&ContextValue>) -> Value {
     value
 }
 
-fn forced_hold(err: &EdgelinkError) -> bool {
+fn forced_hold(err: &N2linkError) -> bool {
     match err {
-        EdgelinkError::InvalidOperation(message) => message.contains("is forced"),
-        EdgelinkError::Other(inner) => inner.downcast_ref::<EdgelinkError>().is_some_and(forced_hold),
+        N2linkError::InvalidOperation(message) => message.contains("is forced"),
+        N2linkError::Other(inner) => inner.downcast_ref::<N2linkError>().is_some_and(forced_hold),
         _ => false,
     }
 }
 
-fn not_supported_text(err: &EdgelinkError) -> Option<String> {
+fn not_supported_text(err: &N2linkError) -> Option<String> {
     match err {
-        EdgelinkError::NotSupported(message) => Some(message.clone()),
-        EdgelinkError::Other(inner) => inner.downcast_ref::<EdgelinkError>().and_then(not_supported_text),
+        N2linkError::NotSupported(message) => Some(message.clone()),
+        N2linkError::Other(inner) => inner.downcast_ref::<N2linkError>().and_then(not_supported_text),
         _ => None,
     }
 }
 
-fn map_force_error(err: EdgelinkError) -> ContextFailure {
+fn map_force_error(err: N2linkError) -> ContextFailure {
     if let Some(message) = not_supported_text(&err) {
         ContextFailure::NotSupported(message)
     } else {
@@ -475,9 +475,9 @@ mod tests {
     use crate::handlers::WebState;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
-    use edgelink_core::runtime::engine::Engine;
-    use edgelink_core::runtime::model::{ContextHolder, Variant};
-    use edgelink_core::runtime::registry::RegistryBuilder;
+    use n2link_core::runtime::engine::Engine;
+    use n2link_core::runtime::model::{ContextHolder, Variant};
+    use n2link_core::runtime::registry::RegistryBuilder;
     use serde_json::{Value, json};
     use tower::ServiceExt;
 

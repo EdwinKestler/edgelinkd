@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::runtime::egress::EgressPolicyHandle;
 use crate::runtime::flow::Flow;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 type ClientWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -41,7 +41,7 @@ impl WebSocketInNode {
     ) -> crate::Result<Box<dyn FlowNodeBehavior>> {
         let ws_config = WebSocketInConfig::deserialize(&config.rest)?;
         let engine =
-            flow.engine().ok_or_else(|| crate::EdgelinkError::invalid_operation("websocket in has no engine"))?;
+            flow.engine().ok_or_else(|| crate::N2linkError::invalid_operation("websocket in has no engine"))?;
         let node = WebSocketInNode {
             base: state,
             config: ws_config,
@@ -100,7 +100,7 @@ impl WebSocketInNode {
             .config
             .url
             .as_ref()
-            .ok_or_else(|| crate::EdgelinkError::InvalidOperation("WebSocket URL not specified".to_string()))?;
+            .ok_or_else(|| crate::N2linkError::InvalidOperation("WebSocket URL not specified".to_string()))?;
 
         log::debug!("WebSocket in: Connecting");
 
@@ -108,7 +108,7 @@ impl WebSocketInNode {
             .egress
             .connect_websocket(url)
             .await
-            .map_err(|_| crate::EdgelinkError::invalid_operation("WebSocket in connection failed"))?;
+            .map_err(|_| crate::N2linkError::invalid_operation("WebSocket in connection failed"))?;
 
         log::info!("WebSocket in: Connected");
         Ok(ws_stream)
@@ -209,7 +209,7 @@ impl WebSocketInNode {
                                 log::debug!("WebSocket in: Received raw frame");
                             }
                             Some(Err(e)) => {
-                                return Err(crate::EdgelinkError::InvalidOperation(format!("WebSocket error: {e}")));
+                                return Err(crate::N2linkError::InvalidOperation(format!("WebSocket error: {e}")));
                             }
                             None => {
                                 log::info!("WebSocket in: Connection stream ended");

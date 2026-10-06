@@ -6,12 +6,12 @@ use serde::Deserialize;
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::model::{MsgHandle, Variant};
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 use super::schema::CompiledSchema;
 
@@ -61,7 +61,7 @@ impl AiStructuredNode {
             "" | "node" => SchemaSource::Node,
             "msg" => SchemaSource::Msg,
             other => {
-                return Err(EdgelinkError::invalid_operation(&format!(
+                return Err(N2linkError::invalid_operation(&format!(
                     "ai-structured schemaSource '{other}' is not supported"
                 )));
             }
@@ -76,7 +76,7 @@ impl AiStructuredNode {
                     && raw.schema != Value::String(String::new())
                     && raw.schema != json_empty_object()
                 {
-                    return Err(EdgelinkError::invalid_operation(
+                    return Err(N2linkError::invalid_operation(
                         "ai-structured schema must be empty when schemaSource is msg",
                     ));
                 }
@@ -94,14 +94,12 @@ impl AiStructuredNode {
             let guard = msg.read().await;
             let input = guard
                 .get(&self.config.property)
-                .ok_or_else(|| EdgelinkError::invalid_operation("ai-structured input is empty"))?;
+                .ok_or_else(|| N2linkError::invalid_operation("ai-structured input is empty"))?;
             let parsed = parse_input(input)?;
             match &self.config.schema_source {
                 SchemaSource::Node => {
                     if guard.get("schema").is_some() {
-                        return Err(EdgelinkError::invalid_operation(
-                            "ai-structured refuses mixed node and msg schema",
-                        ));
+                        return Err(N2linkError::invalid_operation("ai-structured refuses mixed node and msg schema"));
                     }
                     self.config.schema.as_ref().expect("node schema").validate(&parsed)?;
                     (parsed, false)
@@ -109,7 +107,7 @@ impl AiStructuredNode {
                 SchemaSource::Msg => {
                     let raw = guard
                         .get("schema")
-                        .ok_or_else(|| EdgelinkError::invalid_operation("ai-structured msg.schema is required"))?;
+                        .ok_or_else(|| N2linkError::invalid_operation("ai-structured msg.schema is required"))?;
                     let object = variant_to_json(raw)?;
                     CompiledSchema::compile(&object)?.validate(&parsed)?;
                     (parsed, true)
@@ -137,31 +135,31 @@ fn json_empty_object() -> Value {
 
 fn compile_field(schema: &Value) -> crate::Result<CompiledSchema> {
     match schema {
-        Value::Null => Err(EdgelinkError::invalid_operation("ai-structured schema is required")),
-        Value::String(s) if s.is_empty() => Err(EdgelinkError::invalid_operation("ai-structured schema is required")),
+        Value::Null => Err(N2linkError::invalid_operation("ai-structured schema is required")),
+        Value::String(s) if s.is_empty() => Err(N2linkError::invalid_operation("ai-structured schema is required")),
         Value::String(text) => {
             let parsed: Value = serde_json::from_str(text)
-                .map_err(|err| EdgelinkError::invalid_operation(&format!("ai-structured schema is not JSON: {err}")))?;
+                .map_err(|err| N2linkError::invalid_operation(&format!("ai-structured schema is not JSON: {err}")))?;
             CompiledSchema::compile(&parsed)
         }
         Value::Object(_) => CompiledSchema::compile(schema),
-        _ => Err(EdgelinkError::invalid_operation("ai-structured schema must be an object or JSON string")),
+        _ => Err(N2linkError::invalid_operation("ai-structured schema must be an object or JSON string")),
     }
 }
 
 fn parse_input(value: &Variant) -> crate::Result<Value> {
     if let Some(text) = value.as_str() {
         return serde_json::from_str(text)
-            .map_err(|err| EdgelinkError::invalid_operation(&format!("ai-structured payload is not JSON: {err}")));
+            .map_err(|err| N2linkError::invalid_operation(&format!("ai-structured payload is not JSON: {err}")));
     }
     if value.as_object().is_some() || value.as_array().is_some() {
         return variant_to_json(value);
     }
-    Err(EdgelinkError::invalid_operation("ai-structured input must be a JSON string, object, or array"))
+    Err(N2linkError::invalid_operation("ai-structured input must be a JSON string, object, or array"))
 }
 
 fn variant_to_json(value: &Variant) -> crate::Result<Value> {
-    serde_json::to_value(value).map_err(|err| EdgelinkError::invalid_operation(&err.to_string()))
+    serde_json::to_value(value).map_err(|err| N2linkError::invalid_operation(&err.to_string()))
 }
 
 #[async_trait::async_trait]

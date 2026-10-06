@@ -18,7 +18,7 @@ use crate::runtime::debug_channel::create_debug_message;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Deserialize, Debug, Clone)]
 struct DebugNodeConfig {

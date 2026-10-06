@@ -14,7 +14,7 @@ use std::time::Duration;
 use serde::Deserialize;
 use tokio_util::sync::CancellationToken;
 
-use crate::EdgelinkError;
+use crate::N2linkError;
 use crate::runtime::engine::Engine;
 use crate::runtime::model::{ContextHolder, FlowsElement, Variant};
 use crate::runtime::nodes::{StatusFill, StatusObject, StatusShape};
@@ -102,7 +102,7 @@ pub fn configured_period(cfg: Option<&config::Config>) -> crate::Result<u64> {
         return Ok(0);
     }
     if period_ms < MIN_SCAN_PERIOD_MS {
-        return Err(EdgelinkError::InvalidOperation(format!(
+        return Err(N2linkError::InvalidOperation(format!(
             "runtime.scan.period_ms {period_ms} is below the {MIN_SCAN_PERIOD_MS} ms scheduling floor"
         )));
     }
@@ -227,7 +227,7 @@ mod tests {
         let bad = config_with_period(9);
         let err = configured_period(Some(&bad)).unwrap_err();
         let text = err.to_string();
-        assert!(matches!(err, EdgelinkError::InvalidOperation(_)), "{text}");
+        assert!(matches!(err, N2linkError::InvalidOperation(_)), "{text}");
         assert!(text.contains("9"), "{text}");
         assert!(text.contains("10"), "{text}");
         assert!(text.contains("scheduling floor"), "{text}");

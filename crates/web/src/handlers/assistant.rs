@@ -10,11 +10,11 @@ use std::time::Duration;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
-use edgelink_core::runtime::engine::Engine;
-use edgelink_core::runtime::flow_credentials;
-use edgelink_core::runtime::model::ElementId;
-use edgelink_core::runtime::nodes::{NODE_METADATA_VERSION, NodeKind};
-use edgelink_core::runtime::registry::Registry;
+use n2link_core::runtime::engine::Engine;
+use n2link_core::runtime::flow_credentials;
+use n2link_core::runtime::model::ElementId;
+use n2link_core::runtime::nodes::{NODE_METADATA_VERSION, NodeKind};
+use n2link_core::runtime::registry::Registry;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
@@ -269,7 +269,7 @@ fn parse_model_draft(text: &str) -> Result<ModelDraft, String> {
 }
 
 /// A built-in type, or an active WASM plugin type (they count as registered for drafts).
-fn lookup(registry: &dyn Registry, type_name: &str) -> Option<&'static edgelink_core::runtime::nodes::MetaNode> {
+fn lookup(registry: &dyn Registry, type_name: &str) -> Option<&'static n2link_core::runtime::nodes::MetaNode> {
     let found = registry.get(type_name);
     #[cfg(feature = "nodes_wasm")]
     let found = found.or_else(|| registry.wasm().and_then(|plugins| plugins.meta(type_name)));
@@ -283,7 +283,7 @@ fn catalog_json(registry: &dyn Registry, flows: &[Value]) -> Value {
         let hints = registry.hints(meta.type_());
         let declared: Vec<(&str, &str)> =
             hints.map(|h| h.outputs.iter().map(|p| (p.name, p.payload)).collect()).unwrap_or_default();
-        let (input_payload, output_ports) = edgelink_core::runtime::nodes::catalog_ports_json(
+        let (input_payload, output_ports) = n2link_core::runtime::nodes::catalog_ports_json(
             ports.inputs,
             ports.outputs,
             ports.dynamic_outputs,
@@ -441,7 +441,7 @@ fn materialize_draft(
 
 fn fill_config_refs(
     config: &mut Map<String, Value>,
-    hints: Option<&edgelink_core::runtime::nodes::NodeHints>,
+    hints: Option<&n2link_core::runtime::nodes::NodeHints>,
     flows: &[Value],
     reference: &str,
 ) -> Result<(), String> {
@@ -514,7 +514,7 @@ fn sensitive_key(key: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use edgelink_core::runtime::registry::RegistryBuilder;
+    use n2link_core::runtime::registry::RegistryBuilder;
 
     #[test]
     fn a_fenced_model_draft_is_parsed() {
@@ -712,7 +712,7 @@ mod tests {
             }
             for port in ports {
                 let payload = port["payload"].as_str().unwrap();
-                assert!(edgelink_core::runtime::nodes::valid_payload_type(payload), "{}: {payload}", entry["type"]);
+                assert!(n2link_core::runtime::nodes::valid_payload_type(payload), "{}: {payload}", entry["type"]);
             }
         }
     }

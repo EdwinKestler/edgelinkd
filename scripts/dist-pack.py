@@ -11,10 +11,10 @@ from pathlib import Path
 import zipfile
 
 EXCLUDE_PREFIXES = [
-    "libedgelink_pymod.so",
-    "libedgelink_macro.so",
-    "edgelink_pymod.dll",
-    "edgelink_macro.dll"
+    "libn2link_pymod.so",
+    "libn2link_macro.so",
+    "n2link_pymod.dll",
+    "n2link_macro.dll"
 ]
 
 try:

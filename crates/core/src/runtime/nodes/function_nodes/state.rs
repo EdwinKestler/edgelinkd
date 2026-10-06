@@ -20,7 +20,7 @@ use tokio::sync::Mutex;
 use crate::runtime::flow::Flow;
 use crate::runtime::model::json::RedFlowNodeConfig;
 use crate::runtime::nodes::*;
-use edgelink_macro::*;
+use n2link_macro::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CondSource {
@@ -136,19 +136,19 @@ where
 
 fn compile(raw: RawConfig) -> crate::Result<StateNodeConfig> {
     if raw.states.is_empty() {
-        return Err(EdgelinkError::InvalidOperation("state node has no states".to_owned()));
+        return Err(N2linkError::InvalidOperation("state node has no states".to_owned()));
     }
     let mut index = HashMap::with_capacity(raw.states.len());
     for (slot, state) in raw.states.iter().enumerate() {
         if state.name.is_empty() {
-            return Err(EdgelinkError::InvalidOperation("a state has no name".to_owned()));
+            return Err(N2linkError::InvalidOperation("a state has no name".to_owned()));
         }
         if index.insert(state.name.clone(), slot).is_some() {
-            return Err(EdgelinkError::InvalidOperation(format!("state '{}' is listed more than once", state.name)));
+            return Err(N2linkError::InvalidOperation(format!("state '{}' is listed more than once", state.name)));
         }
     }
     if !index.contains_key(&raw.initial) {
-        return Err(EdgelinkError::InvalidOperation(format!("initial state '{}' is not in the table", raw.initial)));
+        return Err(N2linkError::InvalidOperation(format!("initial state '{}' is not in the table", raw.initial)));
     }
 
     let mut states = Vec::with_capacity(raw.states.len());
@@ -156,7 +156,7 @@ fn compile(raw: RawConfig) -> crate::Result<StateNodeConfig> {
         let mut on = Vec::with_capacity(state.on.len());
         for edge in state.on {
             if !index.contains_key(&edge.to) {
-                return Err(EdgelinkError::InvalidOperation(format!(
+                return Err(N2linkError::InvalidOperation(format!(
                     "state '{}' steps to '{}', which is not in the table",
                     state.name, edge.to
                 )));
@@ -175,7 +175,7 @@ fn compile(raw: RawConfig) -> crate::Result<StateNodeConfig> {
 
 fn compile_condition(raw: &RawCondition) -> crate::Result<Condition> {
     if raw.property.is_empty() {
-        return Err(EdgelinkError::InvalidOperation("a condition has no property".to_owned()));
+        return Err(N2linkError::InvalidOperation("a condition has no property".to_owned()));
     }
     let source = match raw.kind.as_str() {
         "msg" => CondSource::Msg,
@@ -183,14 +183,14 @@ fn compile_condition(raw: &RawCondition) -> crate::Result<Condition> {
         "global" => CondSource::Global,
         "node" => CondSource::Node,
         other => {
-            return Err(EdgelinkError::NotSupported(format!("condition type '{other}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("condition type '{other}' is not supported")));
         }
     };
     let op = match raw.op.as_str() {
         "eq" => Cmp::Eq,
         "neq" => Cmp::Neq,
         other => {
-            return Err(EdgelinkError::NotSupported(format!("condition operator '{other}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("condition operator '{other}' is not supported")));
         }
     };
     Ok(Condition { source, property: raw.property.clone(), op, value: raw.value.clone() })
@@ -198,14 +198,14 @@ fn compile_condition(raw: &RawCondition) -> crate::Result<Condition> {
 
 fn compile_action(raw: &RawAction) -> crate::Result<Action> {
     if raw.key.is_empty() {
-        return Err(EdgelinkError::InvalidOperation("an entry action has no key".to_owned()));
+        return Err(N2linkError::InvalidOperation("an entry action has no key".to_owned()));
     }
     let scope = match raw.scope.as_str() {
         "flow" => ActionScope::Flow,
         "global" => ActionScope::Global,
         "node" => ActionScope::Node,
         other => {
-            return Err(EdgelinkError::NotSupported(format!("action scope '{other}' is not supported")));
+            return Err(N2linkError::NotSupported(format!("action scope '{other}' is not supported")));
         }
     };
     Ok(Action { scope, key: raw.key.clone(), value: raw.value.clone() })
@@ -254,11 +254,11 @@ impl StateNode {
             ActionScope::Flow => self
                 .flow()
                 .map(|flow| flow.context().clone())
-                .ok_or_else(|| EdgelinkError::InvalidOperation("state node has no flow context".to_owned())),
+                .ok_or_else(|| N2linkError::InvalidOperation("state node has no flow context".to_owned())),
             ActionScope::Global => self
                 .engine()
                 .map(|engine| engine.context().clone())
-                .ok_or_else(|| EdgelinkError::InvalidOperation("state node has no global context".to_owned())),
+                .ok_or_else(|| N2linkError::InvalidOperation("state node has no global context".to_owned())),
         }
     }
 
@@ -276,7 +276,7 @@ impl StateNode {
     async fn enter(&self, state: &str, cancel: CancellationToken) -> crate::Result<()> {
         let def = self
             .state_def(state)
-            .ok_or_else(|| EdgelinkError::InvalidOperation(format!("state '{state}' is not in the table")))?;
+            .ok_or_else(|| N2linkError::InvalidOperation(format!("state '{state}' is not in the table")))?;
         for action in &def.entry {
             let ctx = self.context_for(action.scope)?;
             ctx.set_one(None, &action.key, Some(action.value.clone()), &[]).await?;

@@ -77,9 +77,9 @@ impl ElementId {
 
     pub fn combine(lhs: &ElementId, rhs: &ElementId) -> crate::Result<Self> {
         if rhs.is_empty() {
-            Err(crate::EdgelinkError::BadArgument("rhs"))
+            Err(crate::N2linkError::BadArgument("rhs"))
         } else if lhs.is_empty() {
-            Err(crate::EdgelinkError::BadArgument("lhs"))
+            Err(crate::N2linkError::BadArgument("lhs"))
         } else {
             Ok(*lhs ^ *rhs)
         }

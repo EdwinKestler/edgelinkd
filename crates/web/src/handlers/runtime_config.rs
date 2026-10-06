@@ -10,8 +10,8 @@ use std::sync::Arc;
 use axum::extract::Extension;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json, Response};
-use edgelink_core::runtime::egress::{EgressConfig, EgressPolicy};
-use edgelink_core::utils::atomic_file::{self, FileReplace};
+use n2link_core::runtime::egress::{EgressConfig, EgressPolicy};
+use n2link_core::utils::atomic_file::{self, FileReplace};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use toml_edit::DocumentMut;
@@ -327,9 +327,9 @@ mod tests {
     use crate::handlers::fleet::Fleet;
     use crate::models::RedSystemSettings;
     use axum::body::to_bytes;
-    use edgelink_core::runtime::egress::{EgressMode, EgressRule, NetworkProtocol};
-    use edgelink_core::runtime::engine::Engine;
-    use edgelink_core::runtime::registry::RegistryBuilder;
+    use n2link_core::runtime::egress::{EgressMode, EgressRule, NetworkProtocol};
+    use n2link_core::runtime::engine::Engine;
+    use n2link_core::runtime::registry::RegistryBuilder;
     use serde_json::json;
 
     struct TempDir(PathBuf);
@@ -365,7 +365,7 @@ mod tests {
             Fleet::disabled(),
             WebRuntimeServices {
                 egress,
-                credentials: edgelink_core::runtime::credential_storage::CredentialStore::default(),
+                credentials: n2link_core::runtime::credential_storage::CredentialStore::default(),
                 protection: crate::protection::ApiProtection::default(),
                 ..Default::default()
             },

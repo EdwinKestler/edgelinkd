@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-wasm-guest"
+name = "n2link-wasm-guest"
 version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
@@ -7,8 +7,8 @@ description = "Guest SDK for EdgeLinkd WASM plugins"
 publish = false
 
 [lib]
-name = "edgelink_wasm_guest"
+name = "n2link_wasm_guest"
 crate-type = ["rlib"]
 
 [dependencies]
-edgelink-eve = { path = "../eve" }
+n2link-eve = { path = "../eve" }

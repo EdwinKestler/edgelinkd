@@ -72,8 +72,8 @@ pub async fn read_sidecar_with(store: &CredentialStore, flows_file: &Path) -> Re
 pub async fn flows_value_with_credentials(flows_file: &Path, cfg: Option<&config::Config>) -> crate::Result<Value> {
     let json_str = tokio::fs::read_to_string(flows_file).await?;
     let mut json: Value = serde_json::from_str(&json_str)?;
-    let store = CredentialStore::from_config(cfg).map_err(crate::EdgelinkError::BadFlowsJson)?;
-    let stored = store.read_sidecar(flows_file).await.map_err(crate::EdgelinkError::BadFlowsJson)?;
+    let store = CredentialStore::from_config(cfg).map_err(crate::N2linkError::BadFlowsJson)?;
+    let stored = store.read_sidecar(flows_file).await.map_err(crate::N2linkError::BadFlowsJson)?;
     if let Some(flows) = json.as_array_mut() {
         merge_into(flows, &stored);
     }

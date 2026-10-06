@@ -1,7 +1,7 @@
 //! Example plugin: upper-case `msg.payload`. Build with
 //! `cargo build --release --target wasm32-unknown-unknown` (see `scripts/wasm-examples.sh`).
 
-use edgelink_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Msg, Node, Shape};
+use n2link_wasm_guest::{export_node, manifest, Ctx, EveValue, Fill, Msg, Node, Shape};
 
 manifest!("../plugin.toml");
 

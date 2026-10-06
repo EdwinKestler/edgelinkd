@@ -1,5 +1,5 @@
-use edgelink_core::runtime::nodes::MetaNode;
-use edgelink_core::runtime::registry::{RegistryBuilder, RegistryHandle};
+use n2link_core::runtime::nodes::MetaNode;
+use n2link_core::runtime::registry::{RegistryBuilder, RegistryHandle};
 use std::collections::BTreeMap;
 
 // Type aliases to simplify complex nested types
@@ -8,14 +8,14 @@ type NodeList<'a> = Vec<NodeEntry<'a>>;
 type RedNameMap<'a> = BTreeMap<&'a str, NodeList<'a>>;
 type ModuleMap<'a> = BTreeMap<&'a str, RedNameMap<'a>>;
 
-pub fn create_registry() -> edgelink_core::Result<RegistryHandle> {
+pub fn create_registry() -> n2link_core::Result<RegistryHandle> {
     log::info!("Discovering all nodes...");
-    // edgelink_core::runtime::registry::collect_nodes();
+    // n2link_core::runtime::registry::collect_nodes();
     log::info!("Loading node registry...");
     RegistryBuilder::default().build()
 }
 
-pub async fn list_available_nodes() -> edgelink_core::Result<()> {
+pub async fn list_available_nodes() -> n2link_core::Result<()> {
     // Create a registry to discover all nodes
     let registry = RegistryBuilder::default().build()?;
     let all_nodes = registry.all();

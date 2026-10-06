@@ -7,9 +7,9 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 
-use edgelink_core::runtime::credential_storage::CredentialStore;
-use edgelink_core::runtime::egress::EgressPolicyHandle;
-use edgelink_core::runtime::registry::RegistryHandle;
+use n2link_core::runtime::credential_storage::CredentialStore;
+use n2link_core::runtime::egress::EgressPolicyHandle;
+use n2link_core::runtime::registry::RegistryHandle;
 
 use crate::api::create_all_routes;
 use crate::handlers::auth::AdminAuth;
@@ -55,7 +55,7 @@ impl WebServer {
             .unwrap_or_else(|err| panic!("credential storage configuration is not valid: {err}"));
         let protection = ApiProtection::load(Some(cfg))
             .unwrap_or_else(|err| panic!("api protection configuration is not valid: {err}"));
-        let history = edgelink_core::runtime::history::HistoryHandle::from_config(Some(cfg))
+        let history = n2link_core::runtime::history::HistoryHandle::from_config(Some(cfg))
             .unwrap_or_else(|err| panic!("history configuration is not valid: {err}"));
         let web_state = WebState::assemble_with_egress(
             args,
@@ -96,7 +96,7 @@ impl WebServer {
     #[cfg(feature = "nodes_wasm")]
     pub async fn with_plugin_store(
         self,
-        store: Option<std::sync::Arc<edgelink_core::runtime::wasm::PluginStore>>,
+        store: Option<std::sync::Arc<n2link_core::runtime::wasm::PluginStore>>,
     ) -> Self {
         if let Some(store) = store {
             self.state.set_plugin_store(store).await;
@@ -124,7 +124,7 @@ impl WebServer {
 
     pub async fn with_engine(
         self,
-        engine: std::sync::Arc<tokio::sync::RwLock<edgelink_core::runtime::engine::Engine>>,
+        engine: std::sync::Arc<tokio::sync::RwLock<n2link_core::runtime::engine::Engine>>,
         cancel_token: CancellationToken,
     ) -> Self {
         // Get the internal reference of Engine
@@ -157,7 +157,7 @@ impl WebServer {
             .layer(axum::middleware::from_fn(protect_static_request))
             .layer(Extension(self.state.clone()))
             .layer(Extension(
-                self.state.clone() as Arc<dyn edgelink_core::web::web_state_trait::WebStateCore + Send + Sync>
+                self.state.clone() as Arc<dyn n2link_core::web::web_state_trait::WebStateCore + Send + Sync>
             ))
     }
 
@@ -166,7 +166,7 @@ impl WebServer {
         self,
         addr: std::net::SocketAddr,
         cancel_token: CancellationToken,
-    ) -> edgelink_core::Result<tokio::task::JoinHandle<()>> {
+    ) -> n2link_core::Result<tokio::task::JoinHandle<()>> {
         let listener = TcpListener::bind(&addr).await?;
         let bound = listener.local_addr()?;
         self.state.record_listen(bound).await;
