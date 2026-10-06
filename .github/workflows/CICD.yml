@@ -410,9 +410,11 @@ jobs:
           done
           cargo clippy -p n2link-wasm-guest --target wasm32-unknown-unknown -- -D warnings
       - name: Plugin host tests (core and web, nodes_wasm)
+        # Only the plugin handler tests run for web here: the editor-HTML catalog test needs the
+        # app's ui_static build, which the Linux job provides and this job does not.
         run: |
           cargo test -p n2link-core --features nodes_wasm --lib
-          cargo test -p n2link-web --features nodes_wasm --lib
+          cargo test -p n2link-web --features nodes_wasm --lib wasm_plugins
       - name: Build the example plugins and install them end to end
         run: scripts/wasm-examples.sh --e2e
 

@@ -1392,10 +1392,14 @@ mod tests {
 
         let handle = HistoryHandle::init_with_config(config, Some(temp_dir.clone())).unwrap();
 
-        // Give the writer thread a moment to initialize the schema
-        std::thread::sleep(Duration::from_millis(50));
-
-        let health = handle.health();
+        // The writer thread initialises the schema in the background; a slow CI runner can take
+        // longer than a fixed sleep, so wait (bounded) for it to leave "starting".
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        let mut health = handle.health();
+        while health.state == "starting" && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
+            health = handle.health();
+        }
         assert_eq!(health.state, "ok");
         assert_eq!(health.schema_version, 1);
 
