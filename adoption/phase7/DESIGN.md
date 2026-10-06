@@ -771,11 +771,16 @@ Where the implementation differs from the text above:
 
 ## Files
 
-New: `crates/eve/**`, `crates/wasm-guest/**`, `crates/core/src/runtime/wasm/**`,
-`crates/core/src/runtime/nodes/wasm_nodes/**`, `crates/web/src/handlers/wasm_plugins.rs`,
-`src/commands/plugin.rs`, `docs/operations/wasm-plugins.md`, `adoption/phase7/REPORT.md`.
+New (as built): `crates/eve/**`, `crates/wasm-guest/**` (SDK, README, `examples/{uppercase,
+csvparse,tofsense}`), `crates/core/src/runtime/wasm/**` (the plugin node is
+`wasm/plugin_node.rs`, not a `nodes/wasm_nodes` module), `crates/web/src/handlers/wasm_plugins.rs`,
+`src/commands/plugin.rs`, `scripts/wasm-examples.sh`, `scripts/wasm-measure.sh`,
+`docs/operations/wasm-plugins.md`, `docs/development/wasm-plugins.md`,
+`adoption/phase7/{REPORT.md, g2/}`.
 
 Changed: root/core/web `Cargo.toml` (feature, optional deps), `Cargo.lock` (by cargo),
+`runtime/{ingress.rs, history.rs}`, `crates/web/src/handlers/{auth.rs, deploy.rs, history.rs}`,
+`src/{app.rs, runner.rs}`, `docs/{README.md, security/ingress-protection.md}`,
 `runtime/nodes/mod.rs`, `runtime/registry.rs`, `runtime/flow.rs`, `runtime/engine.rs`,
 `crates/web/src/{api.rs, protection.rs, handlers/nodes.rs, handlers/assistant.rs,
 handlers/web_state.rs, handlers/status.rs}`, `src/{cliargs.rs, defaults.rs}`,

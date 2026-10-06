@@ -138,6 +138,9 @@ missing `it()` for an out-of-scope feature as a decision to record, not work to 
 | `crates/core/src/runtime/nodes/<category>/` | node implementations by category |
 | `crates/core/src/runtime/model/` | `Msg`, `MsgHandle`, `Variant`, `ElementId`, JSON deserialisers |
 | `crates/core/src/runtime/context/` | context stores (memory, local fs) |
+| `crates/core/src/runtime/wasm/` | optional WASM plugin host (`nodes_wasm`): settings, manifest, section walker, Wasmi execution, plugin node, store |
+| `crates/web/src/handlers/wasm_plugins.rs` | `/wasm/plugins` admin API, generated editor/`/nodes`/Copilot entries |
+| `crates/wasm-guest/`, `crates/eve/` | Rust guest SDK and examples (`examples/*`, standalone crates), EVE/1 message codec |
 | `tests/__init__.py` | Python harness: `run_single_node_with_msgs_ntimes`, `run_flow_with_msgs_ntimes`, ... |
 | `scripts/specs_diff.json` | registry mapping each ported node to its upstream spec file |
 

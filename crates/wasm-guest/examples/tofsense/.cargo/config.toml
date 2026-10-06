@@ -1,0 +1,4 @@
+# A 64 KiB stack keeps the module's initial memory within the default 512 KiB plugin cap
+# (`[runtime.wasm] default_memory_pages = 8`). The Rust default is 1 MiB.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=-zstack-size=65536"]

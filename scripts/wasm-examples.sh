@@ -17,7 +17,7 @@ fi
 
 mkdir -p "$OUT"
 cargo test -q --manifest-path "$ROOT/crates/wasm-guest/Cargo.toml"
-for example in uppercase csvparse; do
+for example in uppercase csvparse tofsense; do
   dir="$ROOT/crates/wasm-guest/examples/$example"
   # Host-side logic tests (the ABI exports compile only for wasm32).
   cargo test -q --manifest-path "$dir/Cargo.toml"

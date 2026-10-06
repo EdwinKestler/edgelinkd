@@ -193,6 +193,17 @@ queue_timeout_ms = 500
 request_timeout_ms = 60000
 max_response_bytes = 4194304
 
+[api_protection.plugins]
+mode = "enforce"
+max_body_bytes = 1048576
+max_header_bytes = 32768
+max_headers = 128
+requests_per_minute = 6
+max_concurrency = 1
+queue_timeout_ms = 500
+request_timeout_ms = 30000
+max_response_bytes = 65536
+
 [api_protection.static_assets]
 mode = "enforce"
 max_body_bytes = 0

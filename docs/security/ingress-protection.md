@@ -16,6 +16,7 @@ others.
 | `webhook` | Standalone listeners owned by `http in` nodes |
 | `copilot` | `/assistant/*` |
 | `fleet` | `/fleet/*` |
+| `plugins` | `/wasm/*` (WASM plugin admin API; only routed with `nodes_wasm`) |
 | `static_assets` | Editor HTML, JavaScript, CSS, icons, locales, and debug-view assets |
 
 Authentication and authorization run before an API request body is collected or a handler is
@@ -42,6 +43,8 @@ class-specific legacy fallback. Do not disable all classes to solve one compatib
 The default limits are documented in the generated `edgelinkd.toml`. The larger defaults are
 intentional for Node-RED flow deploys and editor assets. Flow Copilot has only two concurrent
 requests and 30 requests per minute because each accepted request may start paid remote work.
+WASM plugin administration (`plugins`) accepts one request at a time, six per minute, bodies up to
+1 MiB (one package) and responses up to 64 KiB.
 
 ## Client addresses and proxies
 

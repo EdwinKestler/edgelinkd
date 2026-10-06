@@ -1,0 +1,61 @@
+[plugin]
+id = "nooploop/tofsense"
+version = "1.0.0"
+abi = 1
+license = "Apache-2.0"
+description = "Decodes Nooploop TOFSense UART frames (NLink_TOFSense_Frame0) and builds query frames"
+
+[node]
+label = "TOFSense"
+category = "plugins"
+color = "#A6BBCF"
+icon = "function.svg"
+inputs = 1
+outputs = 2
+output_labels = ["distance", "query frame"]
+help = """Decodes Nooploop TOFSense / TOFSense P / TOFSense PS laser ranging frames (user manual V2.5, section 8).
+
+Input:
+- msg.payload as bytes from the sensor's UART (a Buffer, or an array of byte values as the tcp in and tcp request nodes produce). Frames may be split across messages or several may arrive at once; partial frames are kept until the rest arrives.
+- msg.query = <module id 0-255> to build a NLink_TOFSense_Read_Frame0 for UART query mode.
+
+Output 1, one message per valid frame: msg.payload = distance (metres or millimetres), msg.tof = {id, distance, unit, status, signal, systemTimeMs, valid}.
+Output 2: msg.payload = the 8-byte query frame as an array of byte values, ready for a tcp request or tcp out node.
+
+A frame is valid when its checksum matches, dis_status is 0 and the signal strength reaches the configured minimum. The plugin has no access to the serial port itself: connect the UART through a built-in node (for example ser2net or socat exposing the port over TCP, then tcp in)."""
+
+[[node.config]]
+name = "unit"
+kind = "enum"
+label = "Distance unit"
+values = ["m", "mm"]
+default = "m"
+
+[[node.config]]
+name = "minSignal"
+kind = "number"
+label = "Minimum signal strength"
+integer = true
+min = 0.0
+max = 65535.0
+default = 0
+
+[[node.config]]
+name = "validOnly"
+kind = "boolean"
+label = "Only output valid readings"
+default = false
+
+[[node.config]]
+name = "sensorId"
+kind = "number"
+label = "Only this module id (-1 = any)"
+integer = true
+min = -1.0
+max = 255.0
+default = -1
+
+# Query mode: build the read frame for module 0 (manual table 2).
+[[selftest]]
+input = { query = 0 }
+expect_outputs = [0, 1]

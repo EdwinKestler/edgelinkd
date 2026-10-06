@@ -1,7 +1,8 @@
 # edgelink-wasm-guest
 
 Guest SDK for EdgeLinkd WASM plugins (ABI `edgelink:node/v1`). Experimental; the host is the
-optional `nodes_wasm` feature. Operator guide: `docs/operations/wasm-plugins.md`.
+optional `nodes_wasm` feature. Full author manual (manifest schema, ABI, encoding, versioning):
+`docs/development/wasm-plugins.md`. Operator manual: `docs/operations/wasm-plugins.md`.
 
 ## A plugin in four files
 
@@ -74,5 +75,6 @@ examples start in 2–3 pages, well inside the 512 KiB default; without it a Rus
 
 Off `wasm32` the host imports do not exist and `Ctx` records outputs, logs and status in
 `ctx.record`, so plugin logic is tested with a plain `cargo test`. See `examples/uppercase` and
-`examples/csvparse` (configurable delimiter and header row); `scripts/wasm-examples.sh --e2e`
+`examples/csvparse` (configurable delimiter and header row) and `examples/tofsense` (a UART
+laser-ranging sensor protocol: stream reassembly, checksums, two outputs, query frames); `scripts/wasm-examples.sh --e2e`
 builds both, stages them (manifest + self-tests) and runs them in a flow.

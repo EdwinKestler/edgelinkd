@@ -1,28 +1,55 @@
-# WASM plugins (experimental prototype)
+# WASM plugins (experimental)
 
 Optional third-party flow nodes compiled to `wasm32-unknown-unknown` and run by the Wasmi
-interpreter. Design: `adoption/phase7/ADR-0002-wasm-node-sdk.md` and
-`adoption/phase7/DESIGN.md`. Status: `adoption/phase7/REPORT.md`.
+interpreter inside EdgeLinkd. This is the operator manual: enabling, installing, upgrading,
+rolling back, observing and troubleshooting plugins. Writing plugins:
+[`docs/development/wasm-plugins.md`](../development/wasm-plugins.md). Design and measurements:
+[`adoption/phase7/`](../../adoption/phase7/).
 
-## What works today
+## When to use plugins
 
-- The default binary does **not** include the interpreter. Build with `--features nodes_wasm`.
-- Even then, plugins are off until the home overlay sets:
+Use a plugin for message logic you want to add or update without rebuilding EdgeLinkd: device
+protocol decoders, parsers, filters, unit conversion, vendor algorithms shipped as binaries. A
+plugin cannot do I/O. Devices, brokers and services are reached by the built-in nodes, and the
+plugin processes what they carry (see [Connecting devices](#connecting-devices)). For a few lines
+of ad-hoc logic, the `function` node is simpler.
 
-  ```toml
-  [runtime.wasm]
-  enabled = true
-  ```
+## Enabling
 
-- Plugin types are `wasm-<publisher>-<name>`. A flow that names one fails deploy with
-  `NotSupported` in every build — never the silent `unknown` node — and the message says why:
-  not compiled, disabled by configuration, or plugin not active.
+1. Build with the host compiled in (the default binary does **not** include it):
+
+   ```sh
+   cargo build --release --features nodes_wasm
+   ```
+
+   It adds about 1.2–1.4 MiB to the binary and about 50–120 KiB of private memory while no
+   plugin node runs (measurements: `adoption/phase7/REPORT.md`).
+
+2. Turn plugins on in the home overlay (`edgelinkd.toml` or `edgelinkd.<env>.toml`):
+
+   ```toml
+   [runtime.wasm]
+   enabled = true
+   ```
+
+   Without this, nothing under the plugin directory is read and no interpreter is created.
+
+Plugin types are `wasm-<publisher>-<name>`. A flow that names one fails deploy with
+`NotSupported` in every build — never the silent `unknown` node — and the message says why: not
+compiled, disabled by configuration, or plugin not active.
+
+## Security model
+
 - Guests may import only `edgelink:node/v1` `{emit, log, status, fail}`. No WASI, filesystem,
-  network, clock, randomness or credentials. Guests export `memory`, `el_abi_version`,
-  `el_alloc` and `el_on_input`, and optionally `el_init` (receives the node configuration) and
-  `el_close` (runs when the node stops). Missing or mistyped exports fail `stage`.
-- Each message runs under fuel, a wall-clock deadline, a linear-memory cap and a global
-  concurrency limit; repeated faults put the node in a failed state until redeploy.
+  network, clock, randomness, environment, credentials, context or deploy access. Any other
+  import, an imported memory, a start function, SIMD or threads fail `stage`.
+- Every message runs under fuel, a wall-clock deadline, a linear-memory cap and a global
+  concurrency limit. A fault (trap, limit, bad output) discards the instance; three faults in 60 s
+  put the node in a red "plugin failed" state until the next deploy.
+- Packages are identified by SHA-256 and checked again on every start; a tampered or missing
+  file disables only that plugin. Signatures are not implemented: install only packages you
+  trust, from people you trust. Plugin output is data — treat it like any other flow input.
+- Only administrators can list, stage, activate, roll back or remove plugins.
 
 ## Node configuration
 
@@ -136,12 +163,65 @@ and a generation whose file is missing or fails its digest is left out and logge
 use it fail to deploy naming the plugin, other plugins still run. With `enabled = false` the
 directory is not opened.
 
-## What does not exist yet
+## Connecting devices
 
-- Guest SDK for Rust only (`crates/wasm-guest`, examples `uppercase` and `csvparse`); no
-  component model, no other guest languages.
+A plugin never opens a port. Put a built-in node in front of it:
+
+| Device link | Built-in node | Plugin input |
+|---|---|---|
+| UART / RS-485 | expose the port over TCP (`socat`, `ser2net`), then `tcp in` (client, stream of Buffer) or `tcp request` | arrays of byte values |
+| MQTT, LoRaWAN network server | `mqtt in` | string, Buffer or JSON |
+| Modbus TCP | `modbus` | register values |
+| HTTP device APIs | `http request` | body |
+
+Example, a Nooploop TOFSense laser sensor on a USB-to-TTL adapter (full walkthrough in
+`crates/wasm-guest/examples/tofsense/README.md`):
+
+```sh
+socat TCP-LISTEN:7000,reuseaddr FILE:/dev/ttyUSB0,b921600,raw,echo=0
+```
+
+`tcp in` (client `127.0.0.1:7000`, stream, Buffer) → `TOFSense` plugin → your flow.
+
+EdgeLinkd rejects a wire loop at deploy (`Referenced node not found`). For request/response
+devices, send with one plugin node and decode the reply with a second one.
+
+## Observing
+
+| Where | What |
+|---|---|
+| Node status | the plugin's own status; a red ring `plugin failed (3 faults within 60s)` after repeated faults |
+| `catch` node | message failures and faults, text prefixed `wasm <publisher>/<name>:` |
+| Log target `edgelink::wasm` | guest log lines (50/s per node, drops counted) and `el_close` problems |
+| `GET /status` → `wasm` | `state` (`disabled`, `idle`, `active`), `plugins`, `engineLive`, `permitsInUse`, `memoryReservedKib`, `memoryBudgetKib` |
+| `GET /history?category=plugin` | lifecycle events (needs `[history] enabled = true`) |
+| `GET /audit` | who staged, activated, rolled back, removed or discarded what |
+
+## Troubleshooting
+
+| Message | Cause and fix |
+|---|---|
+| `… not compiled in this build (requires nodes_wasm)` | the binary was built without the feature; rebuild with `--features nodes_wasm` |
+| `… disabled by configuration ([runtime.wasm] enabled = false)` | set `enabled = true` and restart |
+| `… requires WASM plugin acme/x which is not active` | stage and activate the plugin, or check `GET /wasm/plugins` / startup log for a disabled generation |
+| `… requires acme/x@2, active is acme/x@1.4.0` | the node was configured for another major version; activate a matching version or update the node |
+| `property 'p' is not declared by WASM plugin …` / `must be within …` / `is required` | fix the node's settings in the editor (or the plugin's manifest) |
+| `WASM memory budget exceeded …` | raise `memory_budget_kib`, lower the plugin's `memory_pages`, or use fewer plugin nodes |
+| `module starts with N pages of linear memory but … may use M` | the package needs `[limits] memory_pages = N` (or a smaller stack, see the developer manual) |
+| `import … is not granted` | the module uses WASI or another host API; it cannot run here |
+| `fuel budget … exhausted` / `deadline exceeded` | the plugin is too slow for one message; raise its `[limits]` within the ceilings or fix the plugin |
+| `concurrency limit ([runtime.wasm] max_concurrent)` | other plugin calls held every permit for this plugin's whole deadline; raise `max_concurrent` (up to the core count) |
+| `plugin store … is in use by another edgelinkd process` | the CLI needs the runtime stopped; use the admin API instead |
+| `409 plugins_disabled` from `/wasm/plugins` | the runtime runs with `enabled = false` |
+| `409 invalid_flows` on activate | the deployed flows do not build with that version; nothing changed |
+
+## Limitations
+
+- Rust is the only guest SDK (`crates/wasm-guest`; examples `uppercase`, `csvparse`,
+  `tofsense`). No component model or other guest languages.
 - The editor learns about new plugin types only on reload; there is no live palette push.
 - Signatures (`require_signature`) are not implemented.
+- Measured on a Raspberry Pi 5 (arm64) and x86-64; 32-bit ARM boards are build-only so far.
 
 ## Settings (`[runtime.wasm]`)
 

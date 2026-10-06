@@ -222,6 +222,24 @@ Use one class's `mode = "observe"` as a temporary compatibility fallback; the ot
 enforced. The [inbound protection runbook](docs/security/ingress-protection.md) lists route classes,
 defaults, proxy rules, status codes, acceptance checks, and the configuration-only rollback.
 
+### WASM plugins (experimental)
+
+Third-party flow nodes can be compiled to WebAssembly and installed into a running EdgeLinkd
+without rebuilding it. They run in a Wasmi sandbox with no file, network, clock or credential
+access, under fuel, time and memory limits; installation is staged, self-tested and atomic, with
+one-call rollback. The feature is opt-in twice: build with `--features nodes_wasm`, then set
+`[runtime.wasm] enabled = true`.
+
+```bash
+cargo build --release --features nodes_wasm
+target/release/edgelinkd plugin stage my_plugin.wasm     # or POST /wasm/plugins/stage
+target/release/edgelinkd plugin activate acme/my-plugin --sha256 <hex>
+```
+
+Operator manual: [docs/operations/wasm-plugins.md](docs/operations/wasm-plugins.md). Writing
+plugins (Rust SDK, manifest, ABI): [docs/development/wasm-plugins.md](docs/development/wasm-plugins.md).
+Examples, including a UART laser-ranging sensor decoder: [`crates/wasm-guest/examples`](crates/wasm-guest/examples).
+
 ### Outbound network policy
 
 `[egress] mode = "off"` preserves the existing outbound behavior. Use `"observe"` first to

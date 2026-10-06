@@ -1,0 +1,22 @@
+[package]
+name = "edgelink-plugin-tofsense"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+edgelink-wasm-guest = { path = "../.." }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+debug = false
+
+# Built on its own for wasm32-unknown-unknown; not a member of the EdgeLinkd workspace.
+[workspace]

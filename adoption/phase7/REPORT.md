@@ -60,7 +60,8 @@ Pi 5 (G1 and G2).
 | Editor, `/nodes`, Copilot | `wasm_plugins.rs`, `nodes.rs`, `assistant.rs` | one generated `registerType` + form + help per plugin, every plugin string JSON- or HTML-escaped (`</script>`, U+2028/9); `/nodes` module `wasm/<id>`; catalog lists type, ports, output labels and config names/kinds (no description/help); drafts may use plugin types |
 | History, audit, status | `history.rs`, `wasm_plugins.rs`, `status.rs` | category `plugin`: `staged`, `rejected`, `activated`, `rolled_back`, `removed`, `discarded`, `failed` with id, version, 12-hex digest prefix and reason code (no bytes or config values); audit lines for API actions; `/status.wasm` `{state, plugins, engineLive, permitsInUse, memoryReservedKib, …}` |
 | Guest SDK | `crates/wasm-guest` | `Node` trait (`init`/`on_input`/`close`), `Msg`, `Ctx` (emit/log/status, host bounds checked before the call), `export_node!` (ABI v1 exports), `manifest!` (embeds `plugin.toml` as `edgelink.manifest`); off `wasm32`, `Ctx` records calls so plugin logic is unit-tested on the host |
-| Example plugins | `crates/wasm-guest/examples/{uppercase,csvparse}` | standalone crates for `wasm32-unknown-unknown`, 64 KiB stack; 55,859 and 62,870 bytes; `csvparse` has `delimiter`/`header` config and quoted fields |
+| Example plugins | `crates/wasm-guest/examples/{uppercase,csvparse,tofsense}` | standalone crates for `wasm32-unknown-unknown`, 64 KiB stack; 55,859, 62,870 and 96,967 bytes; `csvparse` has `delimiter`/`header` config; `tofsense` decodes the Nooploop TOFSense UART protocol (manual V2.5 §8: stream reassembly, checksum, int24 distance, query frames on a second output) and ships a TCP device simulator |
+| Documentation | `docs/operations/wasm-plugins.md`, `docs/development/wasm-plugins.md`, `crates/wasm-guest/README.md`, example READMEs, `docs/security/ingress-protection.md` (`plugins` class), README section | operator manual (enable, install, observe, troubleshoot), author manual (SDK, manifest schema 1, ABI v1, EVE/1, versioning) |
 | CI | `.github/workflows/CICD.yml` `wasm-plugins` | examples fmt + clippy for `wasm32`, core/web `nodes_wasm` tests, `scripts/wasm-examples.sh --e2e` |
 | Measurement | `scripts/wasm-measure.sh` | Phase 0 method on prebuilt binaries (works on a device without cargo) |
 | Workspace pin | root `Cargo.toml` | `wasmi = "=2.0.0"` in `[workspace.dependencies]` |
@@ -77,6 +78,7 @@ Pi 5 (G1 and G2).
 | Signatures (`require_signature`) | `true` fails startup; packages are trusted by the administrator who installs them. |
 | Capabilities beyond ABI v1 (clock, randomness, HTTP through the egress policy, credentials) | Not offered; a manifest that asks for any is refused. Granting them later must go through the egress policy and the credential service. |
 | Guest languages other than Rust, component model | Not provided. |
+| Wire loops (a node's output wired back to its own input) | Rejected by the engine at deploy (`Referenced node not found`), found while building the TOFSense query example; a pre-existing engine limitation, not specific to plugins. Request/response devices use two plugin nodes. |
 
 Sandbox advisories: Wasmi is an interpreter with a strong validation and fuel model, but the
 tests show containment for the cases listed, not the absence of runtime bugs; keep `wasmi` pinned
@@ -234,6 +236,13 @@ PR 7: `edgelink-wasm-guest` 2 unit tests (EVE round trip, host bounds enforced b
 built) stages both Rust examples (validation + self-tests), activates them and runs
 `inject → uppercase → csvparse(delimiter ";")` to `[{"NAME":"BOLT","QTY":"4"},{"NAME":"NUT","QTY":"7"}]`
 on x86-64 and natively on the Pi 5.
+
+TOFSense example: 5 host tests built on the manual's sample frames (`57 00 ff 00 9e 8f 00 00 ad
+08 00 00 03 00 ff 3a` → 2.221 m, id 0, 36,766 ms, signal 3; read frame `57 10 ff ff 00 ff ff 63`;
+−0.01 m out-of-range value; split frames; garbage and checksum resync). Live run against
+`tools/fake_tofsense.py` (10 Hz, every third frame split across two TCP writes):
+`tcp in` → plugin delivered 43 readings in about 4 s with the out-of-range frame marked
+`valid: false`, and query mode answered 3 of 3 requests through `tcp request`.
 
 Hostile-test coverage against the phase prompt: unknown ABI, malformed manifest, unsupported
 capability, duplicate staging (idempotent by digest), infinite loop, cancellation, memory growth,
