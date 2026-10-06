@@ -5,10 +5,12 @@ Version remains `0.3.0`.
 
 This is a **partial prototype**. The Wasmi host, the plugin flow node and every per-call limit
 from DESIGN.md §6–8 are implemented and tested, and so are PR 3 (section walker, manifest
-schema 1) and PR 4 (plugin store, lifecycle, offline CLI, crash-injection tests). A plugin can
-now be installed with the runtime stopped; online install, editor integration and the guest
-SDK (PR 5–7 leftovers) are not done. The G1 device gate passed on a Raspberry Pi 5 (arm64);
-see "G1 device run" below.
+schema 1), PR 4 (plugin store, lifecycle, offline CLI, crash-injection tests), the PR 5
+leftovers (`el_init`/`el_close`, `[[node.config]]`, node tests) and PR 6 (admin API with online
+activation, editor/`/nodes`/Copilot entries, history/audit, `/status`). A plugin can be
+installed offline or through the API and configured in the editor. Not done: the guest SDK and
+examples (PR 7), G2 measurements and the final close-out (PR 8). The G1 device gate passed on a
+Raspberry Pi 5 (arm64); see "G1 device run" below.
 
 ## What is implemented
 
@@ -19,9 +21,12 @@ see "G1 device run" below.
 | `enabled` defaults to `false`, strict TOML boolean | `runtime/wasm/settings.rs` | `"yes"`/`1` rejected |
 | Settings validation | `settings.rs` | unknown keys fail; ranges and cross-checks; store keys `dir`, `max_plugins`, `max_module_kib` |
 | Package framing | `runtime/wasm/section.rs` | LEB128 section walker: exactly one `edgelink.manifest` ≤ 16 KiB; missing, duplicate, truncated or oversize sections fail with the byte offset; `append_manifest` for packing |
-| Manifest schema 1 | `runtime/wasm/manifest.rs` | TOML, `deny_unknown_fields`; id `<publisher>/<name>` segments, semver, `abi = 1`, license, `inputs = 1`, `outputs ≤ 16`, ≤ 4 self-tests with object inputs; `[[node.config]]` refused `NotSupported` |
+| Manifest schema 1 | `runtime/wasm/manifest.rs` | TOML, `deny_unknown_fields`; id `<publisher>/<name>` segments, semver, `abi = 1`, license, `inputs = 1`, `outputs ≤ 16`, ≤ 4 self-tests with object inputs |
+| `[[node.config]]` | `manifest.rs`, `plugin_node.rs` | ≤ 32 fields of kind `string` (`max_len`), `number` (`min`/`max`/`integer`), `boolean`, `enum` (`values`); names not reserved and unique; defaults checked; per node: undeclared property, wrong kind, out of range or missing required value fails deploy; resolved object passed to `el_init` |
+| ABI exports | `exec.rs` | `memory`, `el_abi_version`, `el_alloc`, `el_on_input` required with exact signatures; `el_init`/`el_close` optional (required `el_init` when config is declared); imported memories/tables/globals and mistyped imports rejected at `stage` |
+| `el_init` / `el_close` | `exec.rs`, `plugin_node.rs` | `el_init` on every new instance under the message budget (rejection is a fault, counted toward the failed state); `el_close` for an idle instance at stop, under a permit and the plugin budget; `emit` refused in both |
 | Per-plugin limits | `host.rs` | `[limits]` `memory_pages`, `fuel_per_message`, `deadline_ms` requested up to the `max_*` ceilings; above → error naming both keys |
-| Plugin store | `runtime/wasm/store.rs` | stage → validate → quarantine → self-test; activate/rollback guarded by `prepare_flows`; one previous generation, older ones deleted; remove back to quarantine; discard; verify; quarantine cap 8; fs2 exclusive lock |
+| Plugin store | `runtime/wasm/store.rs` | stage → validate → quarantine → self-test (with the default configuration); activate/rollback guarded by `prepare_flows`; one previous generation, older ones deleted; remove back to quarantine; discard; verify; quarantine cap 8; fs2 exclusive lock; two-phase `*_pending` → `finish`/`revert` for online use |
 | Store hardening | `store.rs` | dirs `0700`, files `0600`, `O_NOFOLLOW`, symlinked root/children refused, ids and digests validated before any path is built; tmp → fsync → rename → fsync dir |
 | Crash recovery | `store.rs` | on open: `.part` deleted, `active.toml.tmp` dropped, unreferenced `store/` files back to quarantine; a missing or tampered generation disables only that plugin |
 | Startup wiring | `runtime/wasm/mod.rs` `attach_store`, `src/app.rs` | with `enabled = true` the runtime opens the store, holds its lock for its lifetime and deploys with the active set; disabled → directory not touched |
@@ -36,9 +41,13 @@ see "G1 device run" below.
 | Plugin flow node | `runtime/wasm/plugin_node.rs` | one reused instance per node; global permits (`max_concurrent`); outputs delivered only on success, in emit order; output must be an object; a changed `_msgid` is a fault; missing `_msgid` copied from the input |
 | Failure state | `plugin_node.rs` | `failure_threshold` faults within `failure_window_s` → red ring status, every message errors until redeploy |
 | Guest `log` / `status` / `fail` | `plugin_node.rs` | logs to target `edgelink::wasm` (50 lines/s per node, drops counted); status reported; fail text becomes a catchable node error |
-| Node properties | `plugin_node.rs` | anything beyond `x`, `y`, `info`, `l`, `wasmPlugin` fails deploy (plugin configuration is not implemented); `wasmPlugin` pin must match the active major |
+| Node properties | `plugin_node.rs` | anything beyond `x`, `y`, `info`, `l`, `wasmPlugin` and the declared config fields fails deploy; `wasmPlugin` pin must match the active major |
 | Interned `MetaNode` | `runtime/wasm/plugin_set.rs` | one leak per (type, outputs, version), bounded |
-| `GET /wasm/plugins` | `crates/web` | answers `NotSupported` (HTTP 501), not an empty list |
+| Admin API | `crates/web/src/handlers/wasm_plugins.rs` | `GET /wasm/plugins`, `POST …/stage` (`application/wasm`), `POST …/{publisher}/{name}/activate`, `…/rollback`, `DELETE …/{publisher}/{name}` (409 `in_use`), `DELETE …/quarantine/{sha256}`; administrator only (`wasm.read`/`wasm.write`); `EndpointClass::Plugins` (1 MiB, 6/min, concurrency 1); stable error codes; `409 plugins_disabled` when `enabled = false` |
+| Online activation | `wasm_plugins.rs` | under `WebState::deploy`: prepare deployed flows + credentials with the candidate set → pointer → registry swap → whole-graph redeploy → `finish`; a failed redeploy reverts pointer, registry and graph |
+| Engine plugin set | `runtime/engine.rs` | swapped on each redeploy; deploy and Copilot validation prepare with the live engine's configuration (`Engine::config`), so plugin nodes validate as they run |
+| Editor, `/nodes`, Copilot | `wasm_plugins.rs`, `nodes.rs`, `assistant.rs` | one generated `registerType` + form + help per plugin, every plugin string JSON- or HTML-escaped (`</script>`, U+2028/9); `/nodes` module `wasm/<id>`; catalog lists type, ports, output labels and config names/kinds (no description/help); drafts may use plugin types |
+| History, audit, status | `history.rs`, `wasm_plugins.rs`, `status.rs` | category `plugin`: `staged`, `rejected`, `activated`, `rolled_back`, `removed`, `discarded`, `failed` with id, version, 12-hex digest prefix and reason code (no bytes or config values); audit lines for API actions; `/status.wasm` `{state, plugins, engineLive, permitsInUse, memoryReservedKib, …}` |
 | Guest SDK | `crates/wasm-guest` | EVE/1 re-export; safe `emit_bytes`/`log`/`status`/`fail` wrappers on `wasm32` only |
 | Workspace pin | root `Cargo.toml` | `wasmi = "=2.0.0"` in `[workspace.dependencies]` |
 
@@ -47,12 +56,11 @@ see "G1 device run" below.
 | Item | Consequence |
 |---|---|
 | Device runs beyond G1 (32-bit ARM board, Pi 3/4 class, in-tree binary) | Defaults are calibrated on a Pi 5 only; armv7 remains build-only. |
-| Online install (admin API under the deploy lock, registry swap, redeploy, startup restore of `.prev` after an online activation whose graph fails) | Install only with the runtime stopped. |
-| `[[node.config]]` | No plugin configuration; a manifest that declares any is refused. |
-| History/audit events for store operations | CLI output is the only record. |
-| `el_init` / `el_close` | Not called; ABI v1 guests in this prototype export `el_abi_version`, `el_alloc`, `el_on_input`. |
-| Generated editor HTML, `/nodes` entries, Copilot catalog, history/audit events, `/status` section, `EndpointClass::Plugins` | Plugins are invisible to the editor and Copilot. |
-| `wasm32-unknown-unknown` CI job and an example Rust plugin | The guest SDK is compiled for the host only. |
+| Startup restore of `active.toml.prev` when the graph fails to build with a pointer an online activation wrote just before the process died | That (narrow) crash leaves startup failing loudly; `edgelinkd plugin rollback` while stopped recovers it. |
+| History/audit for offline CLI actions | CLI output is the only record. |
+| `App::restart_engine` after an online activation | Used only when the web state has no engine; it would build with the startup plugin set. |
+| A redeploy failure *after* a successful prepare, end to end | `revert` is unit-tested and the undo path is code-reviewed, but no test makes a redeploy fail after its prepare passed. |
+| Guest SDK (`export_node!`, `manifest!`), example plugins, `wasm32-unknown-unknown` CI job (PR 7) | Plugins are WAT or hand-written Rust plus `edgelinkd plugin pack`. |
 | In-tree size/RSS measurements (G2) | ADR-0002 spike numbers stand. |
 
 ## G1 device run (passed)
@@ -84,6 +92,11 @@ Consequences for the defaults (unchanged, now calibrated):
 
 - `default_fuel = 2·10⁷` ≈ 42 ms of guest work on a Pi 5, so fuel binds well before the 250 ms
   deadline; the deadline is the backstop for slower boards.
+- `default_memory_pages` lowered from 32 (2 MiB) to 8 (512 KiB) after the live test: with
+  2 MiB caps the 8 MiB budget admitted only 3 plugin nodes. Measured live: 3 + 12 nodes admit
+  7,704 KiB; one more is refused with `memory budget exceeded` and the running graph is kept.
+  Modules whose initial memory exceeds their limit are rejected at `stage` with the remedy.
+  Boards with spare RAM raise `memory_budget_kib` (e.g. 64 MiB on a Pi 5).
 - `fuel_slice = 10⁶` ≈ 2 ms on a Pi 5, which is the cancellation latency on stop/redeploy.
 - With the spike's 5·10⁷ fuel budget the Pi 5 hit the 100 ms deadline first (4.8·10⁷ fuel),
   so both limits were exercised on the device.
@@ -98,8 +111,8 @@ and the in-tree `edgelinkd` binary (G2). The armv7 build remains build-only.
 
 ## Tests
 
-`cargo test -p edgelink-core --features nodes_wasm --lib wasm` — 44 tests (29 from the first
-prototype, 15 new):
+`cargo test -p edgelink-core --features nodes_wasm --lib wasm` — 55 tests (29 first prototype,
+15 PR 3/4, 11 PR 5/6):
 
 - Prefix and configuration: `wasm_prefix_fails_loud_when_the_feature_is_off` (exact message per
   build), `a_wasm_config_node_is_never_unknown`, `enabled_true_without_the_feature_is_not_supported`,
@@ -124,9 +137,38 @@ prototype, 15 new):
   new pointer; crash during stage leaves nothing runnable; invalid packages rejected and kept
   nowhere; failing self-test quarantined as `rejected` and not activatable; remove preserves
   packages and the lock is exclusive; tampering disables only that plugin; symlinked store
-  refused; traversal ids and digests rejected.
+  refused; traversal ids and digests rejected; a reverted activation restores the pointer and
+  re-quarantines the candidate, which stays activatable.
+- ABI and configuration (PR 5): missing, mistyped and imported ABI items rejected at compile;
+  `el_abi_version` 2 is `NotSupported`; `el_init` receives the configuration, `emit` during
+  init is a fault, `el_close` runs and a spinning `el_close` stops at its fuel budget;
+  config kinds validate and normalise (numeric strings, integer, range, enum); configuration
+  reaches `el_init` with defaults and node overrides; invalid, out-of-range and missing
+  required values fail deploy.
+- Node behaviour (PR 5): outputs on two ports arrive in emit order; `link call` → plugin →
+  `link out` (return) comes back to the caller; with the only permit held elsewhere a message
+  fails with "concurrency limit" after its own deadline; `engine.stop()` releases a spinning
+  guest's permit within 300 ms (the guest had ≈ 0.7 s of fuel left).
+
+`cargo test -p edgelink-web --features nodes_wasm --lib` — 5 new tests:
+`online_lifecycle_drill` (stage A, B, C with a failing self-test and D 2.0.0 over HTTP; activate
+A; deploy a flow using the plugin through `POST /flows`; activate B; C → 409 `selftest_failed`;
+D → 409 `invalid_flows` (pin `@1`); B current, A previous; wrong rollback expectation → 409;
+rollback to A; remove while used → 409 `in_use`; discard C; bad id → 400; `/status.wasm`;
+then a fresh `PluginStore::open` sees A active and the flows prepare with it),
+`hostile_manifest_strings_are_escaped_in_editor_html`, `plugin_routes_are_administrator_only`,
+`plugin_routes_answer_disabled_without_a_store`, and
+`plugin_packages_are_accepted_as_application_wasm_only_on_plugin_routes` (protection layer).
 
 `cargo test --features nodes_wasm --bin edgelinkd plugin` — `nodes_using_matches_only_the_plugin_type`.
+
+Online smoke run against the real binary (`edgelinkd run`, `enabled = true`): stage over HTTP →
+`ready`; activate → `editorReloadRequired`; `POST /flows` with a `wasm-acme-echo` node deploys;
+`/nodes` HTML has the generated template and help, `/nodes` JSON has module `wasm/acme/echo`;
+`/status.wasm` shows 1 plugin and 264 KiB admitted; remove → 409 `in_use`; the CLI is refused
+while the runtime holds the lock. After a restart on the same home the store opens with 1
+plugin active and the flow deploys; the generated editor script, evaluated in Node.js against a
+stub `RED.nodes.registerType`, registers `wasm-acme-echo` with `wasmPlugin: "acme/echo@1"`.
 
 CLI smoke run (andorxps, debug build, `identity.wat` fixture packed twice as `acme/echo` 1.0.0
 and 1.1.0): pack refuses to overwrite; an unpacked module is rejected at stage; both versions
@@ -144,14 +186,14 @@ an inactive plugin; after the flow is gone `remove` returns both generations to 
 |---|---|
 | `cargo fmt --check` | passed |
 | `cargo clippy --all-features --tests --all -- -D warnings` | passed |
-| `cargo test --workspace --features full --no-fail-fast` | passed (no `nodes_wasm`; core 318 passed / 1 ignored, web 79 passed) |
-| `cargo test -p edgelink-core --features nodes_wasm --lib` | 311 passed, 1 ignored (44 WASM tests) |
-| `cargo test -p edgelink-web --features nodes_wasm --lib` | 71 passed |
+| `cargo test --workspace --features full --no-fail-fast` | passed (no `nodes_wasm`; core 318 passed / 1 ignored, web 80 passed) |
+| `cargo test -p edgelink-core --features nodes_wasm --lib` | 322 passed, 1 ignored (55 WASM tests) |
+| `cargo test -p edgelink-web --features nodes_wasm --lib` | 76 passed |
 | `cargo test --features nodes_wasm --bin edgelinkd` | 2 passed |
 | `cargo build --features nodes_wasm`, `cargo build` | passed |
 | `cargo tree -e normal -i wasmi` (default and `--features full`) | no match: `wasmi` absent |
 | `cargo tree -p edgelink-core --no-default-features -i toml_edit` | nothing: the store adds no dependency to a minimal core |
-| CLI smoke run (above) and `run` with plugins disabled | passed; disabled run fails the `wasm-*` node loudly and creates no `plugins/` directory |
+| Offline CLI and online API smoke runs (above), `run` with plugins disabled | passed |
 | `git diff --check` | passed |
 
 Not run in this close-out: `pytest ./tests -v`, ARM cross builds of `edgelinkd`, in-tree size/RSS
@@ -167,4 +209,5 @@ measurements (G2). G1 is recorded above.
 
 ## Git
 
-Committed on `phase7-design` only. Not pushed, tagged, released or merged to `master`.
+PR 3/4 committed on `phase7-design` (`ef086bd`). PR 5 leftovers and PR 6 are uncommitted at the
+time of writing. Nothing pushed, tagged, released or merged to `master`.

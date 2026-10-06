@@ -7,6 +7,8 @@ use sha2::{Digest, Sha256};
 
 use crate::runtime::nodes::{MetaNode, NodeFactory, NodeKind};
 
+#[cfg(test)]
+use super::manifest::ConfigField;
 use super::manifest::{LimitRequest, Manifest, split_id};
 use super::plugin_node::WasmPluginNode;
 
@@ -23,28 +25,36 @@ pub(crate) struct PluginSpec {
     pub outputs: u8,
     /// Requests from the manifest; clamped against the settings' ceilings at deploy.
     pub limits: LimitRequest,
+    /// The validated manifest (editor metadata, configuration fields).
+    pub manifest: Arc<Manifest>,
 }
 
 impl PluginSpec {
     /// A spec for raw module bytes without a manifest (tests only).
     #[cfg(test)]
     pub(crate) fn new(id: &str, version: semver::Version, wasm: Vec<u8>, outputs: u8) -> crate::Result<Self> {
-        Self::build(id, version, wasm, outputs, LimitRequest::default())
+        let manifest = super::manifest::synthetic(id, &version, outputs, Vec::new());
+        Self::build(id, version, wasm, Arc::new(manifest))
+    }
+
+    /// Test helper: replace the limit requests and configuration fields.
+    #[cfg(test)]
+    pub(crate) fn configured(mut self, limits: LimitRequest, config: Vec<ConfigField>) -> Self {
+        let manifest = Arc::make_mut(&mut self.manifest);
+        manifest.limits = limits;
+        manifest.node.config = config;
+        self.limits = limits;
+        self
     }
 
     /// A spec for a packaged plugin: identity, outputs and limits come from its manifest.
     pub(crate) fn from_package(wasm: Vec<u8>, manifest: &Manifest) -> crate::Result<Self> {
-        Self::build(&manifest.plugin.id, manifest.version(), wasm, manifest.node.outputs, manifest.limits)
+        Self::build(&manifest.plugin.id, manifest.version(), wasm, Arc::new(manifest.clone()))
     }
 
-    fn build(
-        id: &str,
-        version: semver::Version,
-        wasm: Vec<u8>,
-        outputs: u8,
-        limits: LimitRequest,
-    ) -> crate::Result<Self> {
+    fn build(id: &str, version: semver::Version, wasm: Vec<u8>, manifest: Arc<Manifest>) -> crate::Result<Self> {
         let (publisher, name) = split_id(id)?;
+        let outputs = manifest.node.outputs;
         if outputs > 16 {
             return Err(crate::EdgelinkError::invalid_operation("a WASM plugin node has at most 16 outputs"));
         }
@@ -56,7 +66,8 @@ impl PluginSpec {
             wasm: Arc::new(wasm),
             sha256,
             outputs,
-            limits,
+            limits: manifest.limits,
+            manifest,
         })
     }
 }
@@ -67,6 +78,17 @@ pub struct ActivePlugins {
 }
 
 impl ActivePlugins {
+    /// A set from packed modules (manifest section included). Validates framing and manifests
+    /// but does not compile or self-test: use the plugin store for installation.
+    pub fn from_packages(packages: Vec<Vec<u8>>) -> crate::Result<Arc<Self>> {
+        let mut specs = Vec::with_capacity(packages.len());
+        for bytes in packages {
+            let manifest = Manifest::parse(&super::section::manifest_text(&bytes, usize::MAX)?)?;
+            specs.push(PluginSpec::from_package(bytes, &manifest)?);
+        }
+        Ok(Self::from_specs(specs))
+    }
+
     pub(crate) fn from_specs(specs: Vec<PluginSpec>) -> Arc<Self> {
         Arc::new(Self { specs: specs.into_iter().map(|spec| (spec.type_name.clone(), spec)).collect() })
     }
@@ -79,9 +101,45 @@ impl ActivePlugins {
         self.specs.get(type_name)
     }
 
-    pub(crate) fn meta(&self, type_name: &str) -> Option<&'static MetaNode> {
+    /// The interned `MetaNode` of an active plugin type.
+    pub fn meta(&self, type_name: &str) -> Option<&'static MetaNode> {
         self.specs.get(type_name).map(intern_meta)
     }
+
+    pub fn len(&self) -> usize {
+        self.specs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.specs.is_empty()
+    }
+
+    /// Active plugins sorted by type name, for the editor, `/nodes` and the Copilot catalog.
+    pub fn views(&self) -> Vec<PluginView<'_>> {
+        let mut views: Vec<PluginView<'_>> = self
+            .specs
+            .values()
+            .map(|spec| PluginView {
+                type_name: &spec.type_name,
+                id: &spec.id,
+                version: &spec.version,
+                manifest: &spec.manifest,
+            })
+            .collect();
+        views.sort_by(|a, b| a.type_name.cmp(b.type_name));
+        views
+    }
+}
+
+/// Read-only description of one active plugin generation.
+#[derive(Debug, Clone, Copy)]
+pub struct PluginView<'a> {
+    /// `wasm-<publisher>-<name>`.
+    pub type_name: &'a str,
+    /// `<publisher>/<name>`.
+    pub id: &'a str,
+    pub version: &'a semver::Version,
+    pub manifest: &'a Manifest,
 }
 
 /// `BaseFlowNodeState::type_str` is `&'static str` and is exported in flow JSON, so each plugin

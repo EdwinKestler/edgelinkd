@@ -274,6 +274,9 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # enabled = false
 # Plugin store under the home directory; manage it with `edgelinkd plugin` while stopped.
 # dir = "plugins"
+# Memory reserved for all plugin nodes of the deployed graph (about 15 default-sized nodes).
+# Boards with spare RAM can raise it, e.g. 65536 on a Raspberry Pi 5.
+# memory_budget_kib = 8192
 
 # Bounded operational history. Compiled into the default app build. Recording stays off until enabled.
 # [history]

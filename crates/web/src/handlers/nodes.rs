@@ -39,7 +39,12 @@ pub async fn get_nodes(
     let allowed: HashSet<String> = registry.all().values().map(|meta| meta.type_().to_string()).collect();
 
     if accept_header.contains("text/html") {
-        let html_content = generate_nodes_html(&state.static_dir, &allowed).await;
+        #[allow(unused_mut)]
+        let mut html_content = generate_nodes_html(&state.static_dir, &allowed).await;
+        #[cfg(feature = "nodes_wasm")]
+        if let Some(plugins) = registry.wasm() {
+            html_content.push_str(&crate::handlers::wasm_plugins::editor_html(plugins));
+        }
         Ok(Html(html_content).into_response())
     } else {
         let mut grouped_nodes: GroupedNodes = GroupedNodes::new();
@@ -56,7 +61,8 @@ pub async fn get_nodes(
             entry.types.push(meta_node.type_().to_string());
         }
 
-        let flat_nodes: Vec<_> = grouped_nodes
+        #[allow(unused_mut)]
+        let mut flat_nodes: Vec<_> = grouped_nodes
             .into_iter()
             .map(|(red_id, node_info)| {
                 serde_json::json!({
@@ -72,6 +78,10 @@ pub async fn get_nodes(
             })
             .collect();
 
+        #[cfg(feature = "nodes_wasm")]
+        if let Some(plugins) = registry.wasm() {
+            flat_nodes.extend(crate::handlers::wasm_plugins::node_sets(plugins));
+        }
         Ok(Json(serde_json::Value::Array(flat_nodes)).into_response())
     }
 }

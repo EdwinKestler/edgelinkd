@@ -93,6 +93,17 @@ impl WebServer {
         self
     }
 
+    #[cfg(feature = "nodes_wasm")]
+    pub async fn with_plugin_store(
+        self,
+        store: Option<std::sync::Arc<edgelink_core::runtime::wasm::PluginStore>>,
+    ) -> Self {
+        if let Some(store) = store {
+            self.state.set_plugin_store(store).await;
+        }
+        self
+    }
+
     pub async fn with_flows_file_path(self, path: PathBuf) -> Self {
         self.state.set_flows_file_path(path).await;
         self

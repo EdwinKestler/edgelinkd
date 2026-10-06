@@ -82,7 +82,16 @@ fn create_node_red_api_routes() -> Router {
     let router = router.route("/history", get(crate::handlers::history::get_history));
 
     #[cfg(feature = "nodes_wasm")]
-    let router = router.route("/wasm/plugins", get(crate::handlers::wasm_plugins::list_plugins));
+    let router = {
+        use crate::handlers::wasm_plugins as wasm;
+        router
+            .route("/wasm/plugins", get(wasm::list_plugins))
+            .route("/wasm/plugins/stage", post(wasm::stage_plugin))
+            .route("/wasm/plugins/quarantine/{sha256}", axum::routing::delete(wasm::discard_package))
+            .route("/wasm/plugins/{publisher}/{name}", axum::routing::delete(wasm::remove_plugin))
+            .route("/wasm/plugins/{publisher}/{name}/activate", post(wasm::activate_plugin))
+            .route("/wasm/plugins/{publisher}/{name}/rollback", post(wasm::rollback_plugin))
+    };
 
     router
 }

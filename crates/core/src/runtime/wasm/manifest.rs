@@ -52,9 +52,157 @@ pub struct NodeSpec {
     pub output_labels: Vec<String>,
     #[serde(default)]
     pub help: String,
-    /// Plugin configuration fields. Not implemented in this prototype: must be empty.
+    /// Plugin configuration fields, validated per node and passed to `el_init` as one object.
     #[serde(default)]
-    pub config: Vec<serde_json::Value>,
+    pub config: Vec<ConfigField>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ConfigKind {
+    String,
+    Number,
+    Boolean,
+    Enum,
+}
+
+/// One `[[node.config]]` entry. Kind-specific keys (`max_len`; `min`, `max`, `integer`;
+/// `values`) are rejected on the other kinds.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ConfigField {
+    pub name: String,
+    pub kind: ConfigKind,
+    #[serde(default)]
+    pub label: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_len: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
+    #[serde(default)]
+    pub integer: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub values: Vec<String>,
+}
+
+pub(crate) const MAX_CONFIG_FIELDS: usize = 32;
+pub(crate) const MAX_STRING_CONFIG: u32 = 4096;
+
+/// Node properties Node-RED owns; a config field may not shadow them.
+pub(crate) const RESERVED_CONFIG_NAMES: &[&str] =
+    &["id", "type", "z", "g", "x", "y", "l", "d", "name", "wires", "info", "credentials", "wasmPlugin"];
+
+impl ConfigField {
+    /// Check one node value and return its normalised form. The editor stores numbers typed
+    /// into text inputs as strings, so numeric strings are accepted for `number`.
+    pub(crate) fn check(&self, value: &serde_json::Value) -> Result<serde_json::Value, String> {
+        use serde_json::Value;
+        match self.kind {
+            ConfigKind::String => {
+                let text = value.as_str().ok_or("must be a string")?;
+                let max = self.max_len.unwrap_or(MAX_STRING_CONFIG) as usize;
+                if text.len() > max {
+                    return Err(format!("longer than {max} bytes"));
+                }
+                if text.chars().any(|c| c.is_control() && c != '\n' && c != '\t') {
+                    return Err("contains control characters".to_owned());
+                }
+                Ok(value.clone())
+            }
+            ConfigKind::Number => {
+                let number = match value {
+                    Value::Number(n) => n.as_f64(),
+                    Value::String(text) => text.trim().parse::<f64>().ok(),
+                    _ => None,
+                }
+                .filter(|n| n.is_finite())
+                .ok_or("must be a finite number")?;
+                if self.integer && number.fract() != 0.0 {
+                    return Err("must be an integer".to_owned());
+                }
+                if self.min.is_some_and(|min| number < min) || self.max.is_some_and(|max| number > max) {
+                    return Err(format!(
+                        "must be within {}..={}",
+                        self.min.map_or("-inf".to_owned(), |v| v.to_string()),
+                        self.max.map_or("inf".to_owned(), |v| v.to_string())
+                    ));
+                }
+                if self.integer && number.abs() < 9.0e15 {
+                    return Ok(Value::from(number as i64));
+                }
+                serde_json::Number::from_f64(number).map(Value::Number).ok_or_else(|| "must be finite".to_owned())
+            }
+            ConfigKind::Boolean => match value {
+                Value::Bool(_) => Ok(value.clone()),
+                Value::String(text) if text == "true" || text == "false" => Ok(Value::Bool(text == "true")),
+                _ => Err("must be true or false".to_owned()),
+            },
+            ConfigKind::Enum => {
+                let text = value.as_str().ok_or("must be a string")?;
+                if self.values.iter().any(|v| v == text) {
+                    Ok(value.clone())
+                } else {
+                    Err(format!("must be one of {:?}", self.values))
+                }
+            }
+        }
+    }
+
+    fn validate(&self, i: usize) -> crate::Result<()> {
+        let field = format!("node.config[{i}]");
+        let name_ok = self.name.len() <= 32
+            && self.name.chars().next().is_some_and(|c| c.is_ascii_lowercase())
+            && self.name.chars().all(|c| c.is_ascii_alphanumeric());
+        if !name_ok {
+            return Err(bad(&format!("{field}.name"), "must match [a-z][a-zA-Z0-9]{0,31}"));
+        }
+        if RESERVED_CONFIG_NAMES.contains(&self.name.as_str()) {
+            return Err(bad(&format!("{field}.name"), format!("'{}' is a reserved node property", self.name)));
+        }
+        plain_text(&format!("{field}.label"), &self.label, 64)?;
+        let string = self.kind == ConfigKind::String;
+        let number = self.kind == ConfigKind::Number;
+        if self.max_len.is_some() && !string {
+            return Err(bad(&format!("{field}.max_len"), "only for kind = \"string\""));
+        }
+        if self.max_len.is_some_and(|m| m == 0 || m > MAX_STRING_CONFIG) {
+            return Err(bad(&format!("{field}.max_len"), format!("must be 1..={MAX_STRING_CONFIG}")));
+        }
+        if (self.min.is_some() || self.max.is_some() || self.integer) && !number {
+            return Err(bad(&field, "min, max and integer are only for kind = \"number\""));
+        }
+        if self.min.is_some_and(|v| !v.is_finite()) || self.max.is_some_and(|v| !v.is_finite()) {
+            return Err(bad(&field, "min and max must be finite"));
+        }
+        if let (Some(min), Some(max)) = (self.min, self.max)
+            && min > max
+        {
+            return Err(bad(&field, "min is greater than max"));
+        }
+        if self.kind == ConfigKind::Enum {
+            if self.values.is_empty() || self.values.len() > 32 {
+                return Err(bad(&format!("{field}.values"), "needs 1-32 values"));
+            }
+            for (j, value) in self.values.iter().enumerate() {
+                plain_text(&format!("{field}.values"), value, 64)?;
+                if self.values[..j].contains(value) {
+                    return Err(bad(&format!("{field}.values"), format!("'{value}' is listed twice")));
+                }
+            }
+        } else if !self.values.is_empty() {
+            return Err(bad(&format!("{field}.values"), "only for kind = \"enum\""));
+        }
+        if let Some(default) = &self.default {
+            self.check(default).map_err(|why| bad(&format!("{field}.default"), why))?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -163,8 +311,20 @@ impl Manifest {
             plain_text("node.output_labels", label, 64)?;
         }
         plain_text("node.help", &n.help, 4096)?;
-        if !n.config.is_empty() {
-            return Err(bad("node.config", "plugin configuration is not implemented in this prototype"));
+        if n.config.len() > MAX_CONFIG_FIELDS {
+            return Err(bad("node.config", format!("at most {MAX_CONFIG_FIELDS} fields")));
+        }
+        for (i, field) in n.config.iter().enumerate() {
+            field.validate(i)?;
+            if n.config[..i].iter().any(|other| other.name == field.name) {
+                return Err(bad("node.config", format!("field '{}' is declared twice", field.name)));
+            }
+            if field.required && field.default.is_none() && !self.selftest.is_empty() {
+                return Err(bad(
+                    "node.config",
+                    format!("self-tests run with defaults, so required field '{}' needs a default", field.name),
+                ));
+            }
         }
         if self.selftest.len() > 4 {
             return Err(bad("selftest", "at most 4 vectors"));
@@ -210,6 +370,34 @@ input = { payload = "a" }
 expect_outputs = [1]
 "##;
 
+/// A manifest for raw test modules: one input, `outputs` outputs, no self-tests.
+#[cfg(test)]
+pub(crate) fn synthetic(id: &str, version: &semver::Version, outputs: u8, config: Vec<ConfigField>) -> Manifest {
+    Manifest {
+        plugin: PluginMeta {
+            id: id.to_owned(),
+            version: version.to_string(),
+            abi: SUPPORTED_ABI,
+            license: "MIT".to_owned(),
+            description: String::new(),
+            capabilities: Vec::new(),
+        },
+        limits: LimitRequest::default(),
+        node: NodeSpec {
+            label: id.rsplit('/').next().unwrap_or(id).to_owned(),
+            category: "plugins".to_owned(),
+            color: "#C0DEED".to_owned(),
+            icon: "function.svg".to_owned(),
+            inputs: 1,
+            outputs,
+            output_labels: Vec::new(),
+            help: String::new(),
+            config,
+        },
+        selftest: Vec::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,6 +409,50 @@ mod tests {
         assert_eq!(m.version(), semver::Version::new(1, 2, 0));
         assert_eq!(m.limits.memory_pages, Some(4));
         assert_eq!(m.selftest.len(), 1);
+    }
+
+    #[test]
+    fn config_fields_validate_and_normalise_values() {
+        let text = SAMPLE.replacen(
+            "output_labels = [\"out\"]",
+            r#"output_labels = ["out"]
+[[node.config]]
+name = "delimiter"
+kind = "string"
+max_len = 1
+default = ","
+[[node.config]]
+name = "limit"
+kind = "number"
+integer = true
+min = 1.0
+max = 10.0
+default = 5
+[[node.config]]
+name = "header"
+kind = "boolean"
+default = true
+[[node.config]]
+name = "mode"
+kind = "enum"
+values = ["fast", "safe"]
+default = "safe"
+"#,
+            1,
+        );
+        let m = Manifest::parse(&text).unwrap();
+        let [delimiter, limit, header, mode] = &m.node.config[..] else { panic!("4 fields") };
+        use serde_json::json;
+        assert_eq!(delimiter.check(&json!(";")), Ok(json!(";")));
+        assert!(delimiter.check(&json!(";;")).is_err());
+        assert!(delimiter.check(&json!(1)).is_err());
+        assert_eq!(limit.check(&json!("7")), Ok(json!(7)));
+        assert!(limit.check(&json!(7.5)).unwrap_err().contains("integer"));
+        assert!(limit.check(&json!(11)).unwrap_err().contains("within"));
+        assert_eq!(header.check(&json!("false")), Ok(json!(false)));
+        assert!(header.check(&json!(1)).is_err());
+        assert_eq!(mode.check(&json!("fast")), Ok(json!("fast")));
+        assert!(mode.check(&json!("slow")).unwrap_err().contains("one of"));
     }
 
     #[test]
@@ -244,8 +476,43 @@ mod tests {
             ("memory_pages = 4", "memory_page = 4", "unknown field"),
             (
                 "output_labels = [\"out\"]",
-                "output_labels = [\"out\"]\n[[node.config]]\nname = \"d\"",
-                "not implemented",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"wires\"\nkind = \"string\"",
+                "reserved node property",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"Bad\"\nkind = \"string\"",
+                "node.config[0].name",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"n\"\nkind = \"string\"\nmin = 1.0",
+                "only for kind = \"number\"",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"n\"\nkind = \"number\"\nmax = 3.0\ndefault = 4",
+                "node.config[0].default",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"e\"\nkind = \"enum\"",
+                "needs 1-32 values",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"n\"\nkind = \"string\"\n[[node.config]]\nname = \"n\"\nkind = \"boolean\"",
+                "declared twice",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"n\"\nkind = \"string\"\nrequired = true",
+                "needs a default",
+            ),
+            (
+                "output_labels = [\"out\"]",
+                "output_labels = [\"out\"]\n[[node.config]]\nname = \"n\"\nkind = \"color\"",
+                "unknown variant",
             ),
         ] {
             let text = SAMPLE.replacen(from, to, 1);

@@ -114,9 +114,11 @@ async fn start_web_server(
     let run_env = cfg.get_string("run_env").unwrap_or_else(|_| "dev".to_string());
     let config_file = PathBuf::from(home_dir).join(format!("edgelinkd.{run_env}.toml"));
 
-    let web_server = WebServer::new_with_egress(static_dir, cancel.clone(), cfg, egress)
-        .with_registry(app.registry().clone())
-        .await
+    let web_server =
+        WebServer::new_with_egress(static_dir, cancel.clone(), cfg, egress).with_registry(app.registry().clone()).await;
+    #[cfg(feature = "nodes_wasm")]
+    let web_server = web_server.with_plugin_store(app.plugin_store()).await;
+    let web_server = web_server
         .with_flows_file_path(flows_path)
         .await
         .with_config_file_path(config_file)

@@ -82,6 +82,9 @@ pub struct WebState {
     pub deploy: tokio::sync::Mutex<()>,
     /// Serializes configuration save, apply, and rollback transactions.
     pub config_apply: tokio::sync::Mutex<()>,
+    /// The WASM plugin store, present only when `[runtime.wasm] enabled = true`.
+    #[cfg(feature = "nodes_wasm")]
+    pub plugin_store: RwLock<Option<Arc<edgelink_core::runtime::wasm::PluginStore>>>,
 }
 
 /// Implement WebStateCore trait for WebState
@@ -171,6 +174,8 @@ impl WebState {
             listen: RwLock::new(None),
             deploy: tokio::sync::Mutex::new(()),
             config_apply: tokio::sync::Mutex::new(()),
+            #[cfg(feature = "nodes_wasm")]
+            plugin_store: RwLock::new(None),
         })
     }
 }
@@ -199,6 +204,12 @@ impl WebState {
     pub async fn set_registry(&self, registry: RegistryHandle) {
         let mut reg = self.registry.write().await;
         *reg = Some(registry);
+    }
+
+    /// Hand the plugin store (and its lock) to the admin API.
+    #[cfg(feature = "nodes_wasm")]
+    pub async fn set_plugin_store(&self, store: Arc<edgelink_core::runtime::wasm::PluginStore>) {
+        *self.plugin_store.write().await = Some(store);
     }
 
     /// Set the Engine instance

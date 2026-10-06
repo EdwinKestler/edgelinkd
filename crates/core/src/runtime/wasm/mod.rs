@@ -23,7 +23,24 @@ mod store;
 #[cfg(feature = "nodes_wasm")]
 pub(crate) use host::WasmRuntime;
 #[cfg(feature = "nodes_wasm")]
-pub use manifest::LimitRequest;
+pub use manifest::{ConfigField, ConfigKind, LimitRequest, Manifest, NodeSpec, PluginMeta};
+#[cfg(feature = "nodes_wasm")]
+pub use plugin_set::PluginView;
+
+/// Plugin host state for `/status`.
+#[cfg(feature = "nodes_wasm")]
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WasmStatus {
+    /// `disabled`, `idle` (no Wasmi engine) or `active`.
+    pub state: &'static str,
+    pub plugins: usize,
+    pub engine_live: bool,
+    pub permits_in_use: usize,
+    pub max_concurrent: u32,
+    pub memory_reserved_kib: u64,
+    pub memory_budget_kib: u32,
+}
 #[cfg(feature = "nodes_wasm")]
 pub use plugin_set::ActivePlugins;
 #[cfg(feature = "nodes_wasm")]
@@ -31,7 +48,7 @@ pub use section::append_manifest;
 #[cfg(feature = "nodes_wasm")]
 pub(crate) use settings::WasmSettings;
 #[cfg(feature = "nodes_wasm")]
-pub use store::{ActiveEntry, Listing, PackageStatus, PluginStore, PrepareFn, StageReport};
+pub use store::{ActiveEntry, Listing, PackageStatus, PendingChange, PluginStore, PrepareFn, StageReport};
 
 use crate::runtime::engine::Engine;
 use crate::runtime::nodes::MetaNode;

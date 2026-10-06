@@ -1,7 +1,8 @@
 //! Flow node that runs an active WASM plugin.
 //!
 //! One instance per node, created on the first message and reused, so guest state survives
-//! between messages. Calls run on the blocking pool under a global permit; every call is bounded
+//! between messages. A new instance first receives the node configuration through `el_init`;
+//! `el_close` runs when the node stops with an idle instance. Calls run on the blocking pool under a global permit; every call is bounded
 //! by fuel, a wall-clock deadline and cancellation (see `exec.rs`). A fault (fuel, deadline,
 //! trap, host bound) discards the instance; `failure_threshold` faults within `failure_window_s`
 //! put the node in a failed state until the flow is redeployed.
@@ -22,10 +23,11 @@ use crate::runtime::nodes::*;
 use super::convert::{decode_variant, encode_variant};
 use super::exec::{CallError, CallOutput, EngineCell, GuestLogLevel, GuestStatus, Instance};
 use super::host::{EffectiveLimits, WasmRuntime};
+use super::manifest::ConfigKind;
 use super::plugin_set::PluginSpec;
 
-/// Node properties Node-RED's editor writes for any node. Anything else is plugin
-/// configuration, which needs the manifest schema this prototype does not implement yet.
+/// Node properties Node-RED's editor writes for any node. Anything else must be a
+/// `[[node.config]]` field the plugin declares.
 const EDITOR_PROPERTIES: &[&str] = &["x", "y", "info", "l", "wasmPlugin"];
 const MSG_ID: &str = "_msgid";
 const GUEST_LOGS_PER_SECOND: u32 = 50;
@@ -44,6 +46,8 @@ pub(crate) struct WasmPluginNode {
     base: BaseFlowNodeState,
     spec: PluginSpec,
     limits: EffectiveLimits,
+    /// EVE-encoded configuration object passed to `el_init`.
+    config: Arc<Vec<u8>>,
     runtime: Arc<WasmRuntime>,
     state: Mutex<NodeRuntimeState>,
 }
@@ -69,10 +73,23 @@ impl WasmPluginNode {
             .wasm_plugins()
             .and_then(|set| set.get(type_name).cloned())
             .ok_or_else(|| super::not_active_error(type_name))?;
-        check_node_properties(&spec, config)?;
+        let node_config = check_node_properties(&spec, config)?;
+        if node_config.len() > runtime.max_input_bytes() {
+            return Err(not_supported(format!(
+                "node type '{type_name}' configuration encodes to {} bytes, above [runtime.wasm] max_input_kib",
+                node_config.len()
+            )));
+        }
         let limits = runtime.effective_limits(&spec)?;
         runtime.admit(&spec, &limits)?;
-        Ok(Box::new(Self { base: base_node, spec, limits, runtime, state: Mutex::new(NodeRuntimeState::default()) }))
+        Ok(Box::new(Self {
+            base: base_node,
+            spec,
+            limits,
+            config: Arc::new(node_config),
+            runtime,
+            state: Mutex::new(NodeRuntimeState::default()),
+        }))
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, NodeRuntimeState> {
@@ -112,25 +129,41 @@ impl WasmPluginNode {
             (state.cell.clone().expect("engine cell"), state.instance.take())
         };
         let spec = self.spec.clone();
+        let node_config = self.config.clone();
         let pages = self.limits.memory_pages;
         let budget = self.runtime.budget(&self.limits);
         let cancelled = Arc::new(AtomicBool::new(false));
         let flag = cancelled.clone();
         let mut join = tokio::task::spawn_blocking(move || {
             let _permit = permit;
+            let mut init_logs = Vec::new();
             let mut instance = match instance {
                 Some(instance) => instance,
                 None => {
                     let created = cell
                         .module(spec.sha256, &spec.wasm)
                         .and_then(|module| cell.instantiate(&module, pages, spec.outputs, &budget));
-                    match created {
+                    let mut instance = match created {
                         Ok(instance) => instance,
                         Err(err) => return (None, Err(CallError::Fault(err.to_string()))),
+                    };
+                    // A guest that rejects its configuration is a fault: it counts towards the
+                    // failed state instead of being retried silently on every message.
+                    match instance.init(&node_config, &budget, &flag) {
+                        Ok(output) => init_logs = output.logs,
+                        Err(CallError::Guest { text, .. }) | Err(CallError::Fault(text)) => {
+                            return (None, Err(CallError::Fault(text)));
+                        }
+                        Err(CallError::Cancelled) => return (None, Err(CallError::Cancelled)),
                     }
+                    instance
                 }
             };
-            let result = instance.call(&bytes, &budget, &flag);
+            let mut result = instance.call(&bytes, &budget, &flag);
+            if let Ok(output) = &mut result {
+                init_logs.append(&mut output.logs);
+                output.logs = init_logs;
+            }
             (Some(instance), result)
         });
         let joined = tokio::select! {
@@ -182,6 +215,17 @@ impl WasmPluginNode {
             }
         };
         if let Some(reason) = failed {
+            if let Some(engine) = self.base.flow().upgrade().and_then(|flow| flow.engine()) {
+                let version = self.spec.version.to_string();
+                engine.history().record_plugin(
+                    "runtime",
+                    "plugin.failed",
+                    &self.spec.id,
+                    Some(&version),
+                    Some(&super::store::hex(&self.spec.sha256)),
+                    Some("three_strikes"),
+                );
+            }
             let status = StatusObject {
                 fill: Some(StatusFill::Red),
                 shape: Some(StatusShape::Ring),
@@ -279,16 +323,50 @@ fn status_object(status: GuestStatus) -> StatusObject {
     StatusObject { fill: Some(fill), shape: Some(shape), text: Some(status.text) }
 }
 
-/// Reject configuration the prototype cannot honour and check `wasmPlugin` version pinning.
-fn check_node_properties(spec: &PluginSpec, config: &RedFlowNodeConfig) -> crate::Result<()> {
+/// The configuration object `el_init` receives, as EVE bytes. Each declared field takes the
+/// node's value, else the manifest default; a required field with neither is an error. An
+/// empty string counts as absent for non-string kinds (the editor's empty number box).
+pub(crate) fn resolve_config(
+    spec: &PluginSpec,
+    props: Option<&serde_json::Map<String, serde_json::Value>>,
+) -> crate::Result<Vec<u8>> {
+    use serde::Deserialize as _;
+    let mut object = serde_json::Map::new();
+    for field in &spec.manifest.node.config {
+        let given = props.and_then(|p| p.get(&field.name)).filter(|value| {
+            !value.is_null() && !(field.kind != ConfigKind::String && value.as_str().is_some_and(str::is_empty))
+        });
+        let Some(value) = given.or(field.default.as_ref()) else {
+            if field.required {
+                return Err(EdgelinkError::invalid_operation(&format!(
+                    "node type '{}' property '{}' is required",
+                    spec.type_name, field.name
+                )));
+            }
+            continue;
+        };
+        let value = field.check(value).map_err(|why| {
+            EdgelinkError::invalid_operation(&format!("node type '{}' property '{}' {why}", spec.type_name, field.name))
+        })?;
+        object.insert(field.name.clone(), value);
+    }
+    let variant = Variant::deserialize(serde_json::Value::Object(object))
+        .map_err(|err| EdgelinkError::invalid_operation(&format!("plugin configuration: {err}")))?;
+    encode_variant(&variant).map_err(|err| EdgelinkError::invalid_operation(&format!("plugin configuration: {err}")))
+}
+
+/// Reject properties the plugin does not declare, check `wasmPlugin` version pinning, and
+/// resolve the configuration for `el_init`.
+fn check_node_properties(spec: &PluginSpec, config: &RedFlowNodeConfig) -> crate::Result<Vec<u8>> {
     let Some(rest) = config.rest.as_object() else {
-        return Ok(());
+        return resolve_config(spec, None);
     };
+    let declared = &spec.manifest.node.config;
     for key in rest.keys() {
-        if !EDITOR_PROPERTIES.contains(&key.as_str()) {
+        if !EDITOR_PROPERTIES.contains(&key.as_str()) && !declared.iter().any(|field| &field.name == key) {
             return Err(not_supported(format!(
-                "node type '{}' property '{key}': WASM plugin configuration is not implemented in this prototype",
-                spec.type_name
+                "node type '{}' property '{key}' is not declared by WASM plugin {}",
+                spec.type_name, spec.id
             )));
         }
     }
@@ -302,7 +380,7 @@ fn check_node_properties(spec: &PluginSpec, config: &RedFlowNodeConfig) -> crate
             )));
         }
     }
-    Ok(())
+    resolve_config(spec, Some(rest))
 }
 
 impl FlowsElement for WasmPluginNode {
@@ -347,9 +425,43 @@ impl FlowNodeBehavior for WasmPluginNode {
             with_uow(self.as_ref(), cancel.child_token(), |node, msg| async move { node.handle(msg, cancel).await })
                 .await;
         }
-        let mut state = self.lock();
-        state.instance = None;
-        state.cell = None;
+        let (instance, cell) = {
+            let mut state = self.lock();
+            (state.instance.take(), state.cell.take())
+        };
+        if let Some(instance) = instance {
+            self.close_instance(instance).await;
+        }
+        drop(cell);
+    }
+}
+
+impl WasmPluginNode {
+    /// `el_close` for an idle instance, under a permit and the plugin's own budget. Problems
+    /// are logged: stopping is never blocked beyond one deadline.
+    async fn close_instance(&self, mut instance: Instance) {
+        let budget = self.runtime.budget(&self.limits);
+        let permit = match tokio::time::timeout(self.limits.deadline, self.runtime.permits().acquire_owned()).await {
+            Ok(Ok(permit)) => permit,
+            _ => {
+                log::warn!(target: "edgelink::wasm", "[{} {}] el_close skipped: concurrency limit", self.spec.id, self.id());
+                return;
+            }
+        };
+        let joined = tokio::task::spawn_blocking(move || {
+            let _permit = permit;
+            instance.close(&budget, &AtomicBool::new(false))
+        })
+        .await;
+        match joined {
+            Ok(Ok(output)) => self.write_logs(output.logs),
+            Ok(Err(CallError::Guest { text, logs })) => {
+                self.write_logs(logs);
+                log::warn!(target: "edgelink::wasm", "[{} {}] {text}", self.spec.id, self.id());
+            }
+            Ok(Err(err)) => log::warn!(target: "edgelink::wasm", "[{} {}] el_close: {err}", self.spec.id, self.id()),
+            Err(_) => log::warn!(target: "edgelink::wasm", "[{} {}] el_close: host panic", self.spec.id, self.id()),
+        }
     }
 }
 
@@ -375,13 +487,44 @@ mod tests {
         config::Config::builder().add_source(config::File::from_str(toml, config::FileFormat::Toml)).build().unwrap()
     }
 
-    fn registry(id: &str, wat: &str, outputs: u8) -> RegistryHandle {
-        let spec = PluginSpec::new(id, semver::Version::new(1, 2, 0), wat::parse_str(wat).unwrap(), outputs).unwrap();
+    fn spec(id: &str, wat: &str, outputs: u8) -> PluginSpec {
+        PluginSpec::new(id, semver::Version::new(1, 2, 0), wat::parse_str(wat).unwrap(), outputs).unwrap()
+    }
+
+    fn registry_of(specs: Vec<PluginSpec>) -> RegistryHandle {
         crate::runtime::registry::RegistryBuilder::default()
             .build()
             .unwrap()
-            .with_wasm(crate::runtime::wasm::ActivePlugins::from_specs(vec![spec]))
+            .with_wasm(crate::runtime::wasm::ActivePlugins::from_specs(specs))
     }
+
+    fn registry(id: &str, wat: &str, outputs: u8) -> RegistryHandle {
+        registry_of(vec![spec(id, wat, outputs)])
+    }
+
+    fn field(toml: &str) -> crate::runtime::wasm::manifest::ConfigField {
+        toml_edit::de::from_str(toml).unwrap()
+    }
+
+    fn limits(fuel: u64, deadline_ms: u64) -> crate::runtime::wasm::manifest::LimitRequest {
+        crate::runtime::wasm::manifest::LimitRequest {
+            memory_pages: None,
+            fuel_per_message: Some(fuel),
+            deadline_ms: Some(deadline_ms),
+        }
+    }
+
+    /// Emits `{"n": 2}` on port 1, then `{"n": 1}` on port 0.
+    const TWO_PORTS: &str = r#"(module
+      (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
+      (memory (export "memory") 1 1)
+      (data (i32.const 0) "\ee\01\09\01\00\00\00\01\00\00\00n\03\01\00\00\00\00\00\00\00")
+      (data (i32.const 32) "\ee\01\09\01\00\00\00\01\00\00\00n\03\02\00\00\00\00\00\00\00")
+      (func (export "el_abi_version") (result i32) i32.const 1)
+      (func (export "el_alloc") (param i32) (result i32) i32.const 1024)
+      (func (export "el_on_input") (param i32 i32) (result i32)
+        (drop (call $emit (i32.const 1) (i32.const 32) (i32.const 21)))
+        (call $emit (i32.const 0) (i32.const 0) (i32.const 21))))"#;
 
     fn inject(payloads: Value) -> Vec<(ElementId, Msg)> {
         Vec::deserialize(payloads).unwrap()
@@ -448,7 +591,7 @@ mod tests {
     fn undeclared_configuration_and_wrong_pin_are_rejected() {
         let registry = registry("test/identity", include_str!("fixtures/identity.wat"), 1);
         for (extra, needle) in [
-            (json!({ "delimiter": "," }), "property 'delimiter'"),
+            (json!({ "delimiter": "," }), "property 'delimiter' is not declared"),
             (json!({ "wasmPlugin": "test/identity@2" }), "requires test/identity@2, active is test/identity@1.2.0"),
         ] {
             let mut node = json!({ "id": "1", "z": "100", "type": "wasm-test-identity", "wires": [[]] });
@@ -464,7 +607,7 @@ mod tests {
     #[test]
     fn memory_budget_is_admitted_per_graph() {
         let registry = registry("test/identity", include_str!("fixtures/identity.wat"), 1);
-        let toml = format!("{ENABLED}\nmemory_budget_kib = 4096\n");
+        let toml = format!("{ENABLED}\nmemory_budget_kib = 1024\n");
         let nodes: Vec<Value> = (1..=3)
             .map(|i| json!({ "id": format!("{i}"), "z": "100", "type": "wasm-test-identity", "wires": [[]] }))
             .collect();
@@ -474,6 +617,151 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("memory budget exceeded"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn configuration_reaches_el_init_with_defaults_and_overrides() {
+        let configured = spec("test/config", include_str!("fixtures/config.wat"), 1).configured(
+            Default::default(),
+            vec![
+                field("name = \"delimiter\"\nkind = \"string\"\ndefault = \",\""),
+                field("name = \"limit\"\nkind = \"number\"\ninteger = true\nmax = 10.0\ndefault = 5"),
+            ],
+        );
+        let registry = registry_of(vec![configured]);
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "wasm-test-config", "limit": "7", "wires": [["2"]] },
+            { "id": "2", "z": "100", "type": "test-once" }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
+        let msgs = engine
+            .run_once_with_inject(1, Duration::from_secs(2), inject(json!([["1", { "_msgid": MSGID, "payload": 1 }]])))
+            .await
+            .unwrap();
+        assert_eq!(msgs[0].get("delimiter").and_then(Variant::as_str), Some(","));
+        assert_eq!(msgs[0].get("limit").and_then(Variant::as_i64), Some(7));
+        assert_eq!(msgs[0].get(MSG_ID).and_then(Variant::as_str), Some(MSGID));
+    }
+
+    #[test]
+    fn invalid_or_missing_configuration_fails_deploy() {
+        let configured = spec("test/config", include_str!("fixtures/config.wat"), 1).configured(
+            Default::default(),
+            vec![
+                field("name = \"limit\"\nkind = \"number\"\nmax = 10.0\ndefault = 5"),
+                field("name = \"mode\"\nkind = \"enum\"\nvalues = [\"a\", \"b\"]\nrequired = true"),
+            ],
+        );
+        let registry = registry_of(vec![configured]);
+        for (props, needle) in [
+            (json!({ "mode": "a", "limit": 11 }), "property 'limit' must be within"),
+            (json!({ "mode": "c" }), "property 'mode' must be one of"),
+            (json!({}), "property 'mode' is required"),
+            (json!({ "mode": "" }), "property 'mode' is required"),
+        ] {
+            let mut node = json!({ "id": "1", "z": "100", "type": "wasm-test-config", "wires": [[]] });
+            node.as_object_mut().unwrap().extend(props.as_object().unwrap().clone());
+            let flows = json!([{ "id": "100", "type": "tab" }, node]);
+            let err = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED)))
+                .unwrap_err()
+                .to_string();
+            assert!(err.contains(needle), "{props}: {err}");
+        }
+    }
+
+    #[tokio::test]
+    async fn outputs_on_several_ports_arrive_in_emit_order() {
+        let registry = registry("test/ports", TWO_PORTS, 2);
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "wasm-test-ports", "wires": [["2"], ["2"]] },
+            { "id": "2", "z": "100", "type": "test-once" }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
+        let msgs = engine
+            .run_once_with_inject(2, Duration::from_secs(2), inject(json!([["1", { "_msgid": MSGID }]])))
+            .await
+            .unwrap();
+        let order: Vec<i64> = msgs.iter().map(|m| m.get("n").and_then(Variant::as_i64).unwrap()).collect();
+        assert_eq!(order, vec![2, 1]);
+        assert!(msgs.iter().all(|m| m.get(MSG_ID).and_then(Variant::as_str) == Some(MSGID)));
+    }
+
+    #[tokio::test]
+    async fn link_call_returns_through_a_plugin() {
+        let registry = registry("test/identity", include_str!("fixtures/identity.wat"), 1);
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "200", "type": "tab" },
+            { "id": "1", "z": "100", "type": "link in", "wires": [["2"]] },
+            { "id": "2", "z": "100", "type": "wasm-test-identity", "wires": [["3"]] },
+            { "id": "3", "z": "100", "type": "link out", "mode": "return" },
+            { "id": "4", "z": "200", "type": "link call", "links": ["1"], "wires": [["5"]] },
+            { "id": "5", "z": "200", "type": "test-once" }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
+        let msgs = engine
+            .run_once_with_inject(1, Duration::from_secs(2), inject(json!([["4", { "payload": "via link" }]])))
+            .await
+            .unwrap();
+        assert_eq!(msgs[0].get("payload").and_then(Variant::as_str), Some("via link"));
+        assert!(msgs[0].link_call_stack.as_ref().is_none_or(|stack| stack.is_empty()));
+    }
+
+    #[tokio::test]
+    async fn exhausted_global_permits_fail_the_message_after_its_deadline() {
+        let quick =
+            spec("test/identity", include_str!("fixtures/identity.wat"), 1).configured(limits(2_000_000, 50), vec![]);
+        let registry = registry_of(vec![quick]);
+        let toml = format!("{ENABLED}\nmax_concurrent = 1\n");
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "wasm-test-identity", "wires": [["2"]] },
+            { "id": "2", "z": "100", "type": "test-once" },
+            { "id": "3", "z": "100", "type": "catch", "scope": ["1"], "uncaught": false, "wires": [["2"]] }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(&toml))).unwrap();
+        // Another plugin call holds the only permit for the whole test.
+        let _held = engine.wasm_runtime().permits().acquire_owned().await.unwrap();
+        let started = Instant::now();
+        let msgs = engine
+            .run_once_with_inject(1, Duration::from_secs(2), inject(json!([["1", { "payload": 1 }]])))
+            .await
+            .unwrap();
+        let text = msgs[0].get_nav("error.message").and_then(Variant::as_str).unwrap_or_default().to_owned();
+        assert!(text.contains("concurrency limit"), "{text}");
+        assert!(started.elapsed() < Duration::from_secs(1), "{:?}", started.elapsed());
+    }
+
+    #[tokio::test]
+    async fn stopping_cancels_a_running_call_within_a_slice() {
+        let spin =
+            spec("test/spin", include_str!("fixtures/spin.wat"), 1).configured(limits(1_000_000_000, 5_000), vec![]);
+        let registry = registry_of(vec![spin]);
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "wasm-test-spin", "wires": [[]] }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
+        let runtime = engine.wasm_runtime();
+        let permits = runtime.settings().max_concurrent as usize;
+        engine.start().await.unwrap();
+        let (id, msg) = inject(json!([["1", { "payload": 1 }]])).pop().unwrap();
+        engine.inject_msg(&id, MsgHandle::new(msg), CancellationToken::new()).await.unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while runtime.permits().available_permits() == permits && Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(runtime.permits().available_permits(), permits - 1, "the guest is running");
+        let stopped = Instant::now();
+        engine.stop().await.unwrap();
+        while runtime.permits().available_permits() < permits && stopped.elapsed() < Duration::from_secs(2) {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        // Without cancellation the guest would hold the permit until its fuel ran out (~0.7 s).
+        assert!(stopped.elapsed() < Duration::from_millis(300), "{:?}", stopped.elapsed());
+        assert_eq!(runtime.permits().available_permits(), permits);
     }
 
     #[tokio::test]

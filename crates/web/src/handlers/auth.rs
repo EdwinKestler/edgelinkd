@@ -469,7 +469,8 @@ pub fn allows(scope: &str, permission: &str) -> bool {
     if permission.is_empty() {
         return true;
     }
-    let administrator_only = permission.starts_with("config.") || permission == "runtime.restart";
+    let administrator_only =
+        permission.starts_with("config.") || permission.starts_with("wasm.") || permission == "runtime.restart";
     scope.split(',').map(str::trim).any(|item| {
         item == "*"
             || item == permission
@@ -506,6 +507,10 @@ pub fn permission_for(method: &Method, path: &str) -> Option<&'static str> {
     }
     if path.starts_with("/history") {
         return Some("history.read");
+    }
+    // Installing or activating third-party code is an administrator action, reads included.
+    if path.starts_with("/wasm/") {
+        return Some(if matches!(*method, Method::GET | Method::HEAD) { "wasm.read" } else { "wasm.write" });
     }
     if path.starts_with("/credentials") {
         let write = !matches!(*method, Method::GET | Method::HEAD);

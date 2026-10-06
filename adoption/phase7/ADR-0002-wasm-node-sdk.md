@@ -605,6 +605,11 @@ package has its own `[workspace]` and `Cargo.lock`; it is never built by the mai
   6/6 hostile guests contained, deadline overshoot 0.3 ms, `bulk.wasm` compile 30.4 ms; fuel
   throughput 4.8·10⁵/ms. §7 defaults are kept. Evidence: `adoption/phase7/REPORT.md`,
   `spike/results/pi-arm64.jsonl`.
+- 2026-10-06, after the live test: the default linear-memory cap per instance (§7) is 512 KiB
+  (8 pages) instead of 2 MiB, so the 8 MiB default budget admits about 15 plugin nodes rather
+  than 3. The 16 MiB ceiling is unchanged. A module whose initial memory exceeds its limit is
+  rejected at `stage` with the remedy (request `[limits] memory_pages`, or link Rust guests with
+  `-zstack-size=65536`, §8); boards with spare RAM raise `memory_budget_kib`.
 
 ## Git and release state
 

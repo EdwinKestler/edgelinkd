@@ -71,7 +71,7 @@ pub struct ActiveEntry {
     pub activated_at: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct ActiveFile {
     schema: u32,
     #[serde(default)]
@@ -86,6 +86,15 @@ pub struct Listing {
 
 /// Checks the candidate plugin set against the deployed graph (`Engine::prepare_flows`).
 pub type PrepareFn<'a> = &'a dyn Fn(Arc<ActivePlugins>) -> crate::Result<()>;
+
+/// A pointer change that is written but not yet final. [`PluginStore::finish`] deletes the
+/// generation it superseded; [`PluginStore::revert`] restores the pointer it replaced. The
+/// online path holds one across the redeploy so a failed redeploy can undo the activation.
+#[derive(Debug)]
+#[must_use = "finish or revert the pointer change"]
+pub struct PendingChange {
+    before: ActiveFile,
+}
 
 pub struct PluginStore {
     root: PathBuf,
@@ -242,6 +251,11 @@ impl PluginStore {
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Largest package `stage` accepts (`[runtime.wasm] max_module_kib`).
+    pub fn max_package_bytes(&self) -> usize {
+        self.settings.max_module_kib as usize * 1024
     }
 
     #[cfg(test)]
@@ -418,8 +432,23 @@ impl PluginStore {
         let text = manifest_text(bytes, self.settings.max_module_kib as usize * 1024)?;
         let manifest = Manifest::parse(&text)?;
         let spec = PluginSpec::from_package(bytes.to_vec(), &manifest)?;
-        WasmRuntime::new(self.settings.clone()).effective_limits(&spec)?;
-        EngineCell::new()?.compile(bytes)?;
+        let limits = WasmRuntime::new(self.settings.clone()).effective_limits(&spec)?;
+        let module = EngineCell::new()?.compile(bytes)?;
+        let initial = EngineCell::min_memory_pages(&module);
+        if initial > u64::from(limits.memory_pages) {
+            return Err(EdgelinkError::NotSupported(format!(
+                "module starts with {initial} pages of linear memory but plugin {} may use {} \
+                 ([limits] memory_pages, else [runtime.wasm] default_memory_pages); request \
+                 memory_pages = {initial} in the manifest, or link a Rust guest with \
+                 -C link-arg=-zstack-size=65536",
+                spec.id, limits.memory_pages
+            )));
+        }
+        if !manifest.node.config.is_empty() && !EngineCell::exports(&module, "el_init") {
+            return Err(EdgelinkError::NotSupported(
+                "manifest declares [[node.config]] but the module does not export el_init".to_owned(),
+            ));
+        }
         Ok((manifest, spec))
     }
 
@@ -431,6 +460,10 @@ impl PluginStore {
         let module = cell.compile(&spec.wasm)?;
         let mut instance = cell.instantiate(&module, limits.memory_pages, spec.outputs, &runtime.budget(&limits))?;
         let cancel = std::sync::atomic::AtomicBool::new(false);
+        let config = super::plugin_node::resolve_config(spec, None)?;
+        if let Err(err) = instance.init(&config, &runtime.budget(&limits), &cancel) {
+            return Err(store_err(format!("selftest: {err} (with the default configuration)")));
+        }
         for (i, test) in manifest.selftest.iter().enumerate() {
             let fail = |why: String| store_err(format!("selftest[{i}]: {why}"));
             let input = Variant::deserialize(&test.input).map_err(|err| fail(err.to_string()))?;
@@ -502,6 +535,18 @@ impl PluginStore {
     /// Make a staged, self-tested generation current. `prepare` must accept the resulting set
     /// (the deployed graph builds with it) before anything on disk changes.
     pub fn activate(&self, id: &str, sha: &str, prepare: PrepareFn<'_>) -> crate::Result<ActiveEntry> {
+        let (entry, pending) = self.activate_pending(id, sha, prepare)?;
+        self.finish(pending)?;
+        Ok(entry)
+    }
+
+    /// [`Self::activate`] without deleting the superseded generation yet.
+    pub fn activate_pending(
+        &self,
+        id: &str,
+        sha: &str,
+        prepare: PrepareFn<'_>,
+    ) -> crate::Result<(ActiveEntry, PendingChange)> {
         split_id(id)?;
         valid_sha(sha)?;
         let in_store = self.report("store", sha)?;
@@ -519,8 +564,9 @@ impl PluginStore {
             )));
         }
         let mut active = self.read_active()?;
+        let before = active.clone();
         if active.plugins.get(id).is_some_and(|e| e.current == sha) {
-            return Ok(active.plugins[id].clone());
+            return Ok((active.plugins[id].clone(), PendingChange { before }));
         }
         let area = if in_store.is_some() { "store" } else { "quarantine" };
         let bytes = read(&self.path(area, sha, "wasm"))?;
@@ -538,25 +584,61 @@ impl PluginStore {
         }
         let previous = active.plugins.get(id).map(|e| e.current.clone());
         let entry = ActiveEntry { current: sha.to_owned(), previous, activated_at: now() };
-        let superseded = active.plugins.insert(id.to_owned(), entry.clone()).and_then(|old| old.previous);
+        active.plugins.insert(id.to_owned(), entry.clone());
         self.write_active(&active)?;
         self.step("pointer-written")?;
-        if let Some(old) = superseded.filter(|old| !Self::referenced(&active).contains(old)) {
+        Ok((entry, PendingChange { before }))
+    }
+
+    /// Make a pointer change final: generations it superseded are deleted.
+    pub fn finish(&self, pending: PendingChange) -> crate::Result<()> {
+        let now = Self::referenced(&self.read_active()?);
+        for old in Self::referenced(&pending.before).difference(&now) {
             for ext in ["wasm", "json"] {
-                let path = self.path("store", &old, ext);
+                let path = self.path("store", old, ext);
                 if path.exists() {
                     fs::remove_file(&path).map_err(|e| io_err(&path, e))?;
                 }
             }
         }
-        Ok(entry)
+        Ok(())
+    }
+
+    /// Undo a pointer change: the previous `active.toml` is written back and a generation that
+    /// only the undone pointer referenced returns to quarantine (still `ready`).
+    pub fn revert(&self, pending: PendingChange) -> crate::Result<()> {
+        let undone = Self::referenced(&self.read_active()?);
+        self.write_active(&pending.before)?;
+        let kept = Self::referenced(&pending.before);
+        for sha in undone.difference(&kept) {
+            for ext in ["wasm", "json"] {
+                let from = self.path("store", sha, ext);
+                if from.exists() {
+                    rename(&from, &self.path("quarantine", sha, ext))?;
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Swap `current` and `previous`. `expected_previous` guards against a stale view.
     pub fn rollback(&self, id: &str, expected_previous: &str, prepare: PrepareFn<'_>) -> crate::Result<ActiveEntry> {
+        let (entry, pending) = self.rollback_pending(id, expected_previous, prepare)?;
+        self.finish(pending)?;
+        Ok(entry)
+    }
+
+    /// [`Self::rollback`] as a revertible pointer change.
+    pub fn rollback_pending(
+        &self,
+        id: &str,
+        expected_previous: &str,
+        prepare: PrepareFn<'_>,
+    ) -> crate::Result<(ActiveEntry, PendingChange)> {
         split_id(id)?;
         valid_sha(expected_previous)?;
         let mut active = self.read_active()?;
+        let before = active.clone();
         let entry = active.plugins.get(id).cloned().ok_or_else(|| store_err(format!("plugin {id} is not active")))?;
         let previous =
             entry.previous.clone().ok_or_else(|| store_err(format!("plugin {id} has no previous generation")))?;
@@ -568,7 +650,7 @@ impl PluginStore {
         let swapped = ActiveEntry { current: previous, previous: Some(entry.current), activated_at: now() };
         active.plugins.insert(id.to_owned(), swapped.clone());
         self.write_active(&active)?;
-        Ok(swapped)
+        Ok((swapped, PendingChange { before }))
     }
 
     /// Deactivate `id`. Its generations move back to quarantine, preserved but never run.
@@ -683,6 +765,33 @@ mod tests {
     }
 
     #[test]
+    fn a_reverted_activation_restores_the_pointer_and_requarantines_the_candidate() {
+        let dir = temp();
+        let store = open(&dir);
+        let a = store.stage(&package("1.0.0")).unwrap().sha256;
+        let b = store.stage(&package("1.1.0")).unwrap().sha256;
+        let c = store.stage(&package("1.2.0")).unwrap().sha256;
+        store.activate("acme/upper", &a, &ok).unwrap();
+        store.activate("acme/upper", &b, &ok).unwrap();
+        let (entry, pending) = store.activate_pending("acme/upper", &c, &ok).unwrap();
+        assert_eq!(entry.previous.as_deref(), Some(b.as_str()));
+        // The generation C supersedes is kept until the change is final.
+        assert!(store.root().join("store").join(format!("{a}.wasm")).exists());
+        store.revert(pending).unwrap();
+        let listing = store.list().unwrap();
+        let active = &listing.active["acme/upper"];
+        assert_eq!((active.current.as_str(), active.previous.as_deref()), (b.as_str(), Some(a.as_str())));
+        assert!(store.root().join("quarantine").join(format!("{c}.wasm")).exists());
+        assert!(!store.root().join("store").join(format!("{c}.wasm")).exists());
+        let (set, problems) = store.active_plugins().unwrap();
+        assert!(problems.is_empty(), "{problems:?}");
+        assert_eq!(set.len(), 1);
+        // C stays activatable.
+        store.activate("acme/upper", &c, &ok).unwrap();
+        assert!(!store.root().join("store").join(format!("{a}.wasm")).exists());
+    }
+
+    #[test]
     fn failed_activation_keeps_b_current_and_a_previous() {
         let dir = temp();
         let store = open(&dir);
@@ -754,6 +863,22 @@ mod tests {
         assert!(store.stage(&greedy).unwrap_err().to_string().contains("max_memory_pages"));
         assert!(store.list().unwrap().packages.is_empty());
         assert_eq!(fs::read_dir(store.root.join("staging")).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn initial_memory_above_the_plugin_limit_is_rejected_with_a_fix() {
+        let dir = temp();
+        let store = open(&dir);
+        let big = include_str!("fixtures/identity.wat")
+            .replace("(memory (export \"memory\") 1 1)", "(memory (export \"memory\") 9 9)");
+        let module = wat::parse_str(&big).unwrap();
+        let err = store.stage(&append_manifest(&module, SAMPLE).unwrap()).unwrap_err().to_string();
+        assert!(err.contains("starts with 9 pages") && err.contains("memory_pages = 9"), "{err}");
+        let defaults = append_manifest(&module, &SAMPLE.replace("memory_pages = 4\n", "")).unwrap();
+        let err = store.stage(&defaults).unwrap_err().to_string();
+        assert!(err.contains("may use 8"), "{err}");
+        let asked = append_manifest(&module, &SAMPLE.replace("memory_pages = 4", "memory_pages = 9")).unwrap();
+        assert_eq!(store.stage(&asked).unwrap().status, PackageStatus::Ready);
     }
 
     #[test]

@@ -25,7 +25,7 @@ pub struct App {
     _registry: RegistryHandle,
     /// Holds the plugin store lock while the runtime runs (only when `[runtime.wasm] enabled`).
     #[cfg(feature = "nodes_wasm")]
-    _plugin_store: Option<edgelink_core::runtime::wasm::PluginStore>,
+    plugin_store: Option<Arc<edgelink_core::runtime::wasm::PluginStore>>,
     engine: Arc<RwLock<Engine>>,
     msgs_to_inject: Mutex<Vec<MsgInjectionEntry>>,
     flows_path: String, // Store the resolved flows path
@@ -55,7 +55,7 @@ impl App {
         Ok(App {
             _registry: reg,
             #[cfg(feature = "nodes_wasm")]
-            _plugin_store: plugin_store,
+            plugin_store: plugin_store.map(Arc::new),
             engine: Arc::new(RwLock::new(engine)),
             msgs_to_inject: Mutex::new(msgs_to_inject),
             flows_path: flows_path.clone(),
@@ -117,6 +117,12 @@ impl App {
     /// Get a reference to the registry
     pub fn registry(&self) -> &RegistryHandle {
         &self._registry
+    }
+
+    /// The plugin store, when `[runtime.wasm] enabled = true`. The admin API shares it.
+    #[cfg(feature = "nodes_wasm")]
+    pub fn plugin_store(&self) -> Option<Arc<edgelink_core::runtime::wasm::PluginStore>> {
+        self.plugin_store.clone()
     }
 
     /// Get a reference to the engine

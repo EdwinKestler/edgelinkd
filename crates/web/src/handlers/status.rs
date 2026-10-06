@@ -90,6 +90,11 @@ pub async fn get_status(Extension(state): Extension<Arc<WebState>>) -> Response 
         status_json["history"] = serde_json::to_value(state.history.health()).unwrap_or(Value::Null);
     }
 
+    #[cfg(feature = "nodes_wasm")]
+    if let Some(engine) = engine.as_ref() {
+        status_json["wasm"] = serde_json::to_value(engine.wasm_status()).unwrap_or(Value::Null);
+    }
+
     Json(status_json).into_response()
 }
 

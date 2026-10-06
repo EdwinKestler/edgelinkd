@@ -46,3 +46,5 @@ nodes_wasm = ["edgelink-core/nodes_wasm"]
 
 [dev-dependencies]
 tokio-tungstenite = { workspace = true }
+# WAT fixtures for the WASM plugin API tests (never linked into a binary).
+wat = "1"

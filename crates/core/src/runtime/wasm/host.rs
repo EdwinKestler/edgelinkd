@@ -61,9 +61,19 @@ impl WasmRuntime {
         Ok(cell)
     }
 
-    #[cfg(test)]
+    /// Whether a Wasmi engine exists right now (some plugin node has run).
     pub(crate) fn engine_live(&self) -> bool {
         self.cell.lock().unwrap_or_else(|e| e.into_inner()).strong_count() > 0
+    }
+
+    /// Permits held by running plugin calls.
+    pub(crate) fn permits_in_use(&self) -> usize {
+        (self.settings.max_concurrent as usize).saturating_sub(self.permits.available_permits())
+    }
+
+    /// Memory admitted for the deployed graph, in KiB.
+    pub(crate) fn reserved_kib(&self) -> u64 {
+        self.admission.lock().unwrap_or_else(|e| e.into_inner()).reserved_kib
     }
 
     /// The limits a plugin runs with: its manifest requests, or the defaults, never above the

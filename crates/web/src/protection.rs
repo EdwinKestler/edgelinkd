@@ -69,6 +69,7 @@ impl ApiProtection {
             EndpointClass::Webhook,
             EndpointClass::Copilot,
             EndpointClass::Fleet,
+            EndpointClass::Plugins,
             EndpointClass::Static,
         ]
         .into_iter()
@@ -191,6 +192,8 @@ pub fn classify(path: &str) -> EndpointClass {
         EndpointClass::Copilot
     } else if path.starts_with("/fleet/") {
         EndpointClass::Fleet
+    } else if path.starts_with("/wasm/") {
+        EndpointClass::Plugins
     } else if [
         "/flows",
         "/flow",
@@ -431,10 +434,13 @@ fn content_type_supported(class: EndpointClass, headers: &HeaderMap) -> bool {
         return false;
     };
     let media = value.split(';').next().unwrap_or(value).trim().to_ascii_lowercase();
-    if class == EndpointClass::Authentication {
-        matches!(media.as_str(), "application/json" | "application/x-www-form-urlencoded")
-    } else {
-        matches!(media.as_str(), "application/json" | "text/plain" | "application/octet-stream")
+    match class {
+        EndpointClass::Authentication => {
+            matches!(media.as_str(), "application/json" | "application/x-www-form-urlencoded")
+        }
+        // Plugin packages are uploaded as `application/wasm`; everything else there is JSON.
+        EndpointClass::Plugins => matches!(media.as_str(), "application/json" | "application/wasm"),
+        _ => matches!(media.as_str(), "application/json" | "text/plain" | "application/octet-stream"),
     }
 }
 
@@ -528,6 +534,21 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    #[tokio::test]
+    async fn plugin_packages_are_accepted_as_application_wasm_only_on_plugin_routes() {
+        async fn status(uri: &str, media: &str) -> StatusCode {
+            let request = HttpRequest::post(uri)
+                .header("content-type", media)
+                .header("content-length", "1")
+                .body(Body::from("x"))
+                .unwrap();
+            app(WebState::new()).oneshot(request).await.unwrap().status()
+        }
+        assert_ne!(status("/wasm/plugins/stage", "application/wasm").await, StatusCode::UNSUPPORTED_MEDIA_TYPE);
+        assert_eq!(status("/wasm/plugins/stage", "text/plain").await, StatusCode::UNSUPPORTED_MEDIA_TYPE);
+        assert_eq!(status("/flows", "application/wasm").await, StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
 
     #[tokio::test]
@@ -758,6 +779,7 @@ mod tests {
         assert_eq!(classify("/assistant/draft"), EndpointClass::Copilot);
         assert_eq!(classify("/fleet/push"), EndpointClass::Fleet);
         assert_eq!(classify("/locales/editor"), EndpointClass::Static);
+        assert_eq!(classify("/wasm/plugins/stage"), EndpointClass::Plugins);
         assert_eq!(classify("/flows"), EndpointClass::EditorAdmin);
         assert_eq!(classify("/library/local/flows/example.json"), EndpointClass::EditorAdmin);
         assert_eq!(classify("/debug/node-id/enable"), EndpointClass::EditorAdmin);

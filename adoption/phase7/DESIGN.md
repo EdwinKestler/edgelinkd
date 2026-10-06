@@ -169,7 +169,7 @@ max_plugins = 16                # active plugin ids
 max_module_kib = 512            # .wasm size, enforced while streaming the upload
 max_concurrent = 2              # global permits; 1..=available cores
 memory_budget_kib = 8192        # per engine: Σ instance memory caps + Σ 8 × module size
-default_memory_pages = 32       # 2 MiB
+default_memory_pages = 8        # 512 KiB (was 32; changed after the live test, see REPORT)
 max_memory_pages = 256          # 16 MiB ceiling for manifest requests
 default_fuel = 20_000_000       # per message
 max_fuel = 1_000_000_000
@@ -659,8 +659,8 @@ default build unchanged.
 | 2 | `crates/eve`: codec, limits, property tests and a fuzz target; no consumer yet | no (not linked) | — |
 | 3 | `nodes_wasm` feature skeleton: settings, section walker, manifest, ABI/linker, `exec.rs` with fuel slicing and cancellation; WAT fixtures; hostile execution tests | no | G1 passed; **done on `phase7-design`** except `[[node.config]]` (manifests with config are refused) |
 | 4 | Plugin store and lifecycle, offline CLI, crash-injection tests | no | **done on `phase7-design`** (`store.rs` holds the lifecycle; no separate `lifecycle.rs`) |
-| 5 | Registry/engine integration, `WasmPluginNode`, admission, flow-level tests (deploy, missing plugin, redeploy cancellation) | no | — |
-| 6 | Web: routes, `EndpointClass::Plugins`, online activation under the deploy lock, editor HTML, `/nodes`, Copilot catalog, history/audit, `/status` | no | — |
+| 5 | Registry/engine integration, `WasmPluginNode`, admission, flow-level tests (deploy, missing plugin, redeploy cancellation) | no | **done on `phase7-design`** (incl. `el_init`/`el_close`, `[[node.config]]`) |
+| 6 | Web: routes, `EndpointClass::Plugins`, online activation under the deploy lock, editor HTML, `/nodes`, Copilot catalog, history/audit, `/status` | no | **done on `phase7-design`** |
 | 7 | `crates/wasm-guest`, examples, CI `wasm32` build, end-to-end install tests, docs (`docs/operations/wasm-plugins.md`, guest README), README roadmap entry marked experimental, `AGENTS.md` commands table | no | — |
 | 8 | `adoption/phase7/REPORT.md`: tests, measurements (host + G1 device + ARM cross builds), rollback drill, unverified boundaries | no | G2 |
 
@@ -742,6 +742,27 @@ of 5), recorded in `REPORT.md`:
 4. **Floats allowed in v1; SIMD off.** `wasm32-unknown-unknown` emits `f32`/`f64` for ordinary
    Rust; `Config::floats(false)` would reject the guest SDK. Cross-architecture bit-identical
    results on soft-float ARM are not a v1 promise.
+
+## Implementation notes (PR 4–6)
+
+Where the implementation differs from the text above:
+
+- `el_init` is optional; a manifest that declares `[[node.config]]` must export it (checked at
+  `stage`). `el_close` is optional and runs only for an idle instance when the node stops,
+  under a permit and the plugin's own budget. `emit` during either is a fault.
+- The lifecycle lives in `store.rs` (no `lifecycle.rs`). Online activation uses
+  `activate_pending`/`rollback_pending`, then `finish` (deletes the superseded generation) or
+  `revert` (restores the pointer and returns the candidate to quarantine) depending on the
+  redeploy. The offline CLI calls the one-step `activate`/`rollback`.
+- The engine's plugin set is swapped on every redeploy (`load_into`), and deploy and Copilot
+  validation now prepare with the live engine's configuration (`Engine::config`), so a plugin
+  node validates exactly as it will run.
+- Concurrency: one instance per node, so each node is serial; `max_concurrent` permits are
+  shared by every plugin. There is no per-plugin permit pool.
+- `/wasm/*` needs the administrator role for reads as well (`wasm.read`, `wasm.write`).
+- `App::restart_engine` (used only when the web state has no engine) still builds with the
+  registry from startup; a restart through that path after an online activation uses the
+  startup plugin set until the process restarts.
 
 ## Files
 

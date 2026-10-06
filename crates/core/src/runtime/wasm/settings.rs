@@ -53,7 +53,9 @@ impl Default for WasmSettings {
             max_module_kib: 512,
             max_concurrent: 2,
             memory_budget_kib: 8192,
-            default_memory_pages: 32,
+            // 512 KiB: G1 measured ≈ 82 KiB per instance, and the default memory budget then
+            // admits about 15 plugin nodes. Plugins that need more request [limits] memory_pages.
+            default_memory_pages: 8,
             max_memory_pages: 256,
             default_fuel: 20_000_000,
             max_fuel: 1_000_000_000,

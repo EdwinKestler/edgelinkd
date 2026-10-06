@@ -15,7 +15,7 @@ use edgelink_core::runtime::history::{HistoryQuery, HistoryQueryError};
 use super::WebState;
 use super::reply::api_error;
 
-const VALID_CATEGORIES: &[&str] = &["deploy", "node", "copilot", "fleet", "runtime", "history"];
+const VALID_CATEGORIES: &[&str] = &["deploy", "node", "copilot", "fleet", "runtime", "history", "plugin"];
 
 pub async fn get_history(
     Extension(state): Extension<Arc<WebState>>,

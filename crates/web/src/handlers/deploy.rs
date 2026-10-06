@@ -261,15 +261,16 @@ pub async fn rollback_pair(state: &WebState, flows_path: &StdPath) -> Result<Str
 }
 
 async fn prepare(state: &WebState, attached: &Value) -> Result<(), DeployErr> {
-    let engine_present = state.engine.read().await.is_some();
-    if !engine_present {
+    let Some(engine) = state.engine.read().await.clone() else {
         return Ok(());
-    }
+    };
     let registry = state.registry.read().await.clone();
     let Some(registry) = registry else {
         return Err(DeployErr::Internal("engine is not available".to_string()));
     };
-    Engine::prepare_flows(attached, &registry, None).map_err(DeployErr::Invalid)
+    // The candidate sees the settings the live engine runs with (plugins, egress, ...), the same
+    // ones `redeploy_flows` falls back to.
+    Engine::prepare_flows(attached, &registry, engine.config().cloned()).map_err(DeployErr::Invalid)
 }
 
 async fn activate(state: &WebState, attached: Value) -> Result<(), DeployErr> {

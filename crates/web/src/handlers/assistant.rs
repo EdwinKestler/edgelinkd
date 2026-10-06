@@ -221,7 +221,8 @@ pub async fn post_assistant_draft(
             }
         }
     }
-    if let Err(err) = Engine::prepare_flows(&Value::Array(candidate), &registry, None) {
+    let engine_config = state.engine.read().await.as_ref().and_then(|engine| engine.config().cloned());
+    if let Err(err) = Engine::prepare_flows(&Value::Array(candidate), &registry, engine_config) {
         state.history.record_copilot_rejected(&actor.username, "invalid_ai_draft");
         return api_error(StatusCode::UNPROCESSABLE_ENTITY, "invalid_ai_draft", &err.to_string());
     }
@@ -267,6 +268,14 @@ fn parse_model_draft(text: &str) -> Result<ModelDraft, String> {
     Ok(draft)
 }
 
+/// A built-in type, or an active WASM plugin type (they count as registered for drafts).
+fn lookup(registry: &dyn Registry, type_name: &str) -> Option<&'static edgelink_core::runtime::nodes::MetaNode> {
+    let found = registry.get(type_name);
+    #[cfg(feature = "nodes_wasm")]
+    let found = found.or_else(|| registry.wasm().and_then(|plugins| plugins.meta(type_name)));
+    found
+}
+
 fn catalog_json(registry: &dyn Registry, flows: &[Value]) -> Value {
     let mut nodes = Vec::new();
     for meta in registry.all().values() {
@@ -287,6 +296,10 @@ fn catalog_json(registry: &dyn Registry, flows: &[Value]) -> Value {
             "secretFields": hints.map(|h| h.secret_fields).unwrap_or(&[]),
             "capabilities": hints.map(|h| h.capabilities).unwrap_or(&[]),
         }));
+    }
+    #[cfg(feature = "nodes_wasm")]
+    if let Some(plugins) = registry.wasm() {
+        nodes.extend(crate::handlers::wasm_plugins::catalog_entries(plugins));
     }
     nodes.sort_by(|a, b| a["type"].as_str().cmp(&b["type"].as_str()));
     let mut config_nodes = Vec::new();
@@ -332,7 +345,7 @@ fn materialize_draft(
         if !valid_reference(&node.reference) {
             return Err(format!("invalid draft node ref '{}'", node.reference));
         }
-        let Some(meta) = registry.get(&node.type_name) else {
+        let Some(meta) = lookup(registry, &node.type_name) else {
             return Err(format!("node type '{}' is not registered in this build", node.type_name));
         };
         if !matches!(meta.kind(), NodeKind::Flow) {
@@ -371,7 +384,7 @@ fn materialize_draft(
         else {
             return Err(format!("wire source '{}' is not a new node", wire.from));
         };
-        let ports = registry.get(from_type).map(|meta| meta.ports());
+        let ports = lookup(registry, from_type).map(|meta| meta.ports());
         let max_port = if !strict || ports.is_some_and(|p| p.dynamic_outputs) {
             MAX_OUTPUT_PORT
         } else {

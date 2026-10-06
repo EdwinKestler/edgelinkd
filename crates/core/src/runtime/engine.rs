@@ -122,7 +122,7 @@ struct InnerEngine {
     agent_slots: std::sync::Arc<tokio::sync::Semaphore>,
 
     #[cfg(feature = "nodes_wasm")]
-    wasm_plugins: Option<std::sync::Arc<crate::runtime::wasm::ActivePlugins>>,
+    wasm_plugins: std::sync::RwLock<Option<std::sync::Arc<crate::runtime::wasm::ActivePlugins>>>,
     #[cfg(feature = "nodes_wasm")]
     wasm_runtime: std::sync::Arc<crate::runtime::wasm::WasmRuntime>,
 
@@ -238,7 +238,7 @@ impl Engine {
                 agent_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
 
                 #[cfg(feature = "nodes_wasm")]
-                wasm_plugins: reg.wasm().cloned(),
+                wasm_plugins: std::sync::RwLock::new(reg.wasm().cloned()),
                 #[cfg(feature = "nodes_wasm")]
                 wasm_runtime: std::sync::Arc::new(crate::runtime::wasm::WasmRuntime::new(
                     crate::runtime::wasm::WasmSettings::from_config(elcfg.as_ref())?,
@@ -265,6 +265,12 @@ impl Engine {
     }
 
     /// Operational history handle.
+    /// The configuration this engine was built with. Callers that prepare a candidate graph
+    /// for this engine use it so the candidate sees the same settings (plugins, egress, ...).
+    pub fn config(&self) -> Option<&config::Config> {
+        self.inner.elcfg.as_ref()
+    }
+
     pub fn history(&self) -> &HistoryHandle {
         &self.inner.history
     }
@@ -276,7 +282,30 @@ impl Engine {
 
     #[cfg(feature = "nodes_wasm")]
     pub(crate) fn wasm_plugins(&self) -> Option<std::sync::Arc<crate::runtime::wasm::ActivePlugins>> {
-        self.inner.wasm_plugins.clone()
+        self.inner.wasm_plugins.read().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    /// Plugin host state for `/status`.
+    #[cfg(feature = "nodes_wasm")]
+    pub fn wasm_status(&self) -> crate::runtime::wasm::WasmStatus {
+        let runtime = &self.inner.wasm_runtime;
+        let settings = runtime.settings();
+        let engine_live = runtime.engine_live();
+        crate::runtime::wasm::WasmStatus {
+            state: if !settings.enabled {
+                "disabled"
+            } else if engine_live {
+                "active"
+            } else {
+                "idle"
+            },
+            plugins: self.wasm_plugins().map(|set| set.len()).unwrap_or(0),
+            engine_live,
+            permits_in_use: runtime.permits_in_use(),
+            max_concurrent: settings.max_concurrent,
+            memory_reserved_kib: runtime.reserved_kib(),
+            memory_budget_kib: settings.memory_budget_kib,
+        }
     }
 
     #[cfg(feature = "nodes_wasm")]
@@ -289,9 +318,7 @@ impl Engine {
         if !self.inner.wasm_runtime.settings().enabled {
             return Err(crate::runtime::wasm::unavailable_plugin_error(type_name));
         }
-        self.inner
-            .wasm_plugins
-            .as_ref()
+        self.wasm_plugins()
             .and_then(|set| set.meta(type_name))
             .ok_or_else(|| crate::runtime::wasm::not_active_error(type_name))
     }
@@ -896,6 +923,11 @@ impl Engine {
         elcfg: Option<&config::Config>,
     ) -> crate::Result<()> {
         self.clear_graphs();
+        // A redeploy may come with a different plugin set (online activation or rollback).
+        #[cfg(feature = "nodes_wasm")]
+        {
+            *self.inner.wasm_plugins.write().unwrap_or_else(|e| e.into_inner()) = reg.wasm().cloned();
+        }
         let json_values = json::deser::load_flows_json_value(json.clone()).inspect_err(|_| {
             self.clear_graphs();
         })?;

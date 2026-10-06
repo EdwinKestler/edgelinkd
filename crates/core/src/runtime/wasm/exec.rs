@@ -10,14 +10,36 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use wasmi::{
-    Caller, CompilationMode, Config, Extern, Linker, Module, Store, StoreLimits, StoreLimitsBuilder, TypedFunc,
-    TypedResumableCall,
+    Caller, CompilationMode, Config, Extern, ExternType, Linker, Module, Store, StoreLimits, StoreLimitsBuilder,
+    TypedFunc, TypedResumableCall, ValType, WasmResults,
 };
 
 use crate::EdgelinkError;
 
 pub(crate) const ABI_MODULE: &str = "edgelink:node/v1";
-const ABI_IMPORTS: [&str; 4] = ["emit", "log", "status", "fail"];
+use ValType::I32;
+
+/// Host functions a guest may import, with their exact signatures.
+const ABI_IMPORTS: [(&str, &[ValType], &[ValType]); 4] = [
+    ("emit", &[I32, I32, I32], &[I32]),
+    ("log", &[I32, I32, I32], &[I32]),
+    ("status", &[I32, I32, I32, I32], &[I32]),
+    ("fail", &[I32, I32], &[I32]),
+];
+
+/// Guest exports: (name, params, results, required). `el_init` receives the node configuration
+/// (one EVE object); `el_close` runs when the node stops.
+const ABI_EXPORTS: [(&str, &[ValType], &[ValType], bool); 5] = [
+    ("el_abi_version", &[], &[I32], true),
+    ("el_alloc", &[I32], &[I32], true),
+    ("el_on_input", &[I32, I32], &[I32], true),
+    ("el_init", &[I32, I32], &[I32], false),
+    ("el_close", &[], &[], false),
+];
+
+fn signature(params: &[ValType], results: &[ValType]) -> String {
+    format!("{params:?} -> {results:?}")
+}
 
 pub(crate) const MAX_EMIT_BYTES: usize = 64 * 1024;
 pub(crate) const MAX_EMITS: usize = 16;
@@ -97,6 +119,8 @@ pub(crate) struct Instance {
     store: Store<HostState>,
     alloc: TypedFunc<i32, i32>,
     on_input: TypedFunc<(i32, i32), i32>,
+    init: Option<TypedFunc<(i32, i32), i32>>,
+    close: Option<TypedFunc<(), ()>>,
     memory: wasmi::Memory,
 }
 
@@ -210,19 +234,83 @@ impl EngineCell {
         Ok(Self { engine, linker, modules: Mutex::new(HashMap::new()) })
     }
 
-    /// Validate and compile once; reject any import outside ABI v1 before linking.
+    /// Validate and compile once; reject any import outside ABI v1, and any missing or
+    /// mistyped ABI export, before linking.
     pub(crate) fn compile(&self, bytes: &[u8]) -> crate::Result<Module> {
         let module = Module::new(&self.engine, bytes).map_err(|err| config_error(format!("compile: {err}")))?;
         for import in module.imports() {
-            if import.module() != ABI_MODULE || !ABI_IMPORTS.contains(&import.name()) {
+            let granted = ABI_IMPORTS.iter().find(|(name, ..)| import.module() == ABI_MODULE && import.name() == *name);
+            let Some((name, params, results)) = granted else {
                 return Err(EdgelinkError::NotSupported(format!(
                     "import {}::{} is not granted by ABI {ABI_MODULE}",
                     import.module(),
                     import.name()
                 )));
+            };
+            match import.ty() {
+                ExternType::Func(ty) if ty.params() == *params && ty.results() == *results => {}
+                ExternType::Func(ty) => {
+                    return Err(EdgelinkError::NotSupported(format!(
+                        "import {ABI_MODULE}::{name} has type {}, expected {}",
+                        signature(ty.params(), ty.results()),
+                        signature(params, results)
+                    )));
+                }
+                _ => {
+                    return Err(EdgelinkError::NotSupported(format!(
+                        "import {ABI_MODULE}::{name} must be a function (imported memories, tables and globals are not granted)"
+                    )));
+                }
+            }
+        }
+        let mut memory = false;
+        let mut found = [false; ABI_EXPORTS.len()];
+        for export in module.exports() {
+            if export.name() == "memory" {
+                memory = matches!(export.ty(), ExternType::Memory(_));
+                continue;
+            }
+            let Some(index) = ABI_EXPORTS.iter().position(|(name, ..)| *name == export.name()) else {
+                continue;
+            };
+            let (name, params, results, _) = ABI_EXPORTS[index];
+            match export.ty() {
+                ExternType::Func(ty) if ty.params() == params && ty.results() == results => found[index] = true,
+                ExternType::Func(ty) => {
+                    return Err(EdgelinkError::NotSupported(format!(
+                        "export {name} has type {}, expected {}",
+                        signature(ty.params(), ty.results()),
+                        signature(params, results)
+                    )));
+                }
+                _ => return Err(EdgelinkError::NotSupported(format!("export {name} must be a function"))),
+            }
+        }
+        if !memory {
+            return Err(EdgelinkError::NotSupported("plugin must export its linear memory as \"memory\"".to_owned()));
+        }
+        for (index, (name, _, _, required)) in ABI_EXPORTS.iter().enumerate() {
+            if *required && !found[index] {
+                return Err(EdgelinkError::NotSupported(format!("plugin does not export {name}")));
             }
         }
         Ok(module)
+    }
+
+    /// Initial size of the exported linear memory, in 64 KiB pages.
+    pub(crate) fn min_memory_pages(module: &Module) -> u64 {
+        module
+            .exports()
+            .find_map(|export| match (export.name(), export.ty()) {
+                ("memory", ExternType::Memory(ty)) => Some(ty.minimum()),
+                _ => None,
+            })
+            .unwrap_or(0)
+    }
+
+    /// Whether a compiled module exports `name` (for example `el_init`).
+    pub(crate) fn exports(module: &Module, name: &str) -> bool {
+        module.exports().any(|export| export.name() == name)
     }
 
     /// Compiled module for `sha256`, compiling on first use.
@@ -273,6 +361,8 @@ impl EngineCell {
             on_input: instance
                 .get_typed_func(&store, "el_on_input")
                 .map_err(|err| config_error(format!("el_on_input: {err}")))?,
+            init: instance.get_typed_func(&store, "el_init").ok(),
+            close: instance.get_typed_func(&store, "el_close").ok(),
             memory: instance
                 .get_memory(&store, "memory")
                 .ok_or_else(|| EdgelinkError::invalid_operation("plugin does not export memory"))?,
@@ -290,41 +380,30 @@ impl Instance {
         state.fail = None;
     }
 
-    /// One message. Outputs are returned only when the guest returns `0` without calling `fail`.
-    pub(crate) fn call(&mut self, input: &[u8], budget: &Budget, cancel: &AtomicBool) -> Result<CallOutput, CallError> {
-        self.reset();
+    /// Copy `input` into guest memory through `el_alloc`.
+    fn write_input(&mut self, input: &[u8], budget: &Budget) -> Result<(i32, i32), CallError> {
         let len = i32::try_from(input.len()).map_err(|_| CallError::Fault("input too large".to_owned()))?;
         self.store.set_fuel(budget.slice).map_err(|err| CallError::Fault(err.to_string()))?;
         let ptr = self.alloc.call(&mut self.store, len).map_err(|err| CallError::Fault(format!("el_alloc: {err}")))?;
         self.memory
             .write(&mut self.store, ptr as u32 as usize, input)
             .map_err(|_| CallError::Fault("el_alloc returned a range outside linear memory".to_owned()))?;
+        Ok((ptr, len))
+    }
+
+    /// Run a resumable call to completion in fuel slices, checking the fuel budget, the
+    /// deadline and cancellation between slices.
+    fn drive<R: WasmResults>(
+        &mut self,
+        mut call: TypedResumableCall<R>,
+        budget: &Budget,
+        cancel: &AtomicBool,
+    ) -> Result<R, CallError> {
         let mut granted = budget.slice;
-        self.store.set_fuel(budget.slice).map_err(|err| CallError::Fault(err.to_string()))?;
-        let mut call = self
-            .on_input
-            .call_resumable(&mut self.store, (ptr, len))
-            .map_err(|err| CallError::Fault(format!("trap: {err}")))?;
         loop {
             match call {
-                TypedResumableCall::Finished(code) => {
-                    let state = self.store.data_mut();
-                    let logs = std::mem::take(&mut state.logs);
-                    if let Some(text) = state.fail.take() {
-                        return Err(CallError::Guest { text, logs });
-                    }
-                    if code != 0 {
-                        return Err(CallError::Guest { text: format!("guest returned {code}"), logs });
-                    }
-                    return Ok(CallOutput {
-                        outputs: std::mem::take(&mut state.outputs),
-                        logs,
-                        status: state.status.take(),
-                    });
-                }
-                TypedResumableCall::HostTrap(trap) => {
-                    return Err(CallError::Fault(trap.host_error().to_string()));
-                }
+                TypedResumableCall::Finished(value) => return Ok(value),
+                TypedResumableCall::HostTrap(trap) => return Err(CallError::Fault(trap.host_error().to_string())),
                 TypedResumableCall::OutOfFuel(pending) => {
                     if cancel.load(Ordering::Acquire) {
                         return Err(CallError::Cancelled);
@@ -342,6 +421,76 @@ impl Instance {
                 }
             }
         }
+    }
+
+    /// Turn a finished call's return code and host state into output or a guest error.
+    fn finish(&mut self, what: &str, code: i32) -> Result<CallOutput, CallError> {
+        let state = self.store.data_mut();
+        let logs = std::mem::take(&mut state.logs);
+        if let Some(text) = state.fail.take() {
+            return Err(CallError::Guest { text: format!("{what}{text}"), logs });
+        }
+        if code != 0 {
+            return Err(CallError::Guest { text: format!("{what}guest returned {code}"), logs });
+        }
+        Ok(CallOutput { outputs: std::mem::take(&mut state.outputs), logs, status: state.status.take() })
+    }
+
+    /// Pass the node configuration (one EVE object) to `el_init`, if the guest exports it.
+    /// `emit` is refused during init.
+    pub(crate) fn init(
+        &mut self,
+        config: &[u8],
+        budget: &Budget,
+        cancel: &AtomicBool,
+    ) -> Result<CallOutput, CallError> {
+        let Some(init) = self.init else {
+            return Ok(CallOutput::default());
+        };
+        self.reset();
+        let (ptr, len) = self.write_input(config, budget)?;
+        let outputs = std::mem::replace(&mut self.store.data_mut().outputs_allowed, 0);
+        self.store.set_fuel(budget.slice).map_err(|err| CallError::Fault(err.to_string()))?;
+        let result = init
+            .call_resumable(&mut self.store, (ptr, len))
+            .map_err(|err| CallError::Fault(format!("el_init: trap: {err}")))
+            .and_then(|call| self.drive(call, budget, cancel));
+        self.store.data_mut().outputs_allowed = outputs;
+        let code = result.map_err(|err| match err {
+            CallError::Fault(text) => CallError::Fault(format!("el_init: {text}")),
+            other => other,
+        })?;
+        self.finish("el_init: ", code)
+    }
+
+    /// Call `el_close`, if exported, when the node stops. Bounded like any other call.
+    pub(crate) fn close(&mut self, budget: &Budget, cancel: &AtomicBool) -> Result<CallOutput, CallError> {
+        let Some(close) = self.close else {
+            return Ok(CallOutput::default());
+        };
+        self.reset();
+        let outputs = std::mem::replace(&mut self.store.data_mut().outputs_allowed, 0);
+        self.store.set_fuel(budget.slice).map_err(|err| CallError::Fault(err.to_string()))?;
+        let result = close
+            .call_resumable(&mut self.store, ())
+            .map_err(|err| CallError::Fault(format!("el_close: trap: {err}")))
+            .and_then(|call| self.drive(call, budget, cancel));
+        self.store.data_mut().outputs_allowed = outputs;
+        result?;
+        self.finish("el_close: ", 0)
+    }
+
+    /// One message. Outputs are returned only when the guest returns `0` without calling `fail`.
+    pub(crate) fn call(&mut self, input: &[u8], budget: &Budget, cancel: &AtomicBool) -> Result<CallOutput, CallError> {
+        self.reset();
+        let (ptr, len) = self.write_input(input, budget)?;
+        self.store.set_fuel(budget.slice).map_err(|err| CallError::Fault(err.to_string()))?;
+        let call = self
+            .on_input
+            .call_resumable(&mut self.store, (ptr, len))
+            .map_err(|err| CallError::Fault(format!("trap: {err}")))?;
+        let code = self.drive(call, budget, cancel)?;
+        self.finish("", code)
     }
 }
 
@@ -439,6 +588,65 @@ mod tests {
             }
             other => panic!("unexpected {other}"),
         }
+    }
+
+    const BASE: &str = r#"(memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0)"#;
+
+    fn compile_err(body: &str) -> String {
+        let wat = format!("(module {body})");
+        EngineCell::new().unwrap().compile(&wat::parse_str(&wat).unwrap()).unwrap_err().to_string()
+    }
+
+    #[test]
+    fn missing_mistyped_and_imported_abi_items_are_rejected() {
+        let on_input = r#"(func (export "el_on_input") (param i32 i32) (result i32) i32.const 0)"#;
+        let err = compile_err(BASE);
+        assert!(err.contains("does not export el_on_input"), "{err}");
+        let err = compile_err(&format!(r#"{BASE} (func (export "el_on_input") (param i32) (result i32) i32.const 0)"#));
+        assert!(err.contains("export el_on_input has type"), "{err}");
+        let err = compile_err(&format!(r#"{BASE} {on_input} (func (export "el_close") (result i32) i32.const 0)"#));
+        assert!(err.contains("export el_close has type"), "{err}");
+        let err = compile_err(&format!(
+            r#"(func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) {on_input}"#
+        ));
+        assert!(err.contains("export its linear memory"), "{err}");
+        let err = compile_err(&format!(
+            r#"(import "edgelink:node/v1" "emit" (memory 1)) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) {on_input}"#
+        ));
+        assert!(err.contains("must be a function"), "{err}");
+        let err = compile_err(&format!(
+            r#"(import "edgelink:node/v1" "emit" (func (param i32) (result i32))) {BASE} {on_input}"#
+        ));
+        assert!(err.contains("import edgelink:node/v1::emit has type"), "{err}");
+    }
+
+    #[test]
+    fn wrong_abi_version_is_not_supported() {
+        let wat = r#"(module (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 2) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0))"#;
+        let cell = EngineCell::new().unwrap();
+        let module = cell.compile(&wat::parse_str(wat).unwrap()).unwrap();
+        let err = cell.instantiate(&module, 1, 1, &budget(20_000_000, 1000)).err().unwrap().to_string();
+        assert!(err.contains("unsupported WASM ABI 2"), "{err}");
+    }
+
+    #[test]
+    fn init_receives_config_and_close_is_bounded() {
+        let mut guest = instance(include_str!("fixtures/config.wat"), 1);
+        guest.init(b"cfg", &budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap();
+        let out = guest.call(b"x", &budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap();
+        assert_eq!(out.outputs, vec![(0, b"cfg".to_vec())]);
+        match guest.close(&budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap_err() {
+            CallError::Guest { text, .. } => assert_eq!(text, "el_close: bye"),
+            other => panic!("unexpected {other}"),
+        }
+        let wat = format!(
+            r#"(module (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) {BASE} (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0) (func (export "el_init") (param i32 i32) (result i32) (call $emit (i32.const 0) (i32.const 0) (i32.const 1))) (func (export "el_close") (loop $l (br $l))))"#
+        );
+        let mut guest = instance(&wat, 1);
+        let err = guest.init(b"{}", &budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap_err();
+        assert!(err.to_string().contains("el_init: emit: bad output port 0"), "{err}");
+        let err = guest.close(&budget(2_000_000, 1000), &AtomicBool::new(false)).unwrap_err();
+        assert!(err.to_string().contains("fuel budget"), "{err}");
     }
 
     #[test]

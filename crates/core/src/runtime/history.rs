@@ -590,6 +590,38 @@ impl HistoryHandle {
         });
     }
 
+    /// Plugin lifecycle (`plugin.staged`, `plugin.rejected`, `plugin.activated`,
+    /// `plugin.rolled_back`, `plugin.removed`, `plugin.discarded`, `plugin.failed`). Records the
+    /// plugin id, version, the first 12 hex digits of the package digest and a reason code;
+    /// never package bytes, configuration values or message content.
+    pub fn record_plugin(
+        &self,
+        actor: &str,
+        kind: &str,
+        plugin_id: &str,
+        version: Option<&str>,
+        sha256: Option<&str>,
+        reason: Option<&str>,
+    ) {
+        let digest = sha256.filter(|s| s.chars().all(|c| c.is_ascii_hexdigit())).map(|s| &s[..s.len().min(12)]);
+        let reason =
+            reason.map(|r| r.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '_').take(32).collect::<String>());
+        self.record(HistoryEvent {
+            at_ms: current_unix_ms(),
+            run_id: self.inner.run_id.clone(),
+            category: "plugin".to_string(),
+            kind: kind.chars().filter(|c| c.is_ascii_lowercase() || *c == '.' || *c == '_').take(32).collect(),
+            outcome: Some(if reason.is_some() { "failed" } else { "ok" }.to_string()),
+            actor: sanitize_actor(actor),
+            subject: sanitize_subject(Some(plugin_id)),
+            detail: sanitize_detail(serde_json::json!({
+                "version": version.map(|v| v.chars().take(64).collect::<String>()),
+                "digest": digest,
+                "reason": reason,
+            })),
+        });
+    }
+
     pub fn record_fleet_push(&self, actor: &str, device: &str, status: u16, rev: Option<&str>) {
         self.record(HistoryEvent {
             at_ms: current_unix_ms(),

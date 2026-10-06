@@ -28,6 +28,8 @@ pub enum EndpointClass {
     Webhook,
     Copilot,
     Fleet,
+    /// `/wasm/plugins…` (plugin install and activation).
+    Plugins,
     Static,
 }
 
@@ -41,6 +43,7 @@ impl EndpointClass {
             Self::Webhook => "webhook",
             Self::Copilot => "copilot",
             Self::Fleet => "fleet",
+            Self::Plugins => "plugins",
             Self::Static => "static",
         }
     }
@@ -122,6 +125,7 @@ pub struct IngressProtectionConfig {
     pub webhook: EndpointLimits,
     pub copilot: EndpointLimits,
     pub fleet: EndpointLimits,
+    pub plugins: EndpointLimits,
     pub static_assets: EndpointLimits,
 }
 
@@ -181,6 +185,16 @@ impl Default for IngressProtectionConfig {
                 max_response_bytes: 4_194_304,
                 ..EndpointLimits::default()
             },
+            // DESIGN.md §10: one package (≤ max_module_kib) per request, rare and serialised.
+            plugins: EndpointLimits {
+                max_body_bytes: 1_048_576,
+                requests_per_minute: 6,
+                max_concurrency: 1,
+                queue_timeout_ms: 500,
+                request_timeout_ms: 30_000,
+                max_response_bytes: 65_536,
+                ..EndpointLimits::default()
+            },
             static_assets: EndpointLimits {
                 requests_per_minute: 1_200,
                 max_concurrency: 64,
@@ -214,6 +228,7 @@ impl IngressProtectionConfig {
             EndpointClass::Webhook => &self.webhook,
             EndpointClass::Copilot => &self.copilot,
             EndpointClass::Fleet => &self.fleet,
+            EndpointClass::Plugins => &self.plugins,
             EndpointClass::Static => &self.static_assets,
         }
     }
@@ -230,6 +245,7 @@ impl IngressProtectionConfig {
             EndpointClass::Webhook,
             EndpointClass::Copilot,
             EndpointClass::Fleet,
+            EndpointClass::Plugins,
             EndpointClass::Static,
         ] {
             self.limits(class).validate(class)?;
@@ -311,6 +327,8 @@ mod tests {
         let config = IngressProtectionConfig::default();
         config.validate().unwrap();
         assert_eq!(config.copilot.max_concurrency, 2);
+        assert_eq!(config.plugins.max_concurrency, 1);
+        assert_eq!(config.plugins.requests_per_minute, 6);
         assert_eq!(config.webhook.max_body_bytes, 1_048_576);
     }
 
