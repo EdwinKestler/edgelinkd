@@ -36,8 +36,8 @@ class N2linkError(Exception):
 def load_edgelink_mod():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    target = os.getenv('EDGELINK_BUILD_TARGET', '')
-    profile = os.getenv('EDGELINK_BUILD_PROFILE', 'debug')
+    target = os.getenv('N2LINK_BUILD_TARGET', '')
+    profile = os.getenv('N2LINK_BUILD_PROFILE', 'debug')
 
     target_directory = os.path.join(
         script_dir, '..', 'target', target, profile)
@@ -99,19 +99,19 @@ async def start_edgelink_process(el_args: list[str]):
     # Determine the operating system and choose the appropriate executable name
     if platform.system() == 'Windows':
         createion_flags = subprocess.CREATE_NEW_PROCESS_GROUP
-        myprog_name = 'edgelinkd.exe'
+        myprog_name = 'n2linkd.exe'
     else:
         createion_flags = 0
-        myprog_name = 'edgelinkd'
+        myprog_name = 'n2linkd'
 
-    target = os.getenv('EDGELINK_BUILD_TARGET', '')
-    profile = os.getenv('EDGELINK_BUILD_PROFILE', 'debug')
+    target = os.getenv('N2LINK_BUILD_TARGET', '')
+    profile = os.getenv('N2LINK_BUILD_PROFILE', 'debug')
 
     myprog_path = os.path.join(
         script_dir, '..', 'target', target, profile, myprog_name)
 
-    qemu_cmd = os.getenv("EDGELINK_QEMU_CMD", None)
-    toolchain_triple = os.getenv("EDGELINK_TOOLCHAIN_TRIPLE", None)
+    qemu_cmd = os.getenv("N2LINK_QEMU_CMD", None)
+    toolchain_triple = os.getenv("N2LINK_TOOLCHAIN_TRIPLE", None)
 
     if qemu_cmd and toolchain_triple:
         el_args = ["-L", f"/usr/{toolchain_triple}", myprog_path] + el_args

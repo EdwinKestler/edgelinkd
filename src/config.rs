@@ -1,18 +1,25 @@
+use n2link_core::compat;
+
 use crate::cliargs::CliArgs;
-use crate::consts;
 use crate::defaults::create_default_config_file;
 
 pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
     // Collect config file paths for logging
     let mut config_files = Vec::new();
-    // Load configuration from default, development, and production files
-    let home_dir = dirs_next::home_dir()
-        .map(|x| x.join(consts::DEFAULT_HOME_DIR_NAME).to_string_lossy().to_string())
-        .expect("Cannot get the `~/home` directory");
-
-    // Priority order: --user-dir > --home > EDGELINK_HOME env var > default ~/.edgelinkd
-    let edgelink_home_dir =
-        cli_args.user_dir.clone().or(cli_args.home.clone()).or(std::env::var("EDGELINK_HOME").ok()).or(Some(home_dir));
+    // Priority order: --user-dir > --home > N2LINK_HOME (or EDGELINK_HOME) > ~/.n2linkd (or ~/.edgelinkd).
+    // The default is resolved only when nothing else names a home, so its legacy warning is not
+    // printed for an explicit home.
+    let env_home = compat::env_var("HOME").map_err(anyhow::Error::msg)?;
+    let env_run_env = compat::env_var("RUN_ENV").map_err(anyhow::Error::msg)?;
+    let run_env = cli_args.env.clone().or(env_run_env).unwrap_or("dev".to_owned());
+    let edgelink_home_dir = match cli_args.user_dir.clone().or(cli_args.home.clone()).or(env_home) {
+        Some(dir) => Some(dir),
+        None => Some(
+            dirs_next::home_dir()
+                .map(|x| compat::default_home_dir(&x).to_string_lossy().to_string())
+                .expect("Cannot get the `~/home` directory"),
+        ),
+    };
 
     // Only set default flows_path if not specified by any source
     let mut builder = config::Config::builder();
@@ -21,11 +28,8 @@ pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
         home_dir_val = Some(hd.clone());
         builder = builder.set_override("home_dir", hd.clone())?;
         // Add config file paths for logging
-        let main_cfg = std::path::Path::new(hd).join("edgelinkd.toml");
-        let env_cfg = std::path::Path::new(hd).join(format!(
-            "edgelinkd.{}.toml",
-            cli_args.env.clone().or(std::env::var("EDGELINK_RUN_ENV").ok()).unwrap_or("dev".to_owned())
-        ));
+        let main_cfg = compat::config_file(std::path::Path::new(hd), None);
+        let env_cfg = compat::config_file(std::path::Path::new(hd), Some(&run_env));
         config_files.push(main_cfg.display().to_string());
         config_files.push(env_cfg.display().to_string());
         // Actually add config files to builder
@@ -49,11 +53,9 @@ pub fn load_config(cli_args: &CliArgs) -> anyhow::Result<config::Config> {
         builder = builder.set_override("flows_path_is_default", false)?;
     }
 
-    let run_env = cli_args.env.clone().or(std::env::var("EDGELINK_RUN_ENV").ok()).unwrap_or("dev".to_owned());
-
     if cli_args.verbose > 0 {
         if let Some(ref x) = edgelink_home_dir {
-            eprintln!("$EDGELINK_HOME={x}");
+            eprintln!("$N2LINK_HOME={x}");
             eprintln!("Loading config files:");
             for f in &config_files {
                 eprintln!("\t- `{f}`");

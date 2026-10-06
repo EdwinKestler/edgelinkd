@@ -89,12 +89,12 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
     }
     manifest.ok_or_else(|| {
         N2linkError::NotSupported(format!(
-            "WASM package has no {MANIFEST_SECTION} custom section (use `edgelinkd plugin pack`)"
+            "WASM package has no {MANIFEST_SECTION} custom section (use `n2linkd plugin pack`)"
         ))
     })
 }
 
-/// Append an `edgelink.manifest` custom section (what `edgelinkd plugin pack` does).
+/// Append an `edgelink.manifest` custom section (what `n2linkd plugin pack` does).
 pub fn append_manifest(module: &[u8], manifest: &str) -> crate::Result<Vec<u8>> {
     if manifest.len() > MAX_MANIFEST_BYTES {
         return Err(N2linkError::NotSupported(format!("manifest is more than {MAX_MANIFEST_BYTES} bytes")));

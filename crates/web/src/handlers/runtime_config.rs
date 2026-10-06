@@ -74,7 +74,7 @@ fn boxed_api_error(status: StatusCode, code: &str, message: &str) -> Box<Respons
 }
 
 fn previous_path(path: &Path) -> PathBuf {
-    let name = path.file_name().and_then(|name| name.to_str()).unwrap_or("edgelinkd.dev.toml");
+    let name = path.file_name().and_then(|name| name.to_str()).unwrap_or("n2linkd.dev.toml");
     path.with_file_name(format!("{name}.prev"))
 }
 
@@ -417,7 +417,7 @@ mode = "off"
     #[tokio::test]
     async fn save_apply_and_rollback_reinitialize_the_shared_policy() {
         let dir = temp();
-        let path = dir.0.join("edgelinkd.dev.toml");
+        let path = dir.0.join("n2linkd.dev.toml");
         std::fs::write(&path, "title = \"keep\"\n").unwrap();
         let state = state(&path).await;
         let original = revision(&std::fs::read(&path).unwrap());
@@ -464,7 +464,7 @@ mode = "off"
     #[tokio::test]
     async fn an_unrelated_file_change_does_not_require_an_egress_restart() {
         let dir = temp();
-        let path = dir.0.join("edgelinkd.dev.toml");
+        let path = dir.0.join("n2linkd.dev.toml");
         std::fs::write(&path, "title = \"before\"\n").unwrap();
         let state = state(&path).await;
         std::fs::write(&path, "title = \"after\"\n").unwrap();
@@ -479,7 +479,7 @@ mode = "off"
     #[tokio::test]
     async fn stale_save_is_rejected_without_writing() {
         let dir = temp();
-        let path = dir.0.join("edgelinkd.dev.toml");
+        let path = dir.0.join("n2linkd.dev.toml");
         std::fs::write(&path, "title = \"keep\"\n").unwrap();
         let state = state(&path).await;
 

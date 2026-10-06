@@ -807,7 +807,7 @@ expect_outputs = [{expect}]
     /// → D fails `prepare_flows` → rollback B→A → restart → A active.
     #[tokio::test]
     async fn online_lifecycle_drill() {
-        let home = Home(std::env::temp_dir().join(format!("edgelinkd-wasm-api-{}", uuid::Uuid::new_v4())));
+        let home = Home(std::env::temp_dir().join(format!("n2linkd-wasm-api-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&home.0).unwrap();
         let flows_path = home.0.join("flows.json");
         std::fs::write(&flows_path, br#"[{"id":"100","type":"tab"}]"#).unwrap();

@@ -26,7 +26,7 @@ _TOPIC = 0
 def next_topic():
     global _TOPIC
     _TOPIC += 1
-    return f"edgelinkd/spec/{_TOPIC}/{uuid.uuid4().hex[:8]}"
+    return f"n2linkd/spec/{_TOPIC}/{uuid.uuid4().hex[:8]}"
 
 
 def _live(test):
@@ -65,11 +65,11 @@ def first_on_topic(msgs, topic):
 
 
 def _broker_auth(node):
-    """Live runs sign in when EDGELINK_MQTT_USER is set. CI leaves the node anonymous."""
-    user = os.environ.get("EDGELINK_MQTT_USER", "")
+    """Live runs sign in when N2LINK_MQTT_USER is set. CI leaves the node anonymous."""
+    user = os.environ.get("N2LINK_MQTT_USER", "")
     if user and "username" not in node:
         node["username"] = user
-        node["password"] = os.environ.get("EDGELINK_MQTT_PASSWORD", "")
+        node["password"] = os.environ.get("N2LINK_MQTT_PASSWORD", "")
     return node
 
 

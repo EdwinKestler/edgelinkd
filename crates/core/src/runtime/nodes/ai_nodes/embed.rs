@@ -257,7 +257,7 @@ impl FlowNodeBehavior for AiEmbedNode {
 mod tests {
     #[tokio::test]
     async fn embed_live() {
-        if std::env::var("EDGELINK_AI_LIVE").ok().as_deref() != Some("1") {
+        if std::env::var("N2LINK_AI_LIVE").ok().as_deref() != Some("1") {
             return;
         }
         panic!("set provider keys and replace this stub with a live OpenAI and xAI embedding call");

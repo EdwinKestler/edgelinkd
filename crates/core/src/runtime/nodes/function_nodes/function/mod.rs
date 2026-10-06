@@ -17,8 +17,8 @@ use crate::runtime::nodes::*;
 use n2link_macro::*;
 
 mod context_class;
-mod edgelink_class;
 mod env_class;
+mod n2link_class;
 mod node_class;
 
 const OUTPUT_MSGS_CAP: usize = 4;
@@ -165,18 +165,18 @@ impl FunctionNode {
         let user_script = format!(
             "
             async function __el_init_func() {{ 
-                let global = __edgelinkGlobalContext; 
-                let flow = __edgelinkFlowContext; 
-                let context = __edgelinkNodeContext; 
+                let global = __n2linkGlobalContext; 
+                let flow = __n2linkFlowContext; 
+                let context = __n2linkNodeContext; 
                 context.flow = flow;
                 context.global = global;
                 \n{}\n
             }}
 
             async function __el_user_func(msg) {{ 
-                let global = __edgelinkGlobalContext; 
-                let flow = __edgelinkFlowContext; 
-                let context = __edgelinkNodeContext; 
+                let global = __n2linkGlobalContext; 
+                let flow = __n2linkFlowContext; 
+                let context = __n2linkNodeContext; 
                 let __msgid__ = msg._msgid; 
                 context.flow = flow;
                 context.global = global;
@@ -184,9 +184,9 @@ impl FunctionNode {
             }}
                 
             async function __el_finalize_func() {{ 
-                let global = __edgelinkGlobalContext; 
-                let flow = __edgelinkFlowContext; 
-                let context = __edgelinkNodeContext; 
+                let global = __n2linkGlobalContext; 
+                let flow = __n2linkFlowContext; 
+                let context = __n2linkNodeContext; 
                 context.flow = flow;
                 context.global = global;
                 \n{}\n
@@ -345,10 +345,10 @@ impl FunctionNode {
         // crate::runtime::red::js::red::register_red_object(&ctx).unwrap();
         // js::Class::<node_class::NodeClass>::register(&ctx)?;
         // js::Class::<env_class::EnvClass>::register(&ctx)?;
-        // js::Class::<edgelink_class::N2linkClass>::register(&ctx)?;
+        // js::Class::<n2link_class::N2linkClass>::register(&ctx)?;
 
         ::rquickjs_extra::console::init(ctx)?;
-        ctx.globals().set("__edgelink", edgelink_class::N2linkClass::default())?;
+        ctx.globals().set("__n2link", n2link_class::N2linkClass::default())?;
 
         /*
         {
@@ -364,7 +364,7 @@ impl FunctionNode {
 
         // Register the global-scoped context
         if let Some(global_context) = self.engine().map(|x| x.context().clone()) {
-            ctx.globals().set("__edgelinkGlobalContext", context_class::ContextClass::new(global_context))?;
+            ctx.globals().set("__n2linkGlobalContext", context_class::ContextClass::new(global_context))?;
         } else {
             return Err(N2linkError::InvalidOperation("Failed to get global context".into()))
                 .with_context(|| "The engine cannot be released!");
@@ -372,13 +372,13 @@ impl FunctionNode {
 
         // Register the flow-scoped context
         if let Some(flow_context) = self.flow().map(|x| x.context().clone()) {
-            ctx.globals().set("__edgelinkFlowContext", context_class::ContextClass::new(flow_context.clone()))?;
+            ctx.globals().set("__n2linkFlowContext", context_class::ContextClass::new(flow_context.clone()))?;
         } else {
             return Err(N2linkError::InvalidOperation("Failed to get flow context".into()));
         }
 
         // Register the node-scoped context
-        ctx.globals().set("__edgelinkNodeContext", context_class::ContextClass::new(self.context().clone()))?;
+        ctx.globals().set("__n2linkNodeContext", context_class::ContextClass::new(self.context().clone()))?;
 
         let mut eval_options = EvalOptions::default();
         eval_options.promise = true;

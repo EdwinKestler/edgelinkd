@@ -153,7 +153,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history_query_and_validation() {
-        let temp_dir = std::env::temp_dir().join(format!("edgelinkd-web-hist-{}", uuid::Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("n2linkd-web-hist-{}", uuid::Uuid::new_v4()));
         let _ = std::fs::create_dir_all(&temp_dir);
         let db_path = temp_dir.join("history.sqlite3");
 

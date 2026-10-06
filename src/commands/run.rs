@@ -15,7 +15,7 @@ impl Command for RunCommand {
     }
 
     fn description(&self) -> &'static str {
-        "Run the EdgeLinkd workflow engine"
+        "Run the n2link workflow engine"
     }
 
     async fn execute(&self, args: Arc<CliArgs>) -> Result<()> {

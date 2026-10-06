@@ -43,7 +43,7 @@ __pycache__
 
 # Local overlay: admin passwords, extra context stores, and machine-specific policy.
 # Starter copies live in src/defaults.rs and adoption fixtures.
-/edgelinkd.dev.toml
+/n2linkd.dev.toml
 
 # Client-only page toolchain (Vite). The lockfile stays.
 /crates/web/client/node_modules

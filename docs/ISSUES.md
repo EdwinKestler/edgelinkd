@@ -6,7 +6,7 @@ root [README](../README.md) and the spec coverage report
 ([`tests/REDNODES-SPECS-DIFF.md`](../tests/REDNODES-SPECS-DIFF.md)), not here. Measured evidence
 and phase boundaries are under [`adoption/`](../adoption/).
 
-Report new issues on GitHub: <https://github.com/EdwinKestler/edgelinkd/issues>.
+Report new issues on GitHub: <https://github.com/EdwinKestler/n2linkd/issues>.
 
 ## Runtime and flows
 
@@ -20,15 +20,15 @@ Node-RED accepts such flows.
 use two nodes: one that builds the request and one that handles the reply. The TOFSense plugin
 example does exactly this for its query mode.
 
-### `edgelinkd run` ignores `[ui-host]` in the configuration
+### `n2linkd run` ignores `[ui-host]` in the configuration
 
-**Symptom.** The editor always listens on `127.0.0.1:1888` with `edgelinkd run`, whatever
-`ui-host` says in `edgelinkd.toml`.
+**Symptom.** The editor always listens on `127.0.0.1:1888` with `n2linkd run`, whatever
+`ui-host` says in `n2linkd.toml`.
 
 **Cause.** The `run` subcommand's `--bind` option has a default value, and it takes precedence
-over the configuration file. Plain `edgelinkd` (no subcommand) uses `ui-host`.
+over the configuration file. Plain `n2linkd` (no subcommand) uses `ui-host`.
 
-**Workaround.** Pass the address explicitly: `edgelinkd run --bind 0.0.0.0:1888`.
+**Workaround.** Pass the address explicitly: `n2linkd run --bind 0.0.0.0:1888`.
 
 ### MQTT keeps its resolved broker address until redeploy
 
@@ -65,10 +65,10 @@ See the [operator manual](operations/wasm-plugins.md) for setup and its troubles
   palette update; the activation response says `editorReloadRequired: true`.
 - **A publisher named `quarantine` cannot be removed through the admin API**, because the
   `DELETE /wasm/plugins/quarantine/{sha256}` route matches first. Use
-  `edgelinkd plugin remove quarantine/<name>` with the runtime stopped.
+  `n2linkd plugin remove quarantine/<name>` with the runtime stopped.
 - **A crash between an online activation and its redeploy can leave startup failing** if the
   newly activated generation does not build with the deployed flows. Startup reports the plugin
-  and stops. Recover with `edgelinkd plugin rollback <id> --sha256 <previous>` while stopped.
+  and stops. Recover with `n2linkd plugin rollback <id> --sha256 <previous>` while stopped.
 - **The engine-restart fallback uses the startup plugin set.** It runs only when the web server
   has no engine, which the normal `run` path never does; after an online activation, restart the
   process instead of relying on it.

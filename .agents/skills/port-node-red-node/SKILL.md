@@ -36,17 +36,17 @@ pip install -r ./tests/requirements.txt     # pytest, pytest-asyncio, pytest-it,
 cargo build --all                           # also builds the n2link_pymod Python extension
 ```
 
-The pytest suite does **not** run the `edgelinkd` binary: `tests/__init__.py` loads
-`target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/n2link_pymod.{pyd,dll,so}`,
+The pytest suite does **not** run the `n2linkd` binary: `tests/__init__.py` loads
+`target/<N2LINK_BUILD_TARGET>/<N2LINK_BUILD_PROFILE>/n2link_pymod.{pyd,dll,so}`,
 so those two env vars must match the way you built:
 
 ```powershell
-$env:EDGELINK_BUILD_TARGET=""; $env:EDGELINK_BUILD_PROFILE="debug"   # default: target/debug
+$env:N2LINK_BUILD_TARGET=""; $env:N2LINK_BUILD_PROFILE="debug"   # default: target/debug
 pytest ./tests/nodes/<category>/test_<name>_node.py -v
 ```
 
 CI uses `cargo build --profile ci --workspace --features full` with
-`EDGELINK_BUILD_PROFILE=ci`; see `.github/workflows/CICD.yml`.
+`N2LINK_BUILD_PROFILE=ci`; see `.github/workflows/CICD.yml`.
 
 ## Step 1 — Read the two upstream files
 

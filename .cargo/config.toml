@@ -1,6 +1,6 @@
 [env]
-EDGELINK_HOME = "./"
-EDGELINK_RUN_ENV = "dev"
+N2LINK_HOME = "./"
+N2LINK_RUN_ENV = "dev"
 CLICOLOR_FORCE="1"
 
 [build]

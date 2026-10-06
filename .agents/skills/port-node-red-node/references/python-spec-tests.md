@@ -181,14 +181,14 @@ Notes:
 
 ## 4. Running the tests
 
-The suite imports the compiled extension, it does not launch `edgelinkd`:
+The suite imports the compiled extension, it does not launch `n2linkd`:
 
 ```bash
 cargo build --all                       # produces n2link_pymod next to the binary
 
 # target dir defaults to target/debug; CI sets these for other profiles/targets:
-export EDGELINK_BUILD_TARGET=""         # e.g. x86_64-unknown-linux-gnu
-export EDGELINK_BUILD_PROFILE="debug"   # ci / release
+export N2LINK_BUILD_TARGET=""         # e.g. x86_64-unknown-linux-gnu
+export N2LINK_BUILD_PROFILE="debug"   # ci / release
 
 pytest ./tests/nodes/function/test_range_node.py -v
 pytest ./tests -v                       # whole suite (this is what CI runs)

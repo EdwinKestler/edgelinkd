@@ -419,7 +419,7 @@ macro_rules! manifest {
         #[cfg(target_arch = "wasm32")]
         #[link_section = "edgelink.manifest"]
         #[used]
-        static EDGELINK_MANIFEST: [u8; include_bytes!($path).len()] = *include_bytes!($path);
+        static N2LINK_MANIFEST: [u8; include_bytes!($path).len()] = *include_bytes!($path);
     };
 }
 

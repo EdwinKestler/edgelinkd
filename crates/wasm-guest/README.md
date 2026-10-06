@@ -42,11 +42,11 @@ export_node!(Upper);
 ```sh
 rustup target add wasm32-unknown-unknown
 cargo build --release --target wasm32-unknown-unknown
-edgelinkd plugin stage target/wasm32-unknown-unknown/release/my_plugin.wasm   # or POST /wasm/plugins/stage
+n2linkd plugin stage target/wasm32-unknown-unknown/release/my_plugin.wasm   # or POST /wasm/plugins/stage
 ```
 
 The `.wasm` is the package: `manifest!` embeds `plugin.toml` as the `edgelink.manifest` custom
-section, so no `edgelinkd plugin pack` step and no wasm-bindgen or wasm-pack are involved.
+section, so no `n2linkd plugin pack` step and no wasm-bindgen or wasm-pack are involved.
 
 ## What a plugin gets
 

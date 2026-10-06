@@ -62,7 +62,7 @@ Or if you've already cloned without submodules:
 
 ```bash
 git clone https://github.com/oldrev/edgelinkd.git
-cd edgelinkd
+cd n2linkd
 git submodule update --init --recursive
 ```
 
@@ -95,36 +95,36 @@ cargo build --release
 ```bash
 cargo run --release --
 # or after build
-./target/release/edgelinkd
+./target/release/n2linkd
 ```
 
 By default, your browser will open the Node-RED frontend at [http://127.0.0.1:1888](http://127.0.0.1:1888).
 
 **Main command-line options:**
 
-- `[FLOWS_PATH]`: Optional, specify the flow file (default: `~/.edgelinkd/flows.json`)
+- `[FLOWS_PATH]`: Optional, specify the flow file (default: `~/.n2linkd/flows.json`)
 - `--headless`: Headless mode (no Web UI, suitable for production)
 - `--bind <BIND>`: Custom web server bind address (default: `127.0.0.1:1888`)
-- `-u, --user-dir <USER_DIR>`: Specify user directory (default: `~/.edgelink`)
+- `-u, --user-dir <USER_DIR>`: Specify user directory (default: `~/.n2linkd`)
 - See more options with `--help`
 
 **Examples:**
 
 ```bash
 # Run in headless mode
-./target/release/edgelinkd run --headless
+./target/release/n2linkd run --headless
 
 # Specify flow file and port
-./target/release/edgelinkd run ./myflows.json --bind 0.0.0.0:8080
+./target/release/n2linkd run ./myflows.json --bind 0.0.0.0:8080
 ```
 
-> All data and configuration are stored in the `~/.edgelink` directory by default.
+> All data and configuration are stored in the `~/.n2linkd` directory by default.
 
 Use `--help` to see all commands and options:
 
 ```bash
-./target/release/edgelinkd --help
-./target/release/edgelinkd run --help
+./target/release/n2linkd --help
+./target/release/n2linkd run --help
 ```
 
 #### Run Unit Tests
@@ -161,7 +161,7 @@ EdgeLinkd can be configured through command-line arguments and configuration fil
 - `--user-dir <path>`: Specify custom user directory for flows and settings
 
 **Configuration file:**
-You can also configure the web UI through the configuration file (`edgelinkd.toml`):
+You can also configure the web UI through the configuration file (`n2linkd.toml`):
 
 ```toml
 [ui-host]
@@ -171,7 +171,7 @@ port = 1888
 
 A deploy that sends `rev` is rejected with HTTP 409 `version_mismatch` when that rev is not the SHA-256 of the flows on disk. Leaving `rev` out still deploys. `POST /flows/rollback` restores the previous file. One previous copy is kept.
 
-Admin login stays off until `[admin]` in `edgelinkd.toml` sets a password, a `viewer`/`deployer`/`administrator` user, or a complete `[admin.oidc]` section. Viewer is read-only, deployer can edit settings and deploy flows, and administrator can change process configuration. Passwords accept Node-RED-compatible `$2a$`, `$2b$`, and `$2y$` bcrypt hashes. Generate one with `npx node-red-admin hash-pw`; plaintext remains accepted only as a migration path and emits a startup warning. Malformed or unsupported bcrypt-prefixed values stop startup. Bcrypt support is enabled by the default `admin_bcrypt` feature and can be omitted from a minimal build. An unknown role or a half-filled OIDC section also stops the process at startup. `GET /status` reports the flow revision, process uptime, node errors since the engine started, context-key ages, and MQTT or Modbus link text. Fleet push stays off until `[fleet] enabled = true`. The commented examples are in a newly created `edgelinkd.toml`.
+Admin login stays off until `[admin]` in `n2linkd.toml` sets a password, a `viewer`/`deployer`/`administrator` user, or a complete `[admin.oidc]` section. Viewer is read-only, deployer can edit settings and deploy flows, and administrator can change process configuration. Passwords accept Node-RED-compatible `$2a$`, `$2b$`, and `$2y$` bcrypt hashes. Generate one with `npx node-red-admin hash-pw`; plaintext remains accepted only as a migration path and emits a startup warning. Malformed or unsupported bcrypt-prefixed values stop startup. Bcrypt support is enabled by the default `admin_bcrypt` feature and can be omitted from a minimal build. An unknown role or a half-filled OIDC section also stops the process at startup. `GET /status` reports the flow revision, process uptime, node errors since the engine started, context-key ages, and MQTT or Modbus link text. Fleet push stays off until `[fleet] enabled = true`. The commented examples are in a newly created `n2linkd.toml`.
 
 ### Encrypted credential sidecars
 
@@ -179,13 +179,13 @@ Existing plaintext `flows_cred.json` files remain readable and are never rewritt
 Encryption is an explicit operation. Preview it first, then provide a new empty backup directory:
 
 ```bash
-EDGELINK_HOME="$PWD" cargo run -- credentials status
-EDGELINK_HOME="$PWD" cargo run -- credentials migrate --dry-run
-EDGELINK_HOME="$PWD" cargo run -- credentials migrate --backup-dir /offline/edgelink-credential-backup
+N2LINK_HOME="$PWD" cargo run -- credentials status
+N2LINK_HOME="$PWD" cargo run -- credentials migrate --dry-run
+N2LINK_HOME="$PWD" cargo run -- credentials migrate --backup-dir /offline/edgelink-credential-backup
 ```
 
 The default application build uses a versioned XChaCha20-Poly1305 envelope. It generates a
-private `flows_cred.key` keyring during migration unless `EDGELINK_CREDENTIAL_KEY` contains an
+private `flows_cred.key` keyring during migration unless `N2LINK_CREDENTIAL_KEY` contains an
 injected 32-byte base64url key. An explicitly configured `credentials.key_env` overrides that
 environment-variable name; a non-empty injected key always takes precedence and malformed input
 fails closed. Never commit `*.key`, plaintext exports, or backup directories.
@@ -196,9 +196,9 @@ mode-`0600` plaintext sidecar pair at the requested path and its `.prev` compani
 controlled downgrade; it never overwrites either output.
 
 ```bash
-EDGELINK_HOME="$PWD" cargo run -- credentials rotate --backup-key /offline/old-flows-cred.key
-EDGELINK_HOME="$PWD" cargo run -- credentials recover --key-file /offline/old-flows-cred.key
-EDGELINK_HOME="$PWD" cargo run -- credentials export --output /offline/flows_cred.json
+N2LINK_HOME="$PWD" cargo run -- credentials rotate --backup-key /offline/old-flows-cred.key
+N2LINK_HOME="$PWD" cargo run -- credentials recover --key-file /offline/old-flows-cred.key
+N2LINK_HOME="$PWD" cargo run -- credentials export --output /offline/flows_cred.json
 ```
 
 Deploy and rollback preserve whichever sidecar format is already active. A build without the
@@ -232,8 +232,8 @@ one-call rollback. The feature is opt-in twice: build with `--features nodes_was
 
 ```bash
 cargo build --release --features nodes_wasm
-target/release/edgelinkd plugin stage my_plugin.wasm     # or POST /wasm/plugins/stage
-target/release/edgelinkd plugin activate acme/my-plugin --sha256 <hex>
+target/release/n2linkd plugin stage my_plugin.wasm     # or POST /wasm/plugins/stage
+target/release/n2linkd plugin activate acme/my-plugin --sha256 <hex>
 ```
 
 Operator manual: [docs/operations/wasm-plugins.md](docs/operations/wasm-plugins.md). Writing
@@ -297,7 +297,7 @@ acceptance checks, and rollback procedure.
 
 An administrator can manage the egress policy from **User Settings → EdgeLinkd**. The pane reads,
 validates, saves, applies, and rolls back only the `[egress]` table in the active environment
-overlay (`edgelinkd.dev.toml` by default). It never returns the rest of that file to the browser,
+overlay (`n2linkd.dev.toml` by default). It never returns the rest of that file to the browser,
 because it may contain passwords or OIDC secrets. Saves use a SHA-256 revision, atomic `0600`
 writes, and one `.prev` copy. Apply replaces the shared policy and restarts the flow runtime; an
 activation failure restores the previous policy and file.
@@ -414,7 +414,7 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
         - [x] Redis (`nodes_redis`, included by default; disable with `--no-default-features`): `redis-config` + PING/GET/SET/DEL. TLS is rejected.
         - [x] Scan (`runtime_scan`, off by default)
             - [x] One task writes `flow.scan` (`seq`, `period`, `duration`, `overrun`). Nodes read it
-            - [x] `runtime.scan.period_ms` in `edgelinkd.toml` is the period in milliseconds. Absent or `0` leaves the task off. A period below 10 ms is an error at start
+            - [x] `runtime.scan.period_ms` in `n2linkd.toml` is the period in milliseconds. Absent or `0` leaves the task off. A period below 10 ms is an error at start
             - [x] When a body exceeds the period, the next scan sets `overrun` and the `scan` node status turns red. A later body within the period clears it
             - [x] Soft real-time on the host OS. One scan. Overrun is visible. This is not a worst-case latency bound
         - [x] :heavy_check_mark: Switch
@@ -501,7 +501,7 @@ Please refer to [ISSUES.md](docs/ISSUES.md) for a list of known issues and worka
 
 ## Feedback and Support
 
-We welcome your feedback! If you encounter any issues or have suggestions, please open an [issue](https://github.com/edge-link/edgelinkd/issues).
+We welcome your feedback! If you encounter any issues or have suggestions, please open an [issue](https://github.com/edge-link/n2linkd/issues).
 
 * Contact me: E-mail: oldrev(at)gmail.com
 * Discord: [https://discord.gg/XJstgANe26](https://discord.gg/XJstgANe26)

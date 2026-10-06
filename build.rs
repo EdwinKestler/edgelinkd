@@ -5,7 +5,7 @@ use std::process::Command;
 
 fn main() {
     let build_time = chrono::Utc::now().to_rfc3339();
-    println!("cargo:rustc-env=EDGELINK_BUILD_TIME={build_time}");
+    println!("cargo:rustc-env=N2LINK_BUILD_TIME={build_time}");
 
     set_git_revision_hash();
     check_patch();
@@ -40,7 +40,7 @@ fn gen_use_plugins_file() {
 }
 
 /// Make the current git hash available to the build as the environment
-/// variable `EDGELINK_BUILD_GIT_HASH`.
+/// variable `N2LINK_BUILD_GIT_HASH`.
 fn set_git_revision_hash() {
     let args = &["rev-parse", "--short=10", "HEAD"];
     let Ok(output) = Command::new("git").args(args).output() else {
@@ -50,7 +50,7 @@ fn set_git_revision_hash() {
     if rev.is_empty() {
         return;
     }
-    println!("cargo:rustc-env=EDGELINK_BUILD_GIT_HASH={rev}");
+    println!("cargo:rustc-env=N2LINK_BUILD_GIT_HASH={rev}");
 }
 
 fn check_patch() {

@@ -341,7 +341,7 @@ impl HistoryHandle {
             let home_dir = cfg
                 .and_then(|c| c.get_string("home_dir").ok())
                 .map(PathBuf::from)
-                .or_else(|| std::env::var("EDGELINK_HOME").ok().map(PathBuf::from));
+                .or_else(|| crate::compat::env_var("HOME").ok().flatten().map(PathBuf::from));
             Self::init_with_config(history_cfg, home_dir)
         }
     }
@@ -1374,7 +1374,7 @@ mod tests {
     #[cfg(feature = "history_sqlite")]
     #[test]
     fn test_sqlite_history_lifecycle() {
-        let temp_dir = std::env::temp_dir().join(format!("edgelinkd-hist-test-{}", uuid::Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("n2linkd-hist-test-{}", uuid::Uuid::new_v4()));
         let _ = std::fs::create_dir_all(&temp_dir);
         let db_path = temp_dir.join("history.sqlite3");
 
@@ -1424,7 +1424,7 @@ mod tests {
     #[cfg(feature = "history_sqlite")]
     #[test]
     fn test_concurrent_writers() {
-        let temp_dir = std::env::temp_dir().join(format!("edgelinkd-hist-concurrent-{}", uuid::Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("n2linkd-hist-concurrent-{}", uuid::Uuid::new_v4()));
         let _ = std::fs::create_dir_all(&temp_dir);
         let db_path = temp_dir.join("history.sqlite3");
 
@@ -1475,7 +1475,7 @@ mod tests {
     #[cfg(feature = "history_sqlite")]
     #[test]
     fn test_queue_saturation_and_gap() {
-        let temp_dir = std::env::temp_dir().join(format!("edgelinkd-hist-sat-{}", uuid::Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("n2linkd-hist-sat-{}", uuid::Uuid::new_v4()));
         let _ = std::fs::create_dir_all(&temp_dir);
         let db_path = temp_dir.join("history.sqlite3");
 
@@ -1516,7 +1516,7 @@ mod tests {
     #[cfg(feature = "history_sqlite")]
     #[test]
     fn test_schema_refusal_on_newer_version() {
-        let temp_dir = std::env::temp_dir().join(format!("edgelinkd-hist-newer-{}", uuid::Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("n2linkd-hist-newer-{}", uuid::Uuid::new_v4()));
         let _ = std::fs::create_dir_all(&temp_dir);
         let db_path = temp_dir.join("history.sqlite3");
 
@@ -1558,7 +1558,7 @@ mod tests {
     #[cfg(feature = "history_sqlite")]
     #[test]
     fn test_corrupt_database_handling() {
-        let temp_dir = std::env::temp_dir().join(format!("edgelinkd-hist-corrupt-{}", uuid::Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("n2linkd-hist-corrupt-{}", uuid::Uuid::new_v4()));
         let _ = std::fs::create_dir_all(&temp_dir);
         let db_path = temp_dir.join("history.sqlite3");
 

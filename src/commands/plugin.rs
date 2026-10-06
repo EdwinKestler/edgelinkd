@@ -1,5 +1,5 @@
 //! Offline WASM plugin store commands (DESIGN.md §9). They take the store lock, so a running
-//! edgelinkd that has the store open makes them fail instead of racing it.
+//! n2linkd that has the store open makes them fail instead of racing it.
 
 use std::sync::Arc;
 

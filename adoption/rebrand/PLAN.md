@@ -8,6 +8,15 @@ Done outside the repo (2026-10-06): GitHub organisation `n2link` created; local 
 `/media/kestl/andor/github/n2link` on andorxps; crates.io token kept in the git-ignored `.env`
 (`CRATESIO_API_KEY`). Nothing is published to crates.io without separate approval.
 
+## Progress
+
+| Step | Commit | Notes |
+|---|---|---|
+| R0 | `34c626f` | plan, `NOTICE`; `.env.example` in `485680a`; repo moved to `n2link/n2link` |
+| R1 | `18a567b` | crates, lib names, `N2linkError`, `n2link_pymod`, `n2link-nodes-dummy` |
+| R2 | see git log | `n2linkd`, `n2linkd*.toml`, `~/.n2linkd`, `N2LINK_*`; `n2link_core::compat` keeps the old names for 0.4.x; credential, keyring and journal tags are `n2link-credential*`, and EdgeLinkd files fail with a clear message; `dist-pack.py` ships an `edgelinkd` shim and `NOTICE` |
+| R3 | see git log | plugin interface `n2link:node/v1`, `n2link.manifest`, log target `n2link::wasm`, examples `n2link/*` |
+
 ## Decisions (2026-10-06)
 
 | Topic | Decision |

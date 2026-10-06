@@ -9,8 +9,8 @@ This procedure is explicit by design: startup reads plaintext sidecars but never
 All examples assume the repository or installation directory is the EdgeLinkd home.
 
 ```bash
-cd /path/to/edgelinkd-home
-export EDGELINK_HOME="$PWD"
+cd /path/to/n2linkd-home
+export N2LINK_HOME="$PWD"
 ```
 
 Do not run credential commands with `sudo`. Keep backups and exports outside the checkout, on
@@ -23,7 +23,7 @@ Build the binary, then inspect both generations:
 
 ```bash
 cargo build
-target/debug/edgelinkd credentials status
+target/debug/n2linkd credentials status
 ```
 
 The response reports each generation as `missing`, `plaintext`, `encrypted`, or `corrupt`, whether
@@ -33,7 +33,7 @@ generation is corrupt or encrypted but not decryptable.
 Preview migration:
 
 ```bash
-target/debug/edgelinkd credentials migrate --dry-run
+target/debug/n2linkd credentials migrate --dry-run
 ```
 
 Dry-run must not create `flows_cred.key`, a backup, or a transaction journal.
@@ -44,15 +44,15 @@ Choose a new or empty backup directory outside the repository. The command refus
 directory.
 
 ```bash
-BACKUP="/secure/offline/edgelink-credentials-$(date +%Y%m%d-%H%M%S)"
-target/debug/edgelinkd credentials migrate --backup-dir "$BACKUP"
+BACKUP="/secure/offline/n2link-credentials-$(date +%Y%m%d-%H%M%S)"
+target/debug/n2linkd credentials migrate --backup-dir "$BACKUP"
 ```
 
 With the default local-key provider, migration creates `flows_cred.key`. On Unix, sidecars and the
 keyring must be mode `0600`; the backup directory must be mode `0700`.
 
 ```bash
-target/debug/edgelinkd credentials status
+target/debug/n2linkd credentials status
 stat -c '%a %n' flows_cred.json flows_cred.json.prev flows_cred.key "$BACKUP"
 ```
 
@@ -75,7 +75,7 @@ The default local keyring is beside the sidecar. These optional settings change 
 [credentials]
 # Relative paths are resolved beside flows.json.
 key_file = "flows_cred.key"
-key_env = "EDGELINK_CREDENTIAL_KEY"
+key_env = "N2LINK_CREDENTIAL_KEY"
 ```
 
 A non-empty environment value must be a 32-byte base64url key without padding. It takes precedence
@@ -88,9 +88,9 @@ Rotation is only for a local keyring. The backup path must not exist. Both crede
 must already be encrypted and decryptable.
 
 ```bash
-target/debug/edgelinkd credentials rotate \
+target/debug/n2linkd credentials rotate \
   --backup-key /secure/offline/flows_cred.key.before-rotation
-target/debug/edgelinkd credentials status
+target/debug/n2linkd credentials status
 ```
 
 After restart, re-run the credential-backed flow acceptance test. Keep the previous key until the
@@ -103,9 +103,9 @@ Test recovery against a copied installation first. `recover` proves the candidat
 decrypt every encrypted generation before installing it.
 
 ```bash
-target/debug/edgelinkd credentials recover \
+target/debug/n2linkd credentials recover \
   --key-file /secure/offline/flows_cred.key
-target/debug/edgelinkd credentials status
+target/debug/n2linkd credentials status
 ```
 
 If an injected key is present, remove it from the service environment before local-key recovery.
@@ -116,7 +116,7 @@ Do not replace `flows_cred.key` manually while EdgeLinkd may be deploying.
 Older binaries cannot read encrypted envelopes. Export a new plaintext pair to protected storage:
 
 ```bash
-target/debug/edgelinkd credentials export \
+target/debug/n2linkd credentials export \
   --output /secure/offline/export/flows_cred.json
 ```
 

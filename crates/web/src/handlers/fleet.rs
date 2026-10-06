@@ -524,7 +524,7 @@ mod tests {
             AdminAuth::open(),
             fleet,
         );
-        let dir = std::env::temp_dir().join(format!("edgelinkd-fleet-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2linkd-fleet-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         state.set_flows_file_path(dir.join("flows.json")).await;
         let router = create_all_routes(&state).layer(Extension(state.clone()));

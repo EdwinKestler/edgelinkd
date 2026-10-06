@@ -1160,7 +1160,7 @@ mod tests {
             "#))
         .unwrap();
         let (router, state) = router(auth);
-        let dir = std::env::temp_dir().join(format!("edgelinkd-auth-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2linkd-auth-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let flows = dir.join("flows.json");
         std::fs::write(&flows, b"[]").unwrap();
@@ -1235,14 +1235,10 @@ mod tests {
 
     #[test]
     fn authorize_url_carries_the_code_request() {
-        let url = authorize_url(
-            "http://idp.example/auth",
-            "edgelinkd",
-            "http://127.0.0.1:1888/auth/strategy/callback",
-            "abc",
-        );
+        let url =
+            authorize_url("http://idp.example/auth", "n2linkd", "http://127.0.0.1:1888/auth/strategy/callback", "abc");
         assert!(url.contains("response_type=code"));
-        assert!(url.contains("client_id=edgelinkd"));
+        assert!(url.contains("client_id=n2linkd"));
         assert!(url.contains("scope=openid"));
         assert!(url.contains("state=abc"));
         assert!(url.contains("redirect_uri=http%3A%2F%2F127.0.0.1%3A1888%2Fauth%2Fstrategy%2Fcallback"));
@@ -1272,9 +1268,9 @@ mod tests {
 
             [admin.oidc]
             issuer = "{issuer}"
-            client_id = "edgelinkd"
+            client_id = "n2linkd"
             client_secret = "idp-secret"
-            role_claim = "edgelink_role"
+            role_claim = "n2link_role"
             redirect_url = "http://127.0.0.1:9/auth/strategy/callback"
             "#,
             address.port()
@@ -1330,6 +1326,6 @@ mod tests {
     }
 
     async fn idp_userinfo() -> Json<Value> {
-        Json(json!({ "preferred_username": "ada", "edgelink_role": "deployer" }))
+        Json(json!({ "preferred_username": "ada", "n2link_role": "deployer" }))
     }
 }

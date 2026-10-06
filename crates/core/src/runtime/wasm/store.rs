@@ -234,7 +234,7 @@ impl PluginStore {
             .map_err(|e| io_err(&lock_path, e))?;
         fs2::FileExt::try_lock_exclusive(&lock).map_err(|_| {
             N2linkError::invalid_operation(&format!(
-                "plugin store {} is in use by another edgelinkd process; stop it or use the admin API",
+                "plugin store {} is in use by another n2linkd process; stop it or use the admin API",
                 root.display()
             ))
         })?;
@@ -285,7 +285,7 @@ impl PluginStore {
             String::from_utf8(read(&path)?).map_err(|_| store_err(format!("{} is not UTF-8", path.display())))?;
         let file: ActiveFile = toml_edit::de::from_str(&text).map_err(|err| {
             store_err(format!(
-                "{} is corrupt ({err}); restore {ACTIVE_PREV} or run `edgelinkd plugin verify`",
+                "{} is corrupt ({err}); restore {ACTIVE_PREV} or run `n2linkd plugin verify`",
                 path.display()
             ))
         })?;
@@ -386,7 +386,7 @@ impl PluginStore {
         }
         if self.quarantined()?.len() >= MAX_QUARANTINED {
             return Err(store_err(format!(
-                "{MAX_QUARANTINED} packages are already quarantined; discard one first (`edgelinkd plugin discard <sha256>`)"
+                "{MAX_QUARANTINED} packages are already quarantined; discard one first (`n2linkd plugin discard <sha256>`)"
             )));
         }
         let part = self.root.join("staging").join(format!("{}.part", uuid::Uuid::new_v4()));

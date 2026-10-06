@@ -1255,7 +1255,7 @@ mod tests {
                 "z": "100",
                 "type": "mqtt in",
                 "broker": "b1",
-                "topic": "edgelinkd/status-link",
+                "topic": "n2linkd/status-link",
                 "qos": 0,
                 "datatype": "utf8",
                 "wires": [[]]

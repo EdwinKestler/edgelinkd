@@ -316,7 +316,7 @@ mod tests {
     #[tokio::test]
     async fn every_failed_deploy_rename_restores_the_four_file_generation() {
         for fail_before in 0..4 {
-            let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-pair-{}", uuid::Uuid::new_v4())));
+            let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-pair-{}", uuid::Uuid::new_v4())));
             std::fs::create_dir_all(&dir.0).unwrap();
             let flows = dir.0.join("flows.json");
             let paths = [flows.clone(), sidecar_path(&flows), previous_flows_path(&flows), previous_creds_path(&flows)];
@@ -349,7 +349,7 @@ mod tests {
     #[tokio::test]
     async fn every_failed_rollback_rename_restores_the_four_file_generation() {
         for fail_before in 0..4 {
-            let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-rollback-{}", uuid::Uuid::new_v4())));
+            let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-rollback-{}", uuid::Uuid::new_v4())));
             std::fs::create_dir_all(&dir.0).unwrap();
             let flows = dir.0.join("flows.json");
             let paths = [sidecar_path(&flows), flows.clone(), previous_creds_path(&flows), previous_flows_path(&flows)];
@@ -378,7 +378,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_failed_activation_keeps_the_previous_rollback() {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-pair-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-pair-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let flows = dir.0.join("flows.json");
         let prev = previous_flows_path(&flows);

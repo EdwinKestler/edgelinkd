@@ -96,9 +96,9 @@ def main():
     is_windows = args.target.startswith("x86_64-pc-windows") or args.target.startswith("x86_64-pc-windows-gnu")
     is_linux = "linux" in args.target
     if is_nightly:
-        base_name = f"edgelinkd-dist-{args.target}-nightly-{dt_str}"
+        base_name = f"n2linkd-dist-{args.target}-nightly-{dt_str}"
     else:
-        base_name = f"edgelinkd-dist-{args.target}-{dt_str}"
+        base_name = f"n2linkd-dist-{args.target}-{dt_str}"
     if is_windows:
         out_name = base_name + ".zip"
     elif is_linux:
@@ -110,20 +110,23 @@ def main():
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             # 2. Merge configuration files
-            merged_toml = tmp / "edgelinkd.toml"
-            merge_toml_files(ROOT / "edgelinkd.toml", ROOT / "edgelinkd.prod.toml", merged_toml)
+            merged_toml = tmp / "n2linkd.toml"
+            merge_toml_files(ROOT / "n2linkd.toml", ROOT / "n2linkd.prod.toml", merged_toml)
 
-            # 3. Copy README and LICENSE
+            # 3. Copy README, LICENSE and NOTICE (Apache-2.0 requires the NOTICE in distributions)
             shutil.copy(ROOT / "README.md", tmp / "README.md")
             shutil.copy(ROOT / "LICENSE", tmp / "LICENSE")
+            shutil.copy(ROOT / "NOTICE", tmp / "NOTICE")
 
             # 4. bin directory
             bin_dir = tmp / "bin"
             bin_dir.mkdir()
             # Executable and DLLs
             target_dir = ROOT / "target" / args.target / args.mode
-            for f in target_dir.glob("edgelinkd.exe"):
-                shutil.copy(f, bin_dir / f.name)
+            for name in ("n2linkd.exe", "n2linkd"):
+                for f in target_dir.glob(name):
+                    shutil.copy(f, bin_dir / f.name)
+            write_legacy_shim(bin_dir, is_windows)
             for dll in target_dir.glob("*.dll"):
                 if any(dll.name.startswith(prefix) for prefix in EXCLUDE_PREFIXES):
                     continue
@@ -166,6 +169,21 @@ def main():
         print(f"Packaging failed: {e}", file=sys.stderr)
         sys.exit(-1)
     sys.exit(0)
+
+def write_legacy_shim(bin_dir: Path, is_windows: bool) -> None:
+    """0.4.x only: an `edgelinkd` launcher that warns and runs n2linkd (adoption/rebrand/PLAN.md)."""
+    message = "edgelinkd is deprecated and will be removed in the next minor release; run n2linkd instead"
+    if is_windows:
+        (bin_dir / "edgelinkd.cmd").write_text(
+            f"@echo off\r\necho warning: {message} 1>&2\r\n\"%~dp0n2linkd.exe\" %*\r\n", encoding="utf-8"
+        )
+    else:
+        shim = bin_dir / "edgelinkd"
+        shim.write_text(
+            f'#!/bin/sh\necho "warning: {message}" >&2\nexec "$(dirname "$0")/n2linkd" "$@"\n', encoding="utf-8"
+        )
+        shim.chmod(0o755)
+
 
 if __name__ == "__main__":
     main()

@@ -55,5 +55,5 @@ python3 tools/fake_tofsense.py
 ```
 
 Install `target/wasm32-unknown-unknown/release/edgelink_plugin_tofsense.wasm` with
-`edgelinkd plugin stage` / `activate`, or `POST /wasm/plugins/stage` and
+`n2linkd plugin stage` / `activate`, or `POST /wasm/plugins/stage` and
 `/wasm/plugins/nooploop/tofsense/activate`, then reload the editor.

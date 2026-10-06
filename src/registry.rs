@@ -20,7 +20,7 @@ pub async fn list_available_nodes() -> n2link_core::Result<()> {
     let registry = RegistryBuilder::default().build()?;
     let all_nodes = registry.all();
 
-    println!("Available Node Types in EdgeLink:");
+    println!("Available Node Types in n2link:");
     println!("==================================");
 
     // Group nodes by module first, then by red_name

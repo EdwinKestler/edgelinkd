@@ -25,7 +25,7 @@ of ad-hoc logic, the `function` node is simpler.
    It adds about 1.2–1.4 MiB to the binary and about 50–120 KiB of private memory while no
    plugin node runs (measurements: `adoption/phase7/REPORT.md`).
 
-2. Turn plugins on in the home overlay (`edgelinkd.toml` or `edgelinkd.<env>.toml`):
+2. Turn plugins on in the home overlay (`n2linkd.toml` or `n2linkd.<env>.toml`):
 
    ```toml
    [runtime.wasm]
@@ -86,7 +86,7 @@ accepted; an empty string counts as unset for non-string kinds.
 
 ## Installing a plugin online (admin API)
 
-With `enabled = true` the running edgelinkd owns the store and serves these routes. All of them
+With `enabled = true` the running n2linkd owns the store and serves these routes. All of them
 need the administrator role (viewers and deployers cannot read them either), are limited by
 `[api_protection.plugins]` (1 MiB body, 6 requests/min, one at a time by default) and
 serialise with flow deploys.
@@ -126,30 +126,30 @@ A package is a `wasm32-unknown-unknown` module with its manifest (TOML, schema 1
 the `edgelink.manifest` custom section. Plugins built with the Rust guest SDK
 (`crates/wasm-guest`, `manifest!`) already contain it; for other modules embed it with `pack`.
 
-Stop edgelinkd first: when plugins are enabled the runtime holds `<home>/plugins/.lock` and
+Stop n2linkd first: when plugins are enabled the runtime holds `<home>/plugins/.lock` and
 every command below refuses to run while it does.
 
 ```sh
-edgelinkd plugin pack echo.wasm plugin.toml -o echo.pkg.wasm
-edgelinkd plugin stage echo.pkg.wasm            # validate → quarantine → self-test; prints sha256
-edgelinkd plugin activate acme/echo --sha256 <hex>
-edgelinkd plugin list                           # active generations and quarantined packages
-edgelinkd plugin rollback acme/echo --sha256 <previous hex>
-edgelinkd plugin remove acme/echo               # refused while a flow node uses the type
-edgelinkd plugin discard <hex>                  # delete a quarantined package
-edgelinkd plugin verify                         # re-hash active generations; non-zero on problems
+n2linkd plugin pack echo.wasm plugin.toml -o echo.pkg.wasm
+n2linkd plugin stage echo.pkg.wasm            # validate → quarantine → self-test; prints sha256
+n2linkd plugin activate acme/echo --sha256 <hex>
+n2linkd plugin list                           # active generations and quarantined packages
+n2linkd plugin rollback acme/echo --sha256 <previous hex>
+n2linkd plugin remove acme/echo               # refused while a flow node uses the type
+n2linkd plugin discard <hex>                  # delete a quarantined package
+n2linkd plugin verify                         # re-hash active generations; non-zero on problems
 ```
 
 - `stage` rejects a package for any framing, manifest, import, compile or limit error and keeps
   nothing; a package that validates but fails its `[[selftest]]` stays in quarantine marked
   `rejected` and cannot be activated. At most 8 packages wait in quarantine.
-- `activate` and `rollback` first build the flows edgelinkd would deploy (`flows.json` plus
+- `activate` and `rollback` first build the flows n2linkd would deploy (`flows.json` plus
   credentials, as if `enabled = true`) with the candidate plugin set. If that graph does not
   build, nothing on disk changes. Nothing is started.
 - Each plugin keeps its current and one previous generation; the generation before that is
   deleted. `remove` moves both back to quarantine.
 - The commands work whether or not `enabled` is set, so packages can be staged and activated
-  before plugins are turned on. Nothing runs until edgelinkd starts with `enabled = true`.
+  before plugins are turned on. Nothing runs until n2linkd starts with `enabled = true`.
 
 Store layout under `<home>/<dir>` (default `plugins`), directories `0700`, files `0600`,
 symlinks refused:
@@ -212,7 +212,7 @@ devices, send with one plugin node and decode the reply with a second one.
 | `import … is not granted` | the module uses WASI or another host API; it cannot run here |
 | `fuel budget … exhausted` / `deadline exceeded` | the plugin is too slow for one message; raise its `[limits]` within the ceilings or fix the plugin |
 | `concurrency limit ([runtime.wasm] max_concurrent)` | other plugin calls held every permit for this plugin's whole deadline; raise `max_concurrent` (up to the core count) |
-| `plugin store … is in use by another edgelinkd process` | the CLI needs the runtime stopped; use the admin API instead |
+| `plugin store … is in use by another n2linkd process` | the CLI needs the runtime stopped; use the admin API instead |
 | `409 plugins_disabled` from `/wasm/plugins` | the runtime runs with `enabled = false` |
 | `409 invalid_flows` on activate | the deployed flows do not build with that version; nothing changed |
 

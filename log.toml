@@ -9,5 +9,5 @@ encoder = { pattern = "[{h({l})}]\t{m}{n}"}
 
 [appenders.file]
 kind = "file"
-path = "log/edgelinkd.log"
+path = "log/n2linkd.log"
 encoder = { pattern = "[{l}]\t{d} - {t} - {m}{n}" }

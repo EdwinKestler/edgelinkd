@@ -1,3 +1,4 @@
+pub mod compat;
 pub mod runtime;
 pub mod text;
 pub mod utils;

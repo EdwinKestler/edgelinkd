@@ -569,8 +569,8 @@ class TestLocalFileSystem:
         @pytest.mark.asyncio
         @pytest.mark.it('should use NODE_RED_HOME')
         async def test_0003(self, store, resources, monkeypatch):
-            # `EDGELINK_HOME` is EdgeLinkd's `NODE_RED_HOME`.
-            monkeypatch.setenv('EDGELINK_HOME', str(resources))
+            # `N2LINK_HOME` is EdgeLinkd's `NODE_RED_HOME`.
+            monkeypatch.setenv('N2LINK_HOME', str(resources))
             home_context = await open_store({'base': 'contexts2', 'cache': False})
             await home_context.set('node2', 'foo2', 'bar2')
             assert await home_context.get('node2', 'foo2') == 'bar2'
@@ -584,7 +584,7 @@ class TestLocalFileSystem:
         @pytest.mark.asyncio
         @pytest.mark.it('should use HOME_PATH')
         async def test_0004(self, store, resources, monkeypatch):
-            monkeypatch.delenv('EDGELINK_HOME', raising=False)
+            monkeypatch.delenv('N2LINK_HOME', raising=False)
             monkeypatch.delenv('HOME', raising=False)
             monkeypatch.delenv('USERPROFILE', raising=False)
             monkeypatch.setenv('HOMEPATH', str(resources))
@@ -595,13 +595,13 @@ class TestLocalFileSystem:
             with pytest.raises(KeyError):
                 await store.get('node2', 'foo2')
 
-            assert os.path.isfile(os.path.join(resources, '.edgelinkd', 'contexts2', 'node2', 'flow.json'))
+            assert os.path.isfile(os.path.join(resources, '.n2linkd', 'contexts2', 'node2', 'flow.json'))
             await home_context.close()
 
         @pytest.mark.asyncio
         @pytest.mark.it('should use HOME_PATH')
         async def test_0005(self, store, resources, monkeypatch):
-            monkeypatch.delenv('EDGELINK_HOME', raising=False)
+            monkeypatch.delenv('N2LINK_HOME', raising=False)
             monkeypatch.setenv('HOME', str(resources))
             home_context = await open_store({'base': 'contexts2', 'cache': False})
             await home_context.set('node2', 'foo2', 'bar2')
@@ -610,5 +610,5 @@ class TestLocalFileSystem:
             with pytest.raises(KeyError):
                 await store.get('node2', 'foo2')
 
-            assert os.path.isfile(os.path.join(resources, '.edgelinkd', 'contexts2', 'node2', 'flow.json'))
+            assert os.path.isfile(os.path.join(resources, '.n2linkd', 'contexts2', 'node2', 'flow.json'))
             await home_context.close()

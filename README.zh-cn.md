@@ -46,7 +46,7 @@ git clone --recursive https://github.com/oldrev/edgelinkd.git
 
 ```bash
 git clone https://github.com/oldrev/edgelinkd.git
-cd edgelinkd
+cd n2linkd
 git submodule update --init --recursive
 ```
 
@@ -79,36 +79,36 @@ cargo build --release
 ```bash
 cargo run --release -- run
 # 或编译后
-./target/release/edgelinkd run
+./target/release/n2linkd run
 ```
 
 默认会在浏览器打开 [http://127.0.0.1:1888](http://127.0.0.1:1888) 的 Node-RED 前端界面。
 
 **主要命令行参数：**
 
-- `[FLOWS_PATH]`：可选，指定流程文件（默认为 `~/.edgelinkd/flows.json`）
+- `[FLOWS_PATH]`：可选，指定流程文件（默认为 `~/.n2linkd/flows.json`）
 - `--headless`：无头模式（不启动 Web UI，适合生产部署）
 - `--bind <BIND>`：自定义 Web 绑定地址，默认 `127.0.0.1:1888`
-- `-u, --user-dir <USER_DIR>`：指定用户目录（默认为 `~/.edgelink`）
+- `-u, --user-dir <USER_DIR>`：指定用户目录（默认为 `~/.n2linkd`）
 - 其他参数见 `--help`
 
 **示例：**
 
 ```bash
 # 以无头模式运行
-./target/release/edgelinkd run --headless
+./target/release/n2linkd run --headless
 
 # 指定流程文件和端口
-./target/release/edgelinkd run ./myflows.json --bind 0.0.0.0:8080
+./target/release/n2linkd run ./myflows.json --bind 0.0.0.0:8080
 ```
 
-> EdgeLinkd 现在已集成：Node-RED 的前端 UI，所有数据和配置均存储于 `~/.edgelink` 目录。
+> EdgeLinkd 现在已集成：Node-RED 的前端 UI，所有数据和配置均存储于 `~/.n2linkd` 目录。
 
 使用 `--help` 查看所有命令和参数：
 
 ```bash
-./target/release/edgelinkd --help
-./target/release/edgelinkd run --help
+./target/release/n2linkd --help
+./target/release/n2linkd run --help
 ```
 
 #### 运行单元测试
@@ -172,7 +172,7 @@ py.test
 
 ## 反馈与技术支持
 
-我们欢迎任何反馈！如果你遇到任何技术问题或者 bug，请提交 [issue](https://github.com/edge-link/edgelinkd/issues)。
+我们欢迎任何反馈！如果你遇到任何技术问题或者 bug，请提交 [issue](https://github.com/edge-link/n2linkd/issues)。
 
 ### 社交网络聊天群：
 

@@ -8,7 +8,7 @@ impl TempHome {
     fn new() -> Self {
         let unique = SystemTime::now().duration_since(UNIX_EPOCH).expect("system clock must follow the Unix epoch");
         let path =
-            std::env::temp_dir().join(format!("edgelinkd-credential-cli-{}-{}", std::process::id(), unique.as_nanos()));
+            std::env::temp_dir().join(format!("n2linkd-credential-cli-{}-{}", std::process::id(), unique.as_nanos()));
         std::fs::create_dir(&path).expect("temporary credential CLI home must be created");
         Self(path)
     }
@@ -28,9 +28,10 @@ fn a_credential_command_failure_is_visible_and_returns_failure() {
     std::fs::write(home.0.join("flows_cred.json"), br#"{"fixture":{"password":"fixture-secret"}}"#).unwrap();
     std::fs::write(home.0.join("flows_cred.json.prev"), b"{}").unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_edgelinkd"))
+    let output = Command::new(env!("CARGO_BIN_EXE_n2linkd"))
         .args(["credentials", "migrate"])
-        .env("EDGELINK_HOME", &home.0)
+        .env("N2LINK_HOME", &home.0)
+        .env_remove("N2LINK_CREDENTIAL_KEY")
         .env_remove("EDGELINK_CREDENTIAL_KEY")
         .output()
         .expect("credential command must start");

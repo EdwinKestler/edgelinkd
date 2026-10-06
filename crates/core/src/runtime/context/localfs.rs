@@ -54,9 +54,6 @@ inventory::submit! {
     ProviderMetadata { type_: "localfilesystem", factory: LocalFileSystemContextStore::build }
 }
 
-/// The directory name EdgeLinkd uses under the user's home directory; see `src/consts.rs`.
-const EDGELINK_HOME_DIR_NAME: &str = ".edgelinkd";
-
 /// The file a flow scope is stored in, inside its flow directory.
 const FLOW_CONTEXT_FILE: &str = "flow";
 
@@ -107,17 +104,17 @@ fn resolve_storage_base_dir(options: &LocalFileSystemOptions) -> crate::Result<P
     if let Some(user_dir) = options.settings.as_ref().and_then(|settings| settings.user_dir.as_ref()) {
         return Ok(user_dir.join(&options.base));
     }
-    if let Some(home) = std::env::var_os("EDGELINK_HOME") {
+    if let Some(home) = crate::compat::env_var_os("HOME").map_err(N2linkError::InvalidOperation)? {
         return Ok(PathBuf::from(home).join(&options.base));
     }
     for var in ["HOME", "USERPROFILE", "HOMEPATH"] {
         if let Some(home) = std::env::var_os(var) {
-            return Ok(PathBuf::from(home).join(EDGELINK_HOME_DIR_NAME).join(&options.base));
+            return Ok(crate::compat::default_home_dir(&PathBuf::from(home)).join(&options.base));
         }
     }
     Err(N2linkError::Configuration).with_context(|| {
         "Cannot determine the base directory of the 'localfilesystem' context store: set 'dir' on the store, \
-         or EDGELINK_HOME in the environment"
+         or N2LINK_HOME in the environment"
             .to_owned()
     })
 }

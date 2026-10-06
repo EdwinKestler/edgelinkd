@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 const LONG_ABOUT: &str = r#"
-EdgeLinkd Daemon Program
+n2link Daemon Program
 
-EdgeLinkd is a Node-RED compatible back-end engine implemented in Rust.
+n2link is a Node-RED compatible back-end engine implemented in Rust.
 
 Copyright (C) 2023-TODAY Li Wei and contributors. All rights reserved.
 
@@ -14,7 +14,7 @@ For more information, visit the website: https://github.com/oldrev/edgelink
 
 #[derive(Parser, Debug, Clone)]
 #[command(
-    version = concat!(env!("CARGO_PKG_VERSION"), " • #", env!("EDGELINK_BUILD_GIT_HASH"), " • built at ", env!("EDGELINK_BUILD_TIME")), 
+    version = concat!(env!("CARGO_PKG_VERSION"), " • #", env!("N2LINK_BUILD_GIT_HASH"), " • built at ", env!("N2LINK_BUILD_TIME")), 
     about,
     author,
     long_about=LONG_ABOUT,
@@ -25,7 +25,7 @@ pub struct CliArgs {
     #[arg(short, long, default_value_t = 2, global = true)]
     pub verbose: usize,
 
-    /// Home directory of EdgeLink, default is `~/.edgelink`
+    /// Home directory of n2link, default is `~/.n2linkd`
     #[arg(long, global = true)]
     pub home: Option<String>,
 
@@ -47,7 +47,7 @@ pub struct CliArgs {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum Commands {
-    /// Run the EdgeLink workflow engine
+    /// Run the n2link workflow engine
     Run {
         /// Path of the 'flows.json' file.
         #[arg()]
@@ -81,7 +81,7 @@ pub enum PluginCommand {
     List,
     /// Validate, quarantine and self-test a packed .wasm package
     Stage {
-        /// Packed module (`edgelinkd plugin pack` output)
+        /// Packed module (`n2linkd plugin pack` output)
         file: std::path::PathBuf,
     },
     /// Make a self-tested package current; the deployed flows must build with it
@@ -167,7 +167,7 @@ impl CliArgs {
             let base_dir = if let Some(ref user_dir) = self.user_dir {
                 std::path::PathBuf::from(user_dir)
             } else {
-                dirs_next::home_dir().expect("Can not found the $HOME dir!!!").join(consts::DEFAULT_HOME_DIR_NAME)
+                dirs_next::home_dir().expect("Can not found the $HOME dir!!!").join(n2link_core::compat::HOME_DIR_NAME)
             };
             base_dir.join("flows.json").to_string_lossy().to_string()
         }

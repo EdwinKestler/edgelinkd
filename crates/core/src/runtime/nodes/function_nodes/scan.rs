@@ -1,6 +1,6 @@
 //! Status lamp for the process scan task.
 //!
-//! The period lives in `edgelinkd.toml` (`runtime.scan.period_ms`), not on this node.
+//! The period lives in `n2linkd.toml` (`runtime.scan.period_ms`), not on this node.
 //! The node has no message of its own. The scan task turns it green (`ok`) or red (`overrun`).
 
 use std::sync::Arc;

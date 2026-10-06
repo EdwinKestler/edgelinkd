@@ -5,8 +5,8 @@
 #
 #   scripts/wasm-measure.sh DEFAULT_BIN WASM_BIN UPPERCASE_WASM [FIXTURES_DIR] > results.jsonl
 #
-# DEFAULT_BIN    edgelinkd built without nodes_wasm (cargo build --profile ci --locked)
-# WASM_BIN       edgelinkd built with nodes_wasm (cargo build --profile ci --locked --features nodes_wasm)
+# DEFAULT_BIN    n2linkd built without nodes_wasm (cargo build --profile ci --locked)
+# WASM_BIN       n2linkd built with nodes_wasm (cargo build --profile ci --locked --features nodes_wasm)
 # UPPERCASE_WASM the example plugin from scripts/wasm-examples.sh
 set -euo pipefail
 
@@ -28,9 +28,9 @@ home() {
   rm -rf "$dir"
   cp -a "$FIXTURES" "$dir"
   case $mode in
-    disabled) printf '[runtime.wasm]\nenabled = false\n' > "$dir/edgelinkd.dev.toml" ;;
+    disabled) printf '[runtime.wasm]\nenabled = false\n' > "$dir/n2linkd.dev.toml" ;;
     enabled)
-      printf '[runtime.wasm]\nenabled = true\nmemory_budget_kib = 65536\n' > "$dir/edgelinkd.dev.toml"
+      printf '[runtime.wasm]\nenabled = true\nmemory_budget_kib = 65536\n' > "$dir/n2linkd.dev.toml"
       local sha
       sha=$("$WASM_BIN" -v 0 --home "$dir" plugin stage "$PLUGIN" | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha256"])')
       "$WASM_BIN" -v 0 --home "$dir" plugin activate edgelink/uppercase --sha256 "$sha" > /dev/null
@@ -60,7 +60,7 @@ EOF
 sample() {
   local bin=$1 dir=$2 start pid ready=""
   start=$(now_ms)
-  EDGELINK_HOME="$dir" "$bin" -v 0 run --bind "127.0.0.1:$PORT" > "$dir/run.log" 2>&1 &
+  N2LINK_HOME="$dir" "$bin" -v 0 run --bind "127.0.0.1:$PORT" > "$dir/run.log" 2>&1 &
   pid=$!
   for _ in $(seq 1 3000); do
     if curl -sf -o /dev/null "http://127.0.0.1:$PORT/api/health"; then ready=$(( $(now_ms) - start )); break; fi
@@ -68,7 +68,7 @@ sample() {
     sleep 0.001
   done
   if [[ -z $ready ]]; then
-    echo "edgelinkd did not become healthy; log:" >&2
+    echo "n2linkd did not become healthy; log:" >&2
     tail -20 "$dir/run.log" >&2
     kill "$pid" 2>/dev/null || true
     exit 1

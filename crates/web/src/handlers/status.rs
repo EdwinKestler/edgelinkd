@@ -112,7 +112,7 @@ mod tests {
 
     #[tokio::test]
     async fn status_reports_the_revision_and_empty_links() {
-        let dir = std::env::temp_dir().join(format!("edgelinkd-status-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2linkd-status-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let flows = dir.join("flows.json");
         std::fs::write(&flows, b"[]").unwrap();
@@ -141,7 +141,7 @@ mod tests {
 
     #[tokio::test]
     async fn status_drops_links_for_removed_mqtt_nodes() {
-        let dir = std::env::temp_dir().join(format!("edgelinkd-status-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2linkd-status-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let flows = dir.join("flows.json");
         std::fs::write(&flows, br#"[{"id":"100","type":"tab"}]"#).unwrap();
@@ -163,7 +163,7 @@ mod tests {
                     "z": "100",
                     "type": "mqtt in",
                     "broker": "b1",
-                    "topic": "edgelinkd/status-link",
+                    "topic": "n2linkd/status-link",
                     "qos": 0,
                     "datatype": "utf8",
                     "wires": []

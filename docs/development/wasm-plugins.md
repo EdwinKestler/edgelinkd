@@ -50,7 +50,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-n2link-wasm-guest = { path = "../edgelinkd/crates/wasm-guest" }
+n2link-wasm-guest = { path = "../n2linkd/crates/wasm-guest" }
 
 [profile.release]
 opt-level = "z"
@@ -99,8 +99,8 @@ Build, test and install:
 rustup target add wasm32-unknown-unknown
 cargo test                                               # host-side logic tests
 cargo build --release --target wasm32-unknown-unknown
-edgelinkd plugin stage target/wasm32-unknown-unknown/release/my_plugin.wasm   # runtime stopped
-edgelinkd plugin activate acme/scale --sha256 <hex from stage>
+n2linkd plugin stage target/wasm32-unknown-unknown/release/my_plugin.wasm   # runtime stopped
+n2linkd plugin activate acme/scale --sha256 <hex from stage>
 ```
 
 or, with the runtime running, `POST /wasm/plugins/stage` (`Content-Type: application/wasm`) and
@@ -243,7 +243,7 @@ Call sequence per node: compile once per package → instantiate on the first me
 Rejected at `stage`: start functions, imported memories/tables/globals, mistyped exports or
 imports, SIMD, threads, memory64, and any import outside the four above. Floats are allowed.
 
-Without the SDK, embed the manifest with `edgelinkd plugin pack module.wasm plugin.toml -o
+Without the SDK, embed the manifest with `n2linkd plugin pack module.wasm plugin.toml -o
 package.wasm`. A minimal WAT plugin is `crates/core/src/runtime/wasm/fixtures/identity.wat`.
 
 ### EVE/1 encoding

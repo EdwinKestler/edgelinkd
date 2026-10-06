@@ -361,7 +361,7 @@ mod tests {
     }
 
     async fn router() -> (axum::Router, TempDir, std::path::PathBuf) {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-flows-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-flows-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let flows = dir.0.join("flows.json");
         std::fs::write(&flows, b"[]").unwrap();
@@ -377,7 +377,7 @@ mod tests {
         use n2link_core::runtime::credential_storage::{CredentialStore, previous_credential_path};
         use n2link_core::runtime::flow_credentials::sidecar_path;
 
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-encrypted-flows-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-encrypted-flows-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let flows = dir.0.join("flows.json");
         std::fs::write(&flows, b"[]").unwrap();
@@ -544,7 +544,7 @@ mod tests {
         let (status, _) = call(&router, "POST", "/flows", Some(json!({ "flows": [initial] }))).await;
         assert_eq!(status, StatusCode::OK);
         let raw = std::fs::read_to_string(dir.0.join("flows_cred.json")).unwrap();
-        assert!(raw.contains("edgelink-credentials"));
+        assert!(raw.contains("n2link-credentials"));
         assert!(!raw.contains("fixture-secret"));
         let (status, view) = call(&router, "GET", "/credentials/mqtt-broker/b", None).await;
         assert_eq!(status, StatusCode::OK);
@@ -643,7 +643,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_invalid_node_does_not_change_disk_or_runtime() {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-flows-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-flows-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let flows = dir.0.join("flows.json");
         std::fs::write(&flows, b"[]").unwrap();
@@ -677,7 +677,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_invalid_single_flow_does_not_change_disk_or_runtime() {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-flows-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-flows-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let flows = dir.0.join("flows.json");
         std::fs::write(&flows, br#"[{"id":"a","type":"tab"}]"#).unwrap();
@@ -713,7 +713,7 @@ mod tests {
 
     #[tokio::test]
     async fn two_deploys_leave_the_engine_on_the_disk_winner() {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-flows-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-flows-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let flows = dir.0.join("flows.json");
         std::fs::write(&flows, br#"[{"id":"a","type":"tab"}]"#).unwrap();

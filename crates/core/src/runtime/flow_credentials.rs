@@ -108,7 +108,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_missing_sidecar_leaves_the_flows_unchanged() {
-        let dir = std::env::temp_dir().join(format!("edgelinkd-cred-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2linkd-cred-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let flows = dir.join("flows.json");
         std::fs::write(&flows, r#"[{"id":"t","type":"tab"}]"#).unwrap();

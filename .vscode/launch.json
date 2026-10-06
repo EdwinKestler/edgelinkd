@@ -11,11 +11,11 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=edgelinkd",
+                    "--bin=n2linkd",
                     "--package=n2link-app"
                 ],
                 "filter": {
-                    "name": "edgelinkd",
+                    "name": "n2linkd",
                     "kind": "bin"
                 }
             },
@@ -24,7 +24,7 @@
                 "4"
             ],
             "env": {
-                "EDGELINK_HOME": "${workspaceFolder}"
+                "N2LINK_HOME": "${workspaceFolder}"
             },
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
@@ -38,11 +38,11 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=edgelinkd",
+                    "--bin=n2linkd",
                     "--package=n2link-app"
                 ],
                 "filter": {
-                    "name": "edgelinkd",
+                    "name": "n2linkd",
                     "kind": "bin"
                 }
             },

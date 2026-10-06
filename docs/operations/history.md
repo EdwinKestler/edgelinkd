@@ -13,7 +13,7 @@ bodies, credentials, tokens, prompts, or provider completions.
 The default `cargo run -- run` binary already includes SQLite history. Set `[history] enabled = true` in the home overlay:
 
 ```bash
-EDGELINK_HOME="$PWD" cargo run -- run
+N2LINK_HOME="$PWD" cargo run -- run
 ```
 
 A minimal binary can omit it with `--no-default-features` (and the features you still need).

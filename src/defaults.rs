@@ -27,7 +27,7 @@ pub fn create_default_flows_json() -> serde_json::Value {
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "Hello, EdgeLinkd!",
+        "payload": "Hello, n2link!",
         "payloadType": "date",
         "x": 410,
         "y": 280,
@@ -57,12 +57,13 @@ pub fn create_default_flows_json() -> serde_json::Value {
     ])
 }
 
-/// Creates a default edgelinkd.toml configuration file
+/// Creates a default n2linkd.toml configuration file
 pub fn create_default_config_file(config_dir: &str) -> Result<()> {
     use std::fs;
     use std::path::Path;
 
-    let config_path = Path::new(config_dir).join("edgelinkd.toml");
+    // `compat::config_file` returns the legacy edgelinkd.toml when only that one exists.
+    let config_path = n2link_core::compat::config_file(Path::new(config_dir), None);
 
     // If config file already exists, nothing to do
     if config_path.exists() {
@@ -114,7 +115,7 @@ global_max_concurrency = 128
 max_rate_keys = 2048
 trusted_proxies = []
 # Optional: name of an environment variable whose bearer token every `http in` listener requires.
-# webhook_bearer_env = "EDGELINK_WEBHOOK_TOKEN"
+# webhook_bearer_env = "N2LINK_WEBHOOK_TOKEN"
 
 [api_protection.health]
 mode = "enforce"
@@ -235,7 +236,7 @@ max_redirects = 5
 # ports = [1883]
 
 # The editor configuration pane is disabled until explicitly enabled. It also requires admin
-# authentication; EdgeLinkd refuses to start if this is true while login is off.
+# authentication; n2link refuses to start if this is true while login is off.
 [config_editor]
 enabled = false
 
@@ -243,7 +244,7 @@ enabled = false
 # migrated, this environment variable takes precedence over the local flows_cred.key keyring.
 # Never place the key value in this file or commit a generated *.key file.
 [credentials]
-key_env = "EDGELINK_CREDENTIAL_KEY"
+key_env = "N2LINK_CREDENTIAL_KEY"
 # key_file = "flows_cred.key"
 
 # Admin login is off until a password, a user list, or an OIDC issuer is set.
@@ -267,9 +268,9 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # role = "administrator"
 # [admin.oidc]
 # issuer = "https://idp.example/realms/plant"
-# client_id = "edgelinkd"
+# client_id = "n2linkd"
 # client_secret = "change-me"
-# role_claim = "edgelink_role"
+# role_claim = "n2link_role"
 # redirect_url = "http://127.0.0.1:1888/auth/strategy/callback"
 
 # Fleet push is off until enabled. Devices can also live in fleet.json beside flows.json.
@@ -283,7 +284,7 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # Optional WASM plugins. Off even when the binary is built with --features nodes_wasm.
 # [runtime.wasm]
 # enabled = false
-# Plugin store under the home directory; manage it with `edgelinkd plugin` while stopped.
+# Plugin store under the home directory; manage it with `n2linkd plugin` while stopped.
 # dir = "plugins"
 # Memory reserved for all plugin nodes of the deployed graph (about 15 default-sized nodes).
 # Boards with spare RAM can raise it, e.g. 65536 on a Raspberry Pi 5.

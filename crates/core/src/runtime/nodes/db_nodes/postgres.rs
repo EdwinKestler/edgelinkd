@@ -402,7 +402,7 @@ mod tests {
 
     #[tokio::test]
     async fn empty_password_against_a_live_server_keeps_the_auth_cause() {
-        if std::env::var("EDGELINK_POSTGRES_LIVE").ok().as_deref() == Some("1") {
+        if std::env::var("N2LINK_POSTGRES_LIVE").ok().as_deref() == Some("1") {
             let stream = tokio::net::TcpStream::connect(("127.0.0.1", 5432)).await.expect("127.0.0.1:5432");
             let mut cfg = tokio_postgres::Config::new();
             cfg.user("postgres").dbname("postgres").password("");
@@ -434,10 +434,10 @@ mod tests {
 
     #[tokio::test]
     async fn select_1_as_ok_is_the_number_one() {
-        if std::env::var("EDGELINK_POSTGRES_LIVE").ok().as_deref() != Some("1") {
+        if std::env::var("N2LINK_POSTGRES_LIVE").ok().as_deref() != Some("1") {
             return;
         }
-        let password = std::env::var("EDGELINK_POSTGRES_PASSWORD").expect("EDGELINK_POSTGRES_PASSWORD");
+        let password = std::env::var("N2LINK_POSTGRES_PASSWORD").expect("N2LINK_POSTGRES_PASSWORD");
         let client = live_client(&password).await;
         let row = client
             .query_one(

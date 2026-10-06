@@ -12,7 +12,7 @@ authors = ["Li Wei <oldrev@gmail.com>"]
 
 
 [[bin]]
-name = "edgelinkd"
+name = "n2linkd"
 path = "src/main.rs"
 
 

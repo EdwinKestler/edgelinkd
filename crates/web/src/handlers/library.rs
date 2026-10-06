@@ -485,7 +485,7 @@ mod tests {
     }
 
     async fn router(with_home: bool) -> (axum::Router, TempDir) {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-lib-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-lib-{}", uuid::Uuid::new_v4())));
         std::fs::create_dir_all(&dir.0).unwrap();
         let state = WebState::new();
         if with_home {
@@ -560,7 +560,7 @@ mod tests {
 
     #[tokio::test]
     async fn examples_flows_lists_packages_that_ship_examples() {
-        let dir = TempDir(std::env::temp_dir().join(format!("edgelinkd-examples-{}", uuid::Uuid::new_v4())));
+        let dir = TempDir(std::env::temp_dir().join(format!("n2linkd-examples-{}", uuid::Uuid::new_v4())));
         let sample = dir.0.join("nodes/core/examples/flows");
         std::fs::create_dir_all(&sample).unwrap();
         std::fs::write(sample.join("sample.json"), b"[]").unwrap();

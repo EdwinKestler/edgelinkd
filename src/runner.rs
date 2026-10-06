@@ -28,7 +28,7 @@ pub async fn run_app(cli_args: Arc<CliArgs>) -> n2link_core::Result<()> {
 
 pub async fn run_app_internal(cli_args: Arc<CliArgs>) -> n2link_core::Result<()> {
     if cli_args.verbose > 0 {
-        eprintln!("EdgeLinkd v{} - #{}\n", consts::APP_VERSION, consts::GIT_HASH);
+        eprintln!("n2link v{} - #{}\n", consts::APP_VERSION, consts::GIT_HASH);
         eprintln!("Loading configuration...");
     }
 
@@ -39,7 +39,7 @@ pub async fn run_app_internal(cli_args: Arc<CliArgs>) -> n2link_core::Result<()>
         eprintln!("Logging sub-system initialized.\n");
     }
 
-    log::info!("EdgeLinkd Version={}-#{}", consts::APP_VERSION, consts::GIT_HASH);
+    log::info!("n2link Version={}-#{}", consts::APP_VERSION, consts::GIT_HASH);
     log::info!("==========================================================\n");
 
     // Prepare the runtime environment (ensure flows file exists, etc.)
@@ -56,7 +56,7 @@ pub async fn run_app_internal(cli_args: Arc<CliArgs>) -> n2link_core::Result<()>
         ctrl_c_token.cancel();
     });
 
-    log::info!("Starting EdgeLinkd run-time engine...");
+    log::info!("Starting n2link run-time engine...");
     log::info!("Press CTRL+C to terminate.");
 
     // Create the App first to get flows data
@@ -112,7 +112,7 @@ async fn start_web_server(
     let egress = app.engine().read().await.egress_policy().clone();
     let home_dir = cfg.get_string("home_dir").map_err(|_| anyhow::anyhow!("home_dir is not configured"))?;
     let run_env = cfg.get_string("run_env").unwrap_or_else(|_| "dev".to_string());
-    let config_file = PathBuf::from(home_dir).join(format!("edgelinkd.{run_env}.toml"));
+    let config_file = n2link_core::compat::config_file(&PathBuf::from(home_dir), Some(&run_env));
 
     let web_server =
         WebServer::new_with_egress(static_dir, cancel.clone(), cfg, egress).with_registry(app.registry().clone()).await;

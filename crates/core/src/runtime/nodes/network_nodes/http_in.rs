@@ -1081,7 +1081,7 @@ mod tests {
                 [runtime.context.stores]
                 memory = { provider = "memory" }
                 [api_protection]
-                webhook_bearer_env = "EDGELINK_PHASE3_TEST_ENV_THAT_MUST_NOT_EXIST"
+                webhook_bearer_env = "N2LINK_PHASE3_TEST_ENV_THAT_MUST_NOT_EXIST"
                 "#,
                 config::FileFormat::Toml,
             ))

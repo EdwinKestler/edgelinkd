@@ -244,8 +244,8 @@ jobs:
 
       - name: Run Python tests
         env:
-          EDGELINK_BUILD_TARGET: ${{ matrix.target }}
-          EDGELINK_BUILD_PROFILE: ci
+          N2LINK_BUILD_TARGET: ${{ matrix.target }}
+          N2LINK_BUILD_PROFILE: ci
         run: pytest ./tests -v
 
   build-and-test-on-arm-linux:
@@ -315,8 +315,8 @@ jobs:
       - name: Setup cross-compilation tools for ARM 64
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          echo "EDGELINK_TOOLCHAIN_TRIPLE=aarch64-linux-gnu" >> $GITHUB_ENV
-          echo "EDGELINK_QEMU_CMD=qemu-aarch64-static" >> $GITHUB_ENV
+          echo "N2LINK_TOOLCHAIN_TRIPLE=aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "N2LINK_QEMU_CMD=qemu-aarch64-static" >> $GITHUB_ENV
           echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
       #     sudo apt-get update
       #     sudo apt-get install -y gcc-aarch64-linux-gnu libc-dev-arm64-cross libssl-dev:arm64
@@ -325,8 +325,8 @@ jobs:
       - name: Setup cross-compilation tools for ARM 32 (gnueabihf)
         if: matrix.target == 'armv7-unknown-linux-gnueabihf'
         run: |
-          echo "EDGELINK_TOOLCHAIN_TRIPLE=arm-linux-gnueabihf" >> $GITHUB_ENV
-          echo "EDGELINK_QEMU_CMD=qemu-arm-static" >> $GITHUB_ENV
+          echo "N2LINK_TOOLCHAIN_TRIPLE=arm-linux-gnueabihf" >> $GITHUB_ENV
+          echo "N2LINK_QEMU_CMD=qemu-arm-static" >> $GITHUB_ENV
           echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
       #     sudo apt-get update
       #     sudo apt-get install -y gcc-arm-linux-gnueabihf libc-dev-armhf-cross libssl-dev:armhf
@@ -335,8 +335,8 @@ jobs:
       - name: Setup cross-compilation tools for ARM 32 (gnueabi)
         if: matrix.target == 'armv7-unknown-linux-gnueabi'
         run: |
-          echo "EDGELINK_TOOLCHAIN_TRIPLE=arm-linux-gnueabi" >> $GITHUB_ENV
-          echo "EDGELINK_QEMU_CMD=qemu-arm-static" >> $GITHUB_ENV
+          echo "N2LINK_TOOLCHAIN_TRIPLE=arm-linux-gnueabi" >> $GITHUB_ENV
+          echo "N2LINK_QEMU_CMD=qemu-arm-static" >> $GITHUB_ENV
           echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
       #     sudo apt-get update
       #     sudo apt-get install -y gcc-arm-linux-gnueabi libc-dev-armel-cross libssl-dev:armel
@@ -352,10 +352,10 @@ jobs:
         run: cross test --workspace --profile ci --target ${{ matrix.target }} --features full --exclude n2link-pymod --no-run --message-format=json | tee ./target/${{ matrix.target }}/ci/cargo-build-test.json
 
       - name: Run unit tests in QEMU ARM
-        run: python3 ./scripts/cross-unittest.py ${{ env.EDGELINK_QEMU_CMD }}  ${{ env.EDGELINK_TOOLCHAIN_TRIPLE }} ./target/${{ matrix.target }}/ci/cargo-build-test.json
+        run: python3 ./scripts/cross-unittest.py ${{ env.N2LINK_QEMU_CMD }}  ${{ env.N2LINK_TOOLCHAIN_TRIPLE }} ./target/${{ matrix.target }}/ci/cargo-build-test.json
         env:
-          EDGELINK_TOOLCHAIN_TRIPLE: ${{ env.EDGELINK_TOOLCHAIN_TRIPLE }}
-          EDGELINK_QEMU_CMD: ${{ env.EDGELINK_QEMU_CMD }}
+          N2LINK_TOOLCHAIN_TRIPLE: ${{ env.N2LINK_TOOLCHAIN_TRIPLE }}
+          N2LINK_QEMU_CMD: ${{ env.N2LINK_QEMU_CMD }}
 
   clippy:
     name: Clippy
@@ -477,7 +477,7 @@ jobs:
           body: |
             Automated nightly build for dev branch.
             Built on: ${{ steps.date.outputs.date }}
-          files: build-out/edgelinkd-dist-x86_64-pc-windows-msvc-nightly-*.zip
+          files: build-out/n2linkd-dist-x86_64-pc-windows-msvc-nightly-*.zip
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

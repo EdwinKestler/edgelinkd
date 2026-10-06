@@ -1,5 +1,5 @@
 {
-  "project_slug": "edgelinkd",
+  "project_slug": "n2linkd",
   "project_id": "edf9ac94-43cb-4c70-a2bb-a0461a0c5de2",
   "cache_mode": "on",
   "redis_socket_path": ".palimnex/redis/redis.sock",

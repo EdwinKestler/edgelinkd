@@ -96,7 +96,7 @@ impl PyContextStore {
     /// `ContextStore.create(provider, name, options=None)` — build one store.
     ///
     /// `options` is the provider's own configuration object, the same keys the flat
-    /// `[runtime.context.stores]` table holds in `edgelinkd.toml`.
+    /// `[runtime.context.stores]` table holds in `n2linkd.toml`.
     #[staticmethod]
     #[pyo3(signature = (provider, name, options=None))]
     fn create(provider: &str, name: &str, options: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {

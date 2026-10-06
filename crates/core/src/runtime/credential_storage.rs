@@ -13,18 +13,25 @@ use sha2::{Digest, Sha256};
 
 use crate::utils::atomic_file::{self, FileReplace};
 
-const ENVELOPE_FORMAT: &str = "edgelink-credentials";
+const ENVELOPE_FORMAT: &str = "n2link-credentials";
 #[cfg(feature = "credential_encryption")]
 const ENVELOPE_VERSION: u8 = 1;
 #[cfg(feature = "credential_encryption")]
 const ENVELOPE_ALGORITHM: &str = "XChaCha20-Poly1305";
 #[cfg(feature = "credential_encryption")]
-const KEYRING_FORMAT: &str = "edgelink-credential-keyring";
+const KEYRING_FORMAT: &str = "n2link-credential-keyring";
 #[cfg(feature = "credential_encryption")]
 const KEYRING_VERSION: u8 = 1;
-const JOURNAL_FORMAT: &str = "edgelink-credential-transaction";
+const JOURNAL_FORMAT: &str = "n2link-credential-transaction";
+/// Formats written by EdgeLinkd before the rename. n2link does not read them: the rename was a clean
+/// break for encrypted credentials (adoption/rebrand/PLAN.md), so they fail with a clear message.
+#[cfg_attr(not(feature = "credential_encryption"), allow(dead_code))]
+const LEGACY_FORMAT_PREFIX: &str = "edgelink-credential";
+#[cfg_attr(not(feature = "credential_encryption"), allow(dead_code))]
+const LEGACY_FORMAT_ERROR: &str = "credentials were encrypted by EdgeLinkd, which n2link cannot read; \
+     remove flows_cred.json and flows_cred.key, then re-enter the credentials";
 const JOURNAL_VERSION: u8 = 1;
-const DEFAULT_KEY_ENV: &str = "EDGELINK_CREDENTIAL_KEY";
+const DEFAULT_KEY_ENV: &str = "N2LINK_CREDENTIAL_KEY";
 
 #[derive(Clone, Debug)]
 pub struct CredentialStore {
@@ -481,7 +488,7 @@ impl CredentialStore {
 
     #[cfg(feature = "credential_encryption")]
     fn injected_key(&self) -> Result<Option<[u8; 32]>, String> {
-        let Some(raw) = std::env::var_os(&self.key_env) else {
+        let Some(raw) = crate::compat::named_env_var_os(&self.key_env)? else {
             return Ok(None);
         };
         let raw = raw.into_string().map_err(|_| "injected credential key is not UTF-8")?;
@@ -646,6 +653,9 @@ impl KeySet {
 
     fn from_keyring_bytes(bytes: &[u8]) -> Result<Self, String> {
         let keyring: Keyring = serde_json::from_slice(bytes).map_err(|_| "credential keyring is not valid JSON")?;
+        if keyring.format.starts_with(LEGACY_FORMAT_PREFIX) {
+            return Err(LEGACY_FORMAT_ERROR.to_string());
+        }
         if keyring.format != KEYRING_FORMAT || keyring.version != KEYRING_VERSION || keyring.keys.is_empty() {
             return Err("credential keyring format is not supported".to_string());
         }
@@ -745,6 +755,9 @@ fn decrypt_with_keys(value: Value, keys: &KeySet) -> Result<Map<String, Value>, 
     use zeroize::Zeroizing;
 
     let envelope: Envelope = serde_json::from_value(value).map_err(|_| "credential envelope is invalid")?;
+    if envelope.format.starts_with(LEGACY_FORMAT_PREFIX) {
+        return Err(LEGACY_FORMAT_ERROR.to_string());
+    }
     if envelope.format != ENVELOPE_FORMAT || envelope.version != ENVELOPE_VERSION {
         return Err("credential envelope version is not supported".to_string());
     }
@@ -1102,6 +1115,27 @@ mod tests {
         let err = decrypt_with_keys(serde_json::to_value(envelope).unwrap(), &keys).unwrap_err();
         assert_eq!(err, "credential authentication failed");
         assert!(!err.contains("fixture-secret"));
+    }
+
+    #[cfg(feature = "credential_encryption")]
+    #[test]
+    fn edgelinkd_credentials_and_keyrings_fail_loudly() {
+        let keys = KeySet::generated().unwrap();
+        let stored = json!({"node":{"password":"fixture-secret"}}).as_object().unwrap().clone();
+        let value = parse_value(&encrypt_map(&stored, &keys).unwrap()).unwrap();
+        let mut envelope: Envelope = serde_json::from_value(value).unwrap();
+        envelope.format = "edgelink-credentials".to_string();
+        let legacy = serde_json::to_value(envelope).unwrap();
+        assert!(matches!(format_of(&legacy), SidecarFormat::Encrypted));
+        let err = decrypt_with_keys(legacy, &keys).unwrap_err();
+        assert!(err.contains("EdgeLinkd"), "{err}");
+        assert!(!err.contains("fixture-secret"));
+
+        let keyring = String::from_utf8(keys.keyring_bytes().unwrap()).unwrap();
+        let legacy_keyring = keyring.replace(KEYRING_FORMAT, "edgelink-credential-keyring");
+        assert_ne!(keyring, legacy_keyring);
+        let err = KeySet::from_keyring_bytes(legacy_keyring.as_bytes()).err().unwrap();
+        assert!(err.contains("EdgeLinkd"), "{err}");
     }
 
     #[cfg(feature = "credential_encryption")]

@@ -10,7 +10,7 @@ editor built in. Rust workspace layout:
 
 | Path | Contents |
 |---|---|
-| `src/` | the `edgelinkd` CLI binary (`run`, `list`, web UI / headless) |
+| `src/` | the `n2linkd` CLI binary (`run`, `list`, web UI / headless) |
 | `crates/core/` | the runtime: engine, flows, nodes, context, message model, JS bridge |
 | `crates/web/` | admin API + web UI server (axum) |
 | `crates/macro/` | `#[flow_node]` / `#[global_node]` proc macros (self-registration) |
@@ -155,8 +155,8 @@ and `inventory`, so there is no central node list — only the `mod` declaration
 - Node-RED is a git submodule: `git submodule update --init --recursive`. The editor build
   (`npm run build` in that checkout) needs Node.js >= 22.9; CI uses Node 24. The audit
   script also needs `node_modules` inside it (mocha).
-- The pytest suite loads `target/<EDGELINK_BUILD_TARGET>/<EDGELINK_BUILD_PROFILE>/n2link_pymod.*`,
-  so those two env vars must match how you built (`EDGELINK_BUILD_PROFILE` is `debug` by
+- The pytest suite loads `target/<N2LINK_BUILD_TARGET>/<N2LINK_BUILD_PROFILE>/n2link_pymod.*`,
+  so those two env vars must match how you built (`N2LINK_BUILD_PROFILE` is `debug` by
   default, `ci` in CI). On Windows the loader copies the `.dll` to `.pyd`, so **rebuild
   before running tests** or you test the previous binary.
 - Python 3.13 works out of the box with PyO3 0.23; CI runs 3.12.

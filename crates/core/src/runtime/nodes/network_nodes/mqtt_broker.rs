@@ -1839,15 +1839,15 @@ mod tests {
     }
 
     /// Round-trip against a broker already listening on 127.0.0.1:1883.
-    /// Set EDGELINK_MQTT_LIVE=1. The unit suite stays quiet without it.
-    /// Optional EDGELINK_MQTT_USER and EDGELINK_MQTT_PASSWORD are sent on CONNECT.
+    /// Set N2LINK_MQTT_LIVE=1. The unit suite stays quiet without it.
+    /// Optional N2LINK_MQTT_USER and N2LINK_MQTT_PASSWORD are sent on CONNECT.
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn a_live_broker_round_trip_on_localhost() {
-        if std::env::var("EDGELINK_MQTT_LIVE").ok().as_deref() != Some("1") {
+        if std::env::var("N2LINK_MQTT_LIVE").ok().as_deref() != Some("1") {
             return;
         }
-        live_round_trip(4, "edgelinkd/live/v4", "edgelink-live-v4", "ping-v4", None).await;
-        live_round_trip(5, "edgelinkd/live/v5", "edgelink-live-v5", "ping-v5", Some("edgelinkd/live/v5/reply")).await;
+        live_round_trip(4, "n2linkd/live/v4", "edgelink-live-v4", "ping-v4", None).await;
+        live_round_trip(5, "n2linkd/live/v5", "edgelink-live-v5", "ping-v5", Some("n2linkd/live/v5/reply")).await;
     }
 
     async fn live_round_trip(protocol: u8, topic: &str, client_id: &str, payload: &str, response_topic: Option<&str>) {
@@ -1865,11 +1865,11 @@ mod tests {
             "protocolVersion": protocol, "clientid": client_id, "cleansession": true,
             "autoConnect": true, "keepalive": 60
         });
-        if let Ok(user) = std::env::var("EDGELINK_MQTT_USER")
+        if let Ok(user) = std::env::var("N2LINK_MQTT_USER")
             && !user.is_empty()
         {
             broker["username"] = json!(user);
-            broker["password"] = json!(std::env::var("EDGELINK_MQTT_PASSWORD").unwrap_or_default());
+            broker["password"] = json!(std::env::var("N2LINK_MQTT_PASSWORD").unwrap_or_default());
         }
         let flows = json!([
             { "id": "100", "type": "tab" },

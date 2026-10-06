@@ -769,8 +769,8 @@ mod tests {
     #[tokio::test]
     #[ignore = "needs the example plugins built for wasm32: scripts/wasm-examples.sh --e2e"]
     async fn example_plugins_install_and_run() {
-        let dir = std::env::var("EDGELINK_WASM_EXAMPLES")
-            .expect("EDGELINK_WASM_EXAMPLES must name the directory with uppercase.wasm and csvparse.wasm");
+        let dir = std::env::var("N2LINK_WASM_EXAMPLES")
+            .expect("N2LINK_WASM_EXAMPLES must name the directory with uppercase.wasm and csvparse.wasm");
         let home = std::env::temp_dir().join(format!("edgelink-wasm-e2e-{}", uuid::Uuid::new_v4()));
         let store = super::super::store::PluginStore::open_at(
             home.join("plugins"),
@@ -813,10 +813,10 @@ mod tests {
     /// node (EVE encode/decode, permit, blocking call, delivery), engine start/stop and the first
     /// instantiation included. Run with `--profile ci` for representative numbers.
     #[tokio::test]
-    #[ignore = "measurement; needs EDGELINK_WASM_EXAMPLES (scripts/wasm-examples.sh)"]
+    #[ignore = "measurement; needs N2LINK_WASM_EXAMPLES (scripts/wasm-examples.sh)"]
     async fn example_plugin_message_cost() {
         const N: usize = 2000;
-        let dir = std::env::var("EDGELINK_WASM_EXAMPLES").expect("EDGELINK_WASM_EXAMPLES");
+        let dir = std::env::var("N2LINK_WASM_EXAMPLES").expect("N2LINK_WASM_EXAMPLES");
         let bytes = std::fs::read(format!("{dir}/uppercase.wasm")).unwrap();
         let set = crate::runtime::wasm::ActivePlugins::from_packages(vec![bytes]).unwrap();
         let registry = registry_of(set.specs().cloned().collect());

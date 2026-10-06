@@ -40,7 +40,7 @@ state. Invalid modes, unknown properties, malformed trusted networks, or zero ac
 startup. `observe` records a safe metadata-only decision but permits the request; `off` is the
 class-specific legacy fallback. Do not disable all classes to solve one compatibility issue.
 
-The default limits are documented in the generated `edgelinkd.toml`. The larger defaults are
+The default limits are documented in the generated `n2linkd.toml`. The larger defaults are
 intentional for Node-RED flow deploys and editor assets. Flow Copilot has only two concurrent
 requests and 30 requests per minute because each accepted request may start paid remote work.
 WASM plugin administration (`plugins`) accepts one request at a time, six per minute, bodies up to
@@ -66,13 +66,13 @@ requires one shared bearer token. Store the token only in an environment variabl
 
 ```toml
 [api_protection]
-webhook_bearer_env = "EDGELINK_WEBHOOK_TOKEN"
+webhook_bearer_env = "N2LINK_WEBHOOK_TOKEN"
 ```
 
 ```bash
-read -rsp 'Webhook token: ' EDGELINK_WEBHOOK_TOKEN
-export EDGELINK_WEBHOOK_TOKEN
-EDGELINK_HOME="$PWD" target/debug/edgelinkd run
+read -rsp 'Webhook token: ' N2LINK_WEBHOOK_TOKEN
+export N2LINK_WEBHOOK_TOKEN
+N2LINK_HOME="$PWD" target/debug/n2linkd run
 ```
 
 If the configured variable is missing or empty, deploying an `http in` node fails closed. The

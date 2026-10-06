@@ -33,6 +33,6 @@ for example in uppercase csvparse tofsense; do
 done
 
 if [[ "${1:-}" == "--e2e" ]]; then
-  EDGELINK_WASM_EXAMPLES="$OUT" cargo test -q -p n2link-core --features nodes_wasm --lib -- \
+  N2LINK_WASM_EXAMPLES="$OUT" cargo test -q -p n2link-core --features nodes_wasm --lib -- \
     --ignored --exact runtime::wasm::plugin_node::tests::example_plugins_install_and_run
 fi
