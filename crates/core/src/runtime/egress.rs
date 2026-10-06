@@ -238,6 +238,8 @@ pub struct EgressPolicy {
     config: EgressConfig,
     mode: EgressMode,
     allow_environment_proxy: bool,
+    // Read only by the HTTP client, which builds with `nodes_http` or `nodes_ai`.
+    #[cfg_attr(not(any(feature = "nodes_http", feature = "nodes_ai")), allow(dead_code))]
     proxy_url: Option<String>,
     connect_timeout: Duration,
     request_timeout: Duration,
