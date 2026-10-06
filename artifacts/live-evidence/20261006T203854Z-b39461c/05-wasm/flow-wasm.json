@@ -1,0 +1,6 @@
+{"flows":[
+ {"id":"e0000000000000c1","type":"tab","label":"wasm"},
+ {"id":"e0000000000000c2","type":"inject","z":"e0000000000000c1","name":"","props":[{"p":"payload"}],"repeat":"","crontab":"","once":true,"onceDelay":0.2,"topic":"","payload":"hello n2link","payloadType":"str","wires":[["e0000000000000c3"]]},
+ {"id":"e0000000000000c3","type":"wasm-n2link-uppercase","z":"e0000000000000c1","name":"","wires":[["e0000000000000c4"]]},
+ {"id":"e0000000000000c4","type":"debug","z":"e0000000000000c1","name":"evidence","active":true,"tosidebar":true,"console":true,"tostatus":false,"complete":"payload","targetType":"msg","wires":[]}
+]}

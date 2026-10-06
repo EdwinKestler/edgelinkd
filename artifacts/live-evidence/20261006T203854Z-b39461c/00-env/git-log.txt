@@ -1,0 +1,12 @@
+b39461c live-evidence: write to an absolute output dir; judge pytest by its exit code
+dda75c2 live-evidence: exclude the evidence folder from its own git-status capture
+ab261f3 ci: pass guest stack size when RUSTFLAGS is set; fix ai-split pytest injection
+36a25e5 Fix two CI failures found by the fork's first full CI run
+b03cdec Add scripts/live-evidence.sh: live acceptance run that keeps evidence
+1703fd3 Allow the unread egress proxy_url in builds without an HTTP client
+e24afdb Rebrand R5: README, docs, prose and Copilot skill say n2link
+6f01d96 Rebrand R4: n2link UI branding and brand assets
+305196c Rebrand R3: rename the WASM plugin interface to n2link (no alias)
+e878b51 Rebrand R2: n2linkd binary, config, home, N2LINK_* variables
+18a567b Rebrand R1: rename crates and Rust/Python identifiers to n2link
+34c626f Rebrand R0: n2link plan and NOTICE

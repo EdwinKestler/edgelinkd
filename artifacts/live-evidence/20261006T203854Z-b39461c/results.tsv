@@ -1,0 +1,52 @@
+step	check	result	detail
+env	recorded	PASS	env.txt, git-log.txt, git-status.txt
+env	clean-tree	PASS	working tree matches b39461c
+build	cargo-build	PASS	exit 0
+build	version	PASS	matches /[0-9]+\.[0-9]+\.[0-9]+/ in version.log
+build	help-names-n2link	PASS	matches /n2link/ in help.log
+build	help-free-of-edgelink	PASS	absent from help.log
+branding	server-start	PASS	port 18890
+branding	health	PASS	matches /"service":"n2link-web"/ in health.json
+branding	info	PASS	matches /"name":"n2link Web API"/ in info.json
+branding	theme-title	PASS	matches /"title":"n2link"/ in theme.json
+branding	theme-logo	PASS	matches /n2link/n2link-logo.svg/ in theme.json
+branding	editor-title	PASS	matches /<title>n2link</title>/ in index.html
+branding	favicon	PASS	same bytes as assets/brand/favicon.ico
+branding	logo-served	PASS	matches /^200 image/svg/ in n2link-logo.svg.status
+branding	icon-served	PASS	matches /^200 image/svg/ in n2link-icon.svg.status
+branding	client-title	PASS	matches /<title>n2link</title>/ in client.html
+branding	editor-plugins	PASS	matches /n2link-config/config-editor/ in plugins.json
+branding	deploy-accepted	PASS	matches /^(200|204)/ in deploy-response.json.status
+branding	flow-runs	PASS	debug node logged the injected payload
+compat	legacy-home-warning	PASS	matches /legacy home directory .*\.edgelinkd; move it with: mv/ in legacy-home.log
+compat	legacy-config-warning	PASS	matches /legacy config file .*edgelinkd\.toml/ in legacy-home.log
+compat	old-variable-warning	PASS	matches /EDGELINK_HOME is deprecated; rename it to N2LINK_HOME/ in edgelink-home.log
+compat	no-stray-home-warning	PASS	absent from edgelink-home.log
+compat	conflict-stops	PASS	matches /N2LINK_HOME and EDGELINK_HOME are both set to different values/ in conflict.log
+compat	fresh-home-created	PASS	matches /^n2linkd\.toml$/ in fresh-home.ls
+compat	fresh-home-quiet	PASS	absent from fresh-home.log
+credentials	deploy-accepted	PASS	matches /^(200|204)/ in deploy-response.json.status
+credentials	default-is-plaintext	INFO	a new installation writes plaintext until `credentials migrate`
+credentials	migrate	PASS	exit 0
+credentials	sidecar-format	PASS	matches /"format": "n2link-credentials"/ in sidecar-header.json
+credentials	password-not-plaintext	PASS	absent from flows_cred.json
+credentials	user-not-plaintext	PASS	absent from flows_cred.json
+credentials	status-command	PASS	exit 0
+credentials	survives-restart	PASS	matches /"user":"evidence-user"/ in credentials-after-restart.json
+credentials	password-flagged	PASS	matches /"has_password":true/ in credentials-after-restart.json
+credentials	password-not-returned	PASS	absent from credentials-after-restart.json
+credentials	edgelinkd-sidecar-not-decryptable	PASS	matches /"decryptable": false/ in legacy-sidecar-status.log
+credentials	edgelinkd-sidecar-refused	PASS	matches /encrypted by EdgeLinkd/ in legacy-sidecar-server.log
+wasm	cargo-build	PASS	exit 0
+wasm	examples-build	PASS	exit 0
+wasm	packages-n2link-only	PASS	absent from package-names.txt
+wasm	plugin-stage	PASS	exit 0
+wasm	plugin-activate	PASS	exit 0
+wasm	plugin-listed	PASS	matches /n2link/uppercase/ in plugin-list.log
+wasm	edgelinkd-plugin-refused	PASS	matches /built for EdgeLinkd/ in legacy-plugin-stage.log
+wasm	node-registered	PASS	matches /wasm-n2link-uppercase/ in nodes.json
+wasm	copilot-catalog	PASS	matches /wasm-n2link-uppercase/ in copilot-catalog.json
+wasm	deploy-accepted	PASS	matches /^(200|204)/ in deploy-response.json.status
+wasm	plugin-runs	PASS	uppercase plugin output reached the debug node
+tests	workspace-full	PASS	exit 0
+tests	pytest	PASS	826 passed, 217 skipped in 116.69s (0:01:56)

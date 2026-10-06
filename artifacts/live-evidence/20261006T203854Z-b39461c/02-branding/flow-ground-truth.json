@@ -1,0 +1,5 @@
+{"flows":[
+ {"id":"e0000000000000a1","type":"tab","label":"evidence"},
+ {"id":"e0000000000000a2","type":"inject","z":"e0000000000000a1","name":"","props":[{"p":"payload"}],"repeat":"","crontab":"","once":true,"onceDelay":0.2,"topic":"","payload":"ground truth n2link","payloadType":"str","wires":[["e0000000000000a3"]]},
+ {"id":"e0000000000000a3","type":"debug","z":"e0000000000000a1","name":"evidence","active":true,"tosidebar":true,"console":true,"tostatus":false,"complete":"payload","targetType":"msg","wires":[]}
+]}

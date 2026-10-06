@@ -1,0 +1,9 @@
+warning: n2link-app@0.3.0: Building static files directory...
+warning: n2link-app@0.3.0: Copied 3rd-party/node-red/packages/node_modules/@node-red/nodes/core/network/lib to target/ui_static/core/network/lib
+warning: n2link-app@0.3.0: Copied 3rd-party/node-red/packages/node_modules/@node-red/nodes/core/common/lib to target/ui_static/core/common/lib
+warning: n2link-app@0.3.0: Copied 3rd-party/node-red/packages/node_modules/@node-red/nodes/core/parsers/lib to target/ui_static/core/parsers/lib
+warning: n2link-app@0.3.0: Copied Node-RED icons from 3rd-party/node-red/packages/node_modules/@node-red/nodes/icons to target/ui_static/icons/node-red
+warning: n2link-app@0.3.0: Copied editor locales from 3rd-party/node-red/packages/node_modules/@node-red/editor-client/locales to target/ui_static/locales
+warning: n2link-app@0.3.0: Copied nodes locales from 3rd-party/node-red/packages/node_modules/@node-red/nodes/locales to target/ui_static/locales
+warning: n2link-app@0.3.0: Static files build complete!
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.58s

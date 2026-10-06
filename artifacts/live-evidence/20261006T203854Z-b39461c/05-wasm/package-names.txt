@@ -1,0 +1,3 @@
+csvparse.wasm: n2link.manifest n2link:node/v1 
+tofsense.wasm: n2link.manifest n2link:node/v1 
+uppercase.wasm: n2link.manifest n2link:node/v1 

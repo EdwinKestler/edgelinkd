@@ -1,0 +1,6 @@
+warning: EDGELINK_HOME is deprecated; rename it to N2LINK_HOME
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/compat/env-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/compat/env-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/compat/env-home/n2linkd.dev.toml`
+Application error: the flows file does not exist: /tmp/tmp.s9xw1Fw0av/compat/env-home/flows.json

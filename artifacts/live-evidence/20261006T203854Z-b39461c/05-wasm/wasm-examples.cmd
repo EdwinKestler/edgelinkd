@@ -1,0 +1,1 @@
+$ scripts/wasm-examples.sh

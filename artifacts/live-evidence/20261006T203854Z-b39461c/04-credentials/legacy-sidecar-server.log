@@ -1,0 +1,18 @@
+n2link v0.3.0 - #305196c104
+
+Loading configuration...
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/legacy-cred-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/legacy-cred-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/legacy-cred-home/n2linkd.dev.toml`
+Logging sub-system initialized.
+
+[INFO]	n2link Version=0.3.0-#305196c104
+[INFO]	==========================================================
+
+[INFO]	Starting n2link run-time engine...
+[INFO]	Press CTRL+C to terminate.
+[INFO]	Discovering all nodes...
+[INFO]	Loading node registry...
+[INFO]	Loading flows file: /tmp/tmp.s9xw1Fw0av/legacy-cred-home/flows.json
+[ERROR]	Application error: invalid flows.json: credentials were encrypted by EdgeLinkd, which n2link cannot read; remove flows_cred.json and flows_cred.key, then re-enter the credentials

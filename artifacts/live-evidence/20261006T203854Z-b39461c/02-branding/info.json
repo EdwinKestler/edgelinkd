@@ -1,0 +1,1 @@
+{"name":"n2link Web API","version":"0.3.0","description":"Node-RED compatible API for n2link","endpoints":{"admin":{"flows":"/api/admin/flows","nodes":"/api/admin/nodes","settings":"/api/admin/settings"},"editor":{"icons":"/api/editor/icons"}}}

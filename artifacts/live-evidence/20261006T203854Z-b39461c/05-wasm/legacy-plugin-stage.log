@@ -1,0 +1,5 @@
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/wasm-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/wasm-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/wasm-home/n2linkd.dev.toml`
+Application error: not supported: WASM package was built for EdgeLinkd (it has an edgelink.manifest section); rebuild it with n2link-wasm-guest (ABI n2link:node/v1)

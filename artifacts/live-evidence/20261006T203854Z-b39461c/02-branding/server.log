@@ -1,0 +1,66 @@
+n2link v0.3.0 - #305196c104
+
+Loading configuration...
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/branding-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/branding-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/branding-home/n2linkd.dev.toml`
+Logging sub-system initialized.
+
+[INFO]	n2link Version=0.3.0-#305196c104
+[INFO]	==========================================================
+
+[INFO]	Created default flows.json at: /tmp/tmp.s9xw1Fw0av/branding-home/flows.json
+[INFO]	Default flow includes an inject node that sends 'Hello, World!' every 5 seconds
+[INFO]	Starting n2link run-time engine...
+[INFO]	Press CTRL+C to terminate.
+[INFO]	Discovering all nodes...
+[INFO]	Loading node registry...
+[INFO]	Loading flows file: /tmp/tmp.s9xw1Fw0av/branding-home/flows.json
+[INFO]	---- Loading flow/subflow: (id='adf5c374d9ac0466', label='Flow 1')...
+[INFO]	Using static directory: target/ui_static
+[INFO]	Collecting static HTTP request handlers...
+[INFO]	  - /inject/{node_id_str}
+[INFO]	  - /debug/{id_str}/{action}
+[INFO]	Starting web server at http://127.0.0.1:18890
+[INFO]	Debug message listener started
+[INFO]	Status message listener started
+[INFO]	Admin API available at:
+[INFO]	  GET  http://127.0.0.1:18890/api/admin/flows
+[INFO]	  POST http://127.0.0.1:18890/api/admin/flows
+[INFO]	  GET  http://127.0.0.1:18890/api/admin/nodes
+[INFO]	  GET  http://127.0.0.1:18890/api/admin/settings
+[INFO]	Health check: http://127.0.0.1:18890/api/health
+[INFO]	/inject/{node_id_str}
+[INFO]	/debug/{id_str}/{action}
+[INFO]	Registering dynamic route: /inject/{node_id_str}
+[INFO]	Registering dynamic route: /debug/{id_str}/{action}
+[INFO]	-- Starting engine...
+[INFO]	---- Starting Flow (id=adf5c374d9ac0466)...
+[INFO]	------ Starting node FlowNode(id='dc18e4d63818b44b', type='debug', name='debug 1')...
+[INFO]	------ Starting node FlowNode(id='ded1a8c84fec2323', type='inject', name='Inject Hello')...
+[INFO]	-- All flows started.
+[INFO]	---- Loading flow/subflow: (id='e0000000000000a1', label='evidence')...
+[INFO]	-- Redeploying flows...
+[INFO]	---- Loading flow/subflow: (id='e0000000000000a1', label='evidence')...
+[INFO]	-- Stopping engine...
+[INFO]	---- Stopping Flow (id=adf5c374d9ac0466)...
+[INFO]	[debug:debug 1] Task cancelled
+[INFO]	------ FlowNode(id='dc18e4d63818b44b', type='debug', name='debug 1') has been stopped.
+[INFO]	------ FlowNode(id='ded1a8c84fec2323', type='inject', name='Inject Hello') has been stopped.
+[INFO]	---- All node in flow/subflow(id='adf5c374d9ac0466') has been stopped.
+[INFO]	-- Engine flows stopped.
+[INFO]	---- Loading flow/subflow: (id='e0000000000000a1', label='evidence')...
+[INFO]	-- Starting engine...
+[INFO]	---- Starting Flow (id=e0000000000000a1)...
+[INFO]	------ Starting node FlowNode(id='e0000000000000a3', type='debug', name='evidence')...
+[INFO]	------ Starting node FlowNode(id='e0000000000000a2', type='inject', name='')...
+[INFO]	-- All flows started.
+[INFO]	-- Flows redeployed successfully.
+[INFO]	Flows saved to file: /tmp/tmp.s9xw1Fw0av/branding-home/flows.json
+[INFO]	------ FlowNode(id='e0000000000000a2', type='inject', name='') has been stopped.
+[INFO]	[debug:evidence] Message Received: 
+{
+  "_msgid": "f9a4dde005c97245",
+  "payload": "ground truth n2link"
+}

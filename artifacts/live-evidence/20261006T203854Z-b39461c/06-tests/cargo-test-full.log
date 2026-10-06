@@ -1,0 +1,548 @@
+warning: n2link-app@0.3.0: Building static files directory...
+warning: n2link-app@0.3.0: Copied 3rd-party/node-red/packages/node_modules/@node-red/nodes/core/network/lib to target/ui_static/core/network/lib
+warning: n2link-app@0.3.0: Copied 3rd-party/node-red/packages/node_modules/@node-red/nodes/core/common/lib to target/ui_static/core/common/lib
+warning: n2link-app@0.3.0: Copied 3rd-party/node-red/packages/node_modules/@node-red/nodes/core/parsers/lib to target/ui_static/core/parsers/lib
+warning: n2link-app@0.3.0: Copied Node-RED icons from 3rd-party/node-red/packages/node_modules/@node-red/nodes/icons to target/ui_static/icons/node-red
+warning: n2link-app@0.3.0: Copied editor locales from 3rd-party/node-red/packages/node_modules/@node-red/editor-client/locales to target/ui_static/locales
+warning: n2link-app@0.3.0: Copied nodes locales from 3rd-party/node-red/packages/node_modules/@node-red/nodes/locales to target/ui_static/locales
+warning: n2link-app@0.3.0: Static files build complete!
+    Finished `test` profile [optimized + debuginfo] target(s) in 1.54s
+     Running unittests src/main.rs (target/debug/deps/n2linkd-30f98d59eebefe04)
+
+running 1 test
+test env::tests::invalid_egress_configuration_fails_before_runtime_startup ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli_credentials.rs (target/debug/deps/cli_credentials-bc9d260363184607)
+
+running 1 test
+test a_credential_command_failure_is_visible_and_returns_failure ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_core-7861d16166b62bed)
+
+running 326 tests
+[[0;33mWARN[0m]	EDGELINK_COMPAT_T5 is deprecated; rename it to N2LINK_COMPAT_T5
+[[0;33mWARN[0m]	EDGELINK_COMPAT_T2 is deprecated; rename it to N2LINK_COMPAT_T2
+[[0;33mWARN[0m]	using the legacy home directory /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/.edgelinkd; move it with: mv /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/.edgelinkd /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/.n2linkd
+[[0;33mWARN[0m]	using the legacy config file /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/edgelinkd.toml; rename it to /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/n2linkd.toml
+[[0;33mWARN[0m]	using the legacy config file /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/edgelinkd.dev.toml; rename it to /tmp/n2link-compat-a7d90cb1-0cbd-463e-9867-d105a4ae9c16/n2linkd.dev.toml
+test compat::tests::conflicting_values_fail_loudly ... ok
+test compat::tests::configured_variable_names_follow_the_same_rule ... ok
+test compat::tests::the_new_variable_wins_and_the_old_one_still_works ... ok
+test compat::tests::legacy_home_and_config_files_are_used_only_when_alone ... ok
+test runtime::context::localfs::tests::test_it_should_delete_context_in_the_cache ... ok
+test runtime::context::localfs::tests::test_it_should_reject_unknown_options ... ok
+test runtime::context::localfs::tests::test_it_should_delete_context ... ok
+test runtime::context::localfs::tests::test_it_should_clean_unnecessary_context_in_the_cache ... ok
+test runtime::context::memory::tests::test_it_should_delete_property ... ok
+test runtime::context::localfs::tests::test_it_should_handle_empty_context_file ... ok
+test runtime::context::memory::tests::test_it_should_store_property ... ok
+test runtime::context::localfs::tests::test_it_should_store_local_scope_property ... ok
+test runtime::context::tests::default_memory_store_is_named_memory ... ok
+test runtime::context::localfs::tests::test_it_should_load_contexts_into_the_cache ... ok
+test runtime::context::localfs::tests::test_it_should_store_property_creates_parent_properties ... ok
+test runtime::context::tests::force_holds_flow_motor_until_cleared ... ok
+test runtime::context::localfs::tests::test_it_should_throw_error_if_bad_key_included_in_multiple_keys ... ok
+test runtime::context::tests::force_rejects_nested_paths_and_clean_drops_removed_scopes ... ok
+test runtime::context::tests::test_parse_context_store ... ok
+test runtime::context::tests::read_store_is_empty_until_a_key_is_written ... ok
+test runtime::context::tests::test_context_manager_can_load_default_config ... ok
+test runtime::credential_storage::tests::edgelinkd_credentials_and_keyrings_fail_loudly ... ok
+[[0;33mWARN[0m]	egress decision mode=enforce action=deny purpose=http-node protocol=http port=80 reason=not-allowlisted
+test runtime::credential_storage::tests::encryption_round_trips_and_uses_unique_nonces ... ok
+test runtime::credential_storage::tests::unsupported_or_corrupt_envelopes_fail_loudly ... ok
+test runtime::credential_storage::tests::wrong_key_and_corrupt_tag_fail_authentication ... ok
+[[0;33mWARN[0m]	egress decision mode=enforce action=deny purpose=mqtt protocol=mqtt port=1883 reason=not-allowlisted
+test runtime::egress::tests::a_shared_handle_switches_every_clone_atomically ... ok
+test runtime::egress::tests::cidr_matches_ipv4_and_ipv6 ... ok
+test runtime::egress::tests::configuration_parses_limits_and_local_mqtt_rule ... ok
+test runtime::egress::tests::observe_records_but_does_not_block ... ok
+test runtime::egress::tests::metadata_addresses_are_never_allowlisted ... ok
+test runtime::egress::tests::private_dns_requires_an_address_rule ... ok
+test runtime::egress::tests::unsafe_address_classes_are_classified ... ok
+[[0;33mWARN[0m]	egress decision mode=enforce action=deny purpose=ai-provider protocol=https port=443 reason=not-allowlisted
+[[0;33mWARN[0m]	egress decision mode=enforce action=deny purpose=mqtt protocol=tcp port=1883 reason=not-allowlisted
+test runtime::egress::tests::every_dns_answer_must_be_allowed ... ok
+test runtime::egress::tests::protocol_and_port_are_part_of_the_decision ... ok
+test runtime::egress::tests::invalid_configuration_is_rejected ... ok
+test runtime::egress::tests::invalid_rules_fail_closed ... ok
+test runtime::credential_storage::tests::randomized_credential_maps_round_trip ... ok
+[[0;33mWARN[0m]	Unknown flow node type: (type='nodered-foo', id='0000000000000001', name='')
+test runtime::engine::tests::a_third_party_type_still_maps_to_unknown ... ok
+test runtime::engine::tests::debug_shows_flow_counts_and_revision ... ok
+test runtime::flow_credentials::tests::revision_ignores_credentials_and_merge_puts_them_back ... ok
+test runtime::flow_credentials::tests::sidecar_name_strips_only_the_json_suffix ... ok
+test runtime::history::tests::test_config_validation ... ok
+[[0;33mWARN[0m]	egress decision mode=enforce action=deny purpose=tcp protocol=tcp port=33791 reason=not-allowlisted
+[[0;31;1mERROR[0m]	Failed to initialize history database schema: file is not a database
+test runtime::egress::tests::user_info_and_metadata_aliases_are_rejected ... ok
+test runtime::context::memory::tests::test_it_should_store_property_creates_parent_properties ... ok
+test runtime::context::memory::tests::test_it_should_not_shared_context_with_other_scope ... ok
+test runtime::egress::tests::enforce_denies_then_observe_and_an_explicit_rule_connect ... ok
+test runtime::context::localfs::tests::test_it_should_not_clean_active_context ... ok
+test runtime::context::localfs::tests::test_it_should_clean_unnecessary_context ... ok
+test runtime::ingress::tests::defaults_are_bounded_and_valid ... ok
+test runtime::history::tests::test_node_error_throttling ... ok
+test runtime::credential_storage::tests::missing_or_wrong_local_keys_cannot_overwrite_an_envelope ... ok
+test runtime::history::tests::test_sanitization ... ok
+test runtime::ingress::tests::invalid_or_zero_limits_fail_closed ... ok
+test runtime::context::localfs::tests::test_it_should_not_shared_context_with_other_scope ... ok
+test runtime::context::localfs::tests::test_it_should_throw_an_error_when_reading_corrupt_context_file ... ok
+test runtime::context::localfs::tests::test_it_should_store_property_to_the_cache_and_flush_it ... ok
+test runtime::context::localfs::tests::test_it_should_store_property ... ok
+test runtime::flow_credentials::tests::a_missing_sidecar_leaves_the_flows_unchanged ... ok
+test runtime::ingress::tests::trusted_proxies_support_exact_addresses_and_cidr ... ok
+test runtime::jsonata::tests::syntax_errors_are_reported ... ok
+test runtime::engine::tests::test_it_should_able_to_inject_msgs ... ok
+test runtime::model::json::npdeser::tests::test_deser_bool_in_if_condition ... ok
+test runtime::model::json::red_desers::tests::test_bool_deser_invalid - should panic ... ok
+test runtime::model::json::red_desers::tests::test_bool_deser_various ... ok
+test runtime::jsonata::tests::undefined_result_is_none ... ok
+test runtime::jsonata::tests::expression_object_construction ... ok
+test runtime::model::json::red_desers::tests::test_optional_bool_deser_various ... ok
+test runtime::jsonata::tests::legacy_msg_root_is_wrapped ... ok
+test runtime::engine::tests::a_start_failure_restores_the_previous_runtime ... ok
+test runtime::model::json::red_desers::tests::test_optional_bool_deser_invalid - should panic ... ok
+test runtime::context::localfs::tests::test_it_should_store_every_value_type ... ok
+test runtime::model::json::red_desers::tests::test_optional_u64_deser_negative - should panic ... ok
+test runtime::model::json::red_desers::tests::test_optional_u64_deser_various ... ok
+test runtime::model::json::red_desers::tests::test_optional_usize_deser_negative - should panic ... ok
+test runtime::model::json::red_desers::tests::test_optional_usize_deser_various ... ok
+test runtime::engine::tests::test_it_should_load_and_run_simple_json_without_configuration ... ok
+test runtime::model::json::red_desers::tests::test_usize_deser_negative - should panic ... ok
+test runtime::model::json::red_desers::tests::test_usize_deser_various ... ok
+test runtime::model::msg::tests::test_get_nested_nav_property ... ok
+test runtime::model::json::red_desers::tests::test_u64_deser_negative - should panic ... ok
+test runtime::model::msg::tests::test_get_nested_nav_property_mut ... ok
+test runtime::model::msg::tests::test_set_deep_msg_property ... ok
+test runtime::model::propex::tests::parse_primitives_should_be_ok ... ok
+test runtime::model::propex::tests::parse_propex_should_be_ok ... ok
+test runtime::model::json::red_desers::tests::test_u64_deser_various ... ok
+test runtime::engine::tests::an_invalid_redeploy_leaves_the_running_flow ... ok
+test runtime::context::localfs::tests::test_it_should_enumerate_context_keys ... ok
+test runtime::model::msg::tests::should_be_ok_with_empty_object_variant ... ok
+test runtime::model::propex::tests::parse_propex_with_nested_propex ... ok
+test runtime::model::propex::tests::should_pass_red_node_unit_tests ... ok
+test runtime::model::variant::map::tests::test_remove_nav_property ... ok
+test runtime::context::localfs::tests::test_it_should_set_and_get_multiple_values ... ok
+test runtime::model::variant::tests::variant_can_deserialize_from_json_value ... ok
+test runtime::model::propex::tests::parse_propex_with_first_index_accessing_should_be_ok ... ok
+test runtime::model::variant::tests::variant_clone_should_be_ok ... ok
+test runtime::model::variant::tests::variant_propex_readonly_accessing_should_be_ok ... ok
+test runtime::model::variant::tests::test_variant_propex_with_nested_propex ... ok
+test runtime::context::localfs::tests::test_it_should_delete_property ... ok
+test runtime::model::variant::tests::variant_can_serialize_to_json_value ... ok
+test runtime::model::variant::tests::variant_propex_set_nav_property_with_empty_object_should_be_ok ... ok
+[[0;33mWARN[0m]	The 'once_task' failed: task cancelled
+test runtime::model::variant::js_support::tests::variant_into_js ... ok
+test runtime::nodes::ai_nodes::agent::tests::agent_live ... ok
+test runtime::engine::tests::a_removed_mqtt_node_leaves_no_status_link ... ok
+test runtime::nodes::ai_nodes::embed::tests::embed_live ... ok
+test runtime::nodes::ai_nodes::provider::tests::streaming_is_rejected ... ok
+test runtime::engine::tests::test_redeploy_should_keep_the_engine_configuration ... ok
+test runtime::nodes::ai_nodes::provider::tests::cortex_requires_a_base_url ... ok
+test runtime::nodes::ai_nodes::schema::tests::additional_properties_false_rejects_unknown_keys ... ok
+test runtime::nodes::ai_nodes::schema::tests::empty_schema_accepts_any_value ... ok
+test runtime::nodes::ai_nodes::schema::tests::schema_annotation_is_ignored ... ok
+test runtime::nodes::ai_nodes::split::tests::window_table ... ok
+test runtime::nodes::ai_nodes::adapter::tests::governed_provider_response_is_bounded ... ok
+test runtime::nodes::ai_nodes::adapter::tests::openai_responses_returns_output_text ... ok
+test runtime::nodes::ai_nodes::schema::tests::ref_is_rejected_at_compile ... ok
+test runtime::nodes::ai_nodes::provider::tests::missing_key_is_rejected ... ok
+test runtime::nodes::ai_nodes::adapter::tests::anthropic_reads_text_blocks ... ok
+test runtime::nodes::ai_nodes::split::tests::split_emits_two_chunks_with_a_shared_parts_id ... ok
+test runtime::nodes::common_nodes::inject::tests::parse_red_property_triple_should_be_ok ... ok
+test runtime::nodes::ai_nodes::adapter::tests::provider_errors_do_not_echo_the_key ... ok
+test runtime::nodes::db_nodes::postgres::tests::bound_parameters_are_rejected_at_runtime_shape ... ok
+test runtime::nodes::db_nodes::postgres::tests::error_chain_includes_the_source ... ok
+test runtime::nodes::db_nodes::postgres::tests::tls_is_rejected ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000001', name='', type='ai-chat'): not supported: AI option 'stream' is not supported
+test runtime::nodes::db_nodes::postgres::tests::select_1_as_ok_is_the_number_one ... ok
+test runtime::nodes::db_nodes::redis::tests::tls_is_rejected ... ok
+test runtime::nodes::db_nodes::postgres::tests::empty_password_against_a_live_server_keeps_the_auth_cause ... ok
+test runtime::nodes::ai_nodes::adapter::tests::xai_uses_the_responses_path ... ok
+test runtime::nodes::ai_nodes::structured::tests::validates_a_json_string_payload ... ok
+test runtime::nodes::ai_nodes::chat::tests::streaming_chat_is_rejected_at_deploy ... ok
+test runtime::nodes::function_nodes::delay::tests::test_dynamic_rate_limiting_drop_mode ... ok
+test runtime::nodes::ai_nodes::adapter::tests::cortex_reads_chat_completions ... ok
+test runtime::nodes::common_nodes::link_in::tests::test_it_should_be_linked_to_multiple_nodes ... ok
+test runtime::nodes::function_nodes::delay::tests::test_rate_interval_calculation ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000001', name='', type='ai-structured'): ai-structured schema must be empty when schemaSource is msg
+test runtime::nodes::function_nodes::delay::tests::test_rate_queue_overflow_reports_too_many ... ok
+test runtime::nodes::function_nodes::delay::tests::test_reset_and_flush_with_dynamic_settings ... ignored
+test runtime::nodes::ai_nodes::structured::tests::mixed_schema_source_msg_requires_empty_node_schema ... ok
+test runtime::nodes::function_nodes::delay::tests::test_dynamic_rate_with_drop_mode ... ok
+test runtime::jsonata::tests::unsupported_helper_fails_loudly ... ok
+test runtime::jsonata::tests::evaluates_simple_expressions ... ok
+test runtime::nodes::function_nodes::function::tests::empty_libs_list_still_deploys ... ok
+test runtime::nodes::function_nodes::delay::tests::test_rate_limiting_with_reset_and_flush ... ok
+test runtime::nodes::ai_nodes::tests::server_side_completion_omits_temperature ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000001', name='', type='function'): not supported: function extra modules (libs) are not supported
+[[0;33mWARN[0m]	Failed to parse ID 'double payload' as hex, converting to hash
+test runtime::nodes::function_nodes::function::tests::extra_modules_are_not_supported ... ok
+test runtime::engine::tests::test_it_should_json_flows_multiple_times ... ok
+test runtime::credential_storage::tests::pending_transaction_restores_the_old_generation ... ok
+test runtime::nodes::function_nodes::switch::tests::test_deser_bool_from_string ... ok
+test runtime::nodes::function_nodes::switch::tests::test_deserialize_switch_rule_operator_with_boolean ... ok
+test runtime::nodes::function_nodes::switch::tests::test_deserialize_switch_rule_operator_with_invalid_string ... ok
+test runtime::nodes::function_nodes::switch::tests::test_raw_switch_rule_basic ... ok
+test runtime::engine::tests::test_it_should_load_and_run_complex_json_without_configuration ... ok
+test runtime::nodes::function_nodes::switch::tests::test_raw_switch_rule_minimal ... ok
+test runtime::nodes::function_nodes::switch::tests::test_raw_switch_rule_between ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000001', name='machine', type='state'): not supported: condition operator 'gt' is not supported
+test runtime::nodes::function_nodes::switch::tests::test_raw_switch_rule_prev_value_type ... ok
+test runtime::nodes::function_nodes::switch::tests::test_raw_switch_rule_regex_with_case ... ok
+test runtime::nodes::ai_nodes::chat::tests::a_chat_node_writes_the_reply_to_payload ... ok
+test runtime::nodes::function_nodes::state::tests::unknown_operator_is_rejected_at_deploy ... ok
+test runtime::nodes::function_nodes::state::tests::neq_and_node_context_take_the_first_match ... ok
+test runtime::nodes::function_nodes::switch::tests::test_raw_switch_rule_with_boolean_value ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_config_checkall_string_values ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_config_defaults ... ok
+test runtime::nodes::function_nodes::switch::tests::test_it_should_check_input_against_a_previous_value ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_config_with_explicit_values ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_config_minimal ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_empty_rules ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_config_property_types ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_between_with_prev ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_inferred_types ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_prev_type ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_regex_case_handling ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_simple ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_various_node_red_cases ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_with_boolean_operator ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_property_type_is_constant ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_real_world_node_red_configurations ... ok
+test runtime::nodes::function_nodes::switch::tests::test_should_check_if_input_is_indeed_false ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_node_evaluate_rules_with_string_boolean_operators ... ok
+test runtime::nodes::ai_nodes::adapter::tests::governed_provider_request_timeout_is_enforced ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_property_type_try_from ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_rule_operator_boolean_operators ... ok
+test runtime::nodes::function_nodes::switch::tests::test_switch_rule_operator_deserialization ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_config_defaults ... ok
+test runtime::nodes::function_nodes::switch::tests::test_it_should_check_input_against_a_previous_value_2nd_option ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_from_message_template ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_json_output ... ok
+test runtime::nodes::function_nodes::function::tests::test_red_util_surface_and_unsupported_jsonata ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_plain_syntax ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_nested_field ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_basic_rendering ... ok
+test runtime::nodes::function_nodes::template::tests::test_template_node_yaml_output ... ok
+test runtime::nodes::function_nodes::validate::tests::an_unknown_check_is_rejected ... ok
+test runtime::nodes::function_nodes::validate::tests::type_range_and_age_judge_the_value ... ok
+test runtime::nodes::function_nodes::trigger::tests::test_trigger_node_reset ... ok
+test runtime::nodes::function_nodes::validate::tests::a_value_inside_the_range_is_forwarded ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000101', name='', type='http in'): configured webhook bearer environment is missing
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000101', name='', type='http in'): http in url must be an exact absolute path without a query string
+test runtime::nodes::network_nodes::http_in::tests::configured_webhook_auth_fails_closed_when_its_environment_is_missing ... ok
+test runtime::nodes::function_nodes::function::tests::test_sandbox_env_get_is_a_literal_lookup ... ok
+test runtime::nodes::network_nodes::http_in::tests::webhook_requires_an_exact_absolute_path ... ok
+test runtime::nodes::network_nodes::http_out::tests::empty_status_code_string_is_absent ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_bad_user_props_value_fails_at_deploy ... ok
+test runtime::nodes::network_nodes::http_out::tests::editor_http_response_json_loads ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_refused_generation_is_not_the_next_wait ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_live_broker_round_trip_on_localhost ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_rejected_identifier_does_not_leave_a_ghost_owner ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_second_connect_while_up_does_not_open_another_session ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_second_owner_raises_qos_and_conflict_is_loud ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_slow_subscriber_does_not_block_another ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000002', name='', type='mqtt out'): mqtt broker '0000000000000099' was not loaded
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_missing_broker_node_is_rejected_at_deploy ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000002', name='', type='mqtt out'): not supported: MQTT v5 publish properties are not supported
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_v4_broker_rejects_a_response_topic ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_v5_broker_deploys ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_v5_broker_accepts_a_response_topic ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_v5_filter_keeps_the_editor_subscription_bits ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::an_absent_subscription_identifier_property_means_available ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::clean_session_false_is_kept_when_a_client_id_is_set ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::clean_session_without_a_client_id_is_forced_on ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::empty_broker_uses_localhost ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::topic_filter_honours_wildcards ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::two_owners_share_a_topic_until_the_last_leaves ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::url_form_is_accepted ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::mqtt_out_deploys_against_the_broker_node ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::v4_connect_is_not_protocol_level_5 ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::v4_defaults_match_the_load_spec ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::v5_connect_properties_follow_the_editor ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::v5_keep_alive_below_five_seconds_is_rejected ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::v5_tls_and_websocket_are_rejected ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::will_birth_and_close_are_kept ... ok
+test runtime::nodes::network_nodes::mqtt_in::tests::a_json_content_type_that_is_not_json_is_an_error ... ok
+test runtime::nodes::network_nodes::mqtt_in::tests::auto_detect_parses_json_and_auto_keeps_the_string ... ok
+test runtime::nodes::network_nodes::mqtt_in::tests::buffer_ignores_a_json_content_type_and_json_mode_errors ... ok
+test runtime::nodes::network_nodes::mqtt_out::tests::a_non_string_user_property_is_rejected ... ok
+test runtime::nodes::network_nodes::mqtt_out::tests::a_set_node_qos_wins_and_an_illegal_message_qos_is_an_error ... ok
+test runtime::nodes::network_nodes::mqtt_out::tests::a_set_node_response_topic_wins_on_v5 ... ok
+test runtime::nodes::network_nodes::mqtt_out::tests::a_set_node_retain_wins ... ok
+test runtime::nodes::network_nodes::mqtt_out::tests::a_set_node_topic_wins_over_the_message ... ok
+test runtime::nodes::network_nodes::mqtt_out::tests::a_v4_message_response_topic_is_rejected ... ok
+[[0;31;1mERROR[0m]	Failed to build node from NodeJSON(id='0000000000000002', name='', type='mqtt out'): mqtt userProps is not a JSON object of strings
+test runtime::nodes::network_nodes::mqtt_out::tests::bad_user_props_on_a_v5_out_node_fail_at_deploy ... ok
+test runtime::nodes::parser_nodes::json::tests::test_json_node_buffer_to_object ... ok
+test runtime::nodes::parser_nodes::json::tests::test_json_node_bytes_to_object ... ok
+test runtime::nodes::parser_nodes::json::tests::test_json_node_ensure_result_is_json_string ... ok
+test runtime::nodes::parser_nodes::json::tests::test_json_node_dot_navigation_property ... ok
+test runtime::nodes::parser_nodes::xml::tests::test_standard_employees_structure ... ok
+test runtime::nodes::parser_nodes::yaml::tests::scalars_and_buffers_are_not_dumped ... ok
+test runtime::nodes::parser_nodes::yaml::tests::dump_matches_js_yaml_indentation ... ok
+test runtime::nodes::tests::test_fan_out_many_should_deliver_every_port ... ok
+test runtime::nodes::tests::test_fan_out_many_should_report_an_invalid_port ... ok
+test runtime::nodes::tests::test_fan_out_many_should_not_be_blocked_by_a_saturated_port ... ok
+test runtime::red_env::tests::test_env_store_builder ... ok
+test runtime::registry::tests::every_registered_node_has_valid_metadata ... ok
+test runtime::red_env::tests::test_env_store_jsonata_value ... ok
+test runtime::registry::tests::owned_feature_gated_types_are_listed ... ok
+test runtime::registry::tests::payload_type_vocabulary ... ok
+test runtime::registry::tests::port_hints_match_registered_ports ... ok
+test runtime::wasm::tests::enabled_must_be_a_boolean ... ok
+test runtime::wasm::tests::a_wasm_config_node_is_never_unknown ... ok
+test runtime::wasm::tests::enabled_true_without_the_feature_is_not_supported ... ok
+test runtime::wasm::tests::plugin_ids_come_from_type_names ... ok
+test tests::error_display_is_lowercase_and_keeps_context ... ok
+test text::nom_parsers::tests::test_identifier_edge_cases ... ok
+test text::nom_parsers::tests::test_invalid_identifiers ... ok
+test text::nom_parsers::tests::test_valid_identifiers ... ok
+test text::parsing::tests::test_edge_cases ... ok
+test text::parsing::tests::test_invalid_numbers ... ok
+test runtime::wasm::tests::wasm_prefix_fails_loud_when_the_feature_is_off ... ok
+test text::parsing::tests::test_valid_f32 ... ok
+test text::parsing::tests::test_valid_f64 ... ok
+test text::parsing::tests::test_with_whitespace ... ok
+test utils::async_util::tests::test_rate_limiter_basic_acquire ... ok
+test utils::async_util::tests::test_rate_limiter_concurrent_access ... ok
+test utils::async_util::tests::test_rate_limiter_concurrent_safety ... ok
+test utils::async_util::tests::test_rate_limiter_empty_topic ... ok
+test utils::async_util::tests::test_rate_limiter_long_topic_name ... ok
+test utils::async_util::tests::test_rate_limiter_high_rate ... ok
+test utils::async_util::tests::test_rate_limiter_multiple_topics ... ok
+test runtime::nodes::function_nodes::function::tests::test_it_should_set_node_context_with_stress ... ok
+test utils::async_util::tests::test_rate_limiter_queue_overflow ... ok
+[[0;33mWARN[0m]	ingress decision mode=Enforce action=reject class=webhook reason=body_too_large
+[[0;33mWARN[0m]	ingress decision mode=Enforce action=reject class=webhook reason=body_too_large
+test runtime::nodes::function_nodes::state::tests::period_tick_enters_when_the_context_edge_matches ... ok
+test utils::async_util::tests::test_rate_limiter_queue_vs_no_queue ... ok
+test runtime::flow_credentials::tests::encrypted_sidecar_is_merged_on_runtime_load ... ok
+test runtime::credential_storage::tests::migration_and_export_are_explicit ... ok
+test utils::async_util::tests::test_rate_limiter_timeout_behavior ... ok
+test utils::async_util::tests::test_rate_limiter_zero_rate ... ok
+[[0;31;1mERROR[0m]	Newer schema version detected: 99 > 1
+test runtime::credential_storage::tests::migration_journal_references_the_explicit_backup_without_copying_plaintext ... ok
+test utils::atomic_file::tests::a_failed_write_leaves_the_previous_file ... ok
+test runtime::nodes::function_nodes::trigger::tests::test_trigger_node_basic ... ok
+test runtime::nodes::function_nodes::trigger::tests::test_trigger_node_multiple_topics ... ok
+test runtime::nodes::function_nodes::trigger::tests::test_trigger_node_configured_outputs ... ok
+test utils::graph::path_to_case ... ok
+test utils::graph::path_to_self ... ok
+test utils::graph::reverse ... ok
+test utils::topo::graph_tests::test_complex_dependency ... ok
+test utils::topo::graph_tests::test_cycle_processing ... ok
+test utils::topo::graph_tests::test_dependency_sort ... ok
+test runtime::history::tests::test_corrupt_database_handling ... ok
+test utils::topo::graph_tests::test_independent_nodes ... ok
+test utils::topo::graph_tests::test_multiple_cycles ... ok
+test utils::topo::graph_tests::test_multiple_layers ... ok
+test utils::topo::graph_tests::test_multiple_sources ... ok
+test utils::topo::graph_tests::test_no_dependencies ... ok
+test utils::topo::graph_tests::test_simple_linear_dependency ... ok
+test utils::topo::graph_tests::test_single_node ... ok
+test runtime::nodes::function_nodes::trigger::tests::test_trigger_node_with_different_types ... ok
+test utils::atomic_file::tests::a_failed_second_rename_restores_the_first_file ... ok
+test utils::atomic_file::tests::replacement_is_complete ... ok
+test runtime::credential_storage::tests::rotation_and_lost_key_recovery_cover_both_generations ... ok
+test utils::async_util::tests::test_rate_limiter_queue_functionality ... ok
+test utils::async_util::tests::test_rate_limiter_queue_processing_order ... ok
+test utils::topo::graph_tests::test_large_graph ... ok
+test runtime::credential_storage::tests::transaction_failure_at_every_rename_restores_all_inputs ... ok
+test utils::async_util::tests::test_rate_limiter_reset_behavior ... ok
+test runtime::nodes::network_nodes::tcp_get::tests::test_time_mode_collects_a_response_split_over_packets ... ok
+test runtime::history::tests::test_schema_refusal_on_newer_version ... ok
+[[0;33mWARN[0m]	ingress decision mode=Enforce action=reject class=webhook reason=body_timeout
+test runtime::nodes::function_nodes::delay::tests::test_multiple_dynamic_rate_changes ... ok
+test runtime::nodes::network_nodes::mqtt_broker::tests::a_connect_after_refusal_waits_for_the_next_generation ... ok
+[[0;33mWARN[0m]	ingress decision mode=Observe action=permit class=webhook reason=headers_too_large
+[[0;33mWARN[0m]	ingress decision mode=Observe action=permit class=webhook reason=body_too_large
+test runtime::nodes::network_nodes::http_in::tests::webhook_is_exact_and_rejects_oversized_fixed_and_chunked_bodies ... ok
+test utils::async_util::tests::test_rate_limiter_rapid_resets ... ok
+test runtime::nodes::function_nodes::delay::tests::test_timed_mode_with_dynamic_rate_and_timeout ... ok
+test utils::async_util::tests::test_rate_limiter_multiple_reset_cycles ... ok
+test runtime::nodes::db_nodes::redis::tests::a_closed_port_is_a_catchable_error ... ok
+test runtime::nodes::db_nodes::postgres::tests::a_closed_port_is_a_catchable_error ... ok
+test runtime::nodes::function_nodes::trigger::tests::test_trigger_node_with_stress ... ok
+test runtime::nodes::function_nodes::delay::tests::test_queue_mode_with_topic_replacement ... ok
+test runtime::history::tests::test_sqlite_history_lifecycle ... ok
+test runtime::history::tests::test_concurrent_writers ... ok
+test runtime::history::tests::test_queue_saturation_and_gap ... ok
+test runtime::nodes::function_nodes::delay::tests::test_dynamic_rate_limiting_queue_mode ... ok
+test runtime::nodes::function_nodes::delay::tests::test_dynamic_queue_mode_with_timeout_change ... ok
+test runtime::nodes::function_nodes::delay::tests::test_dynamic_timeout_in_delay_mode ... ok
+test runtime::nodes::function_nodes::delay::tests::test_timed_mode_ignores_msg_timeout ... ok
+test runtime::nodes::function_nodes::delay::tests::test_dynamic_rate_change_in_rate_mode ... ok
+
+test result: ok. 325 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.37s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_eve-e422b302a4822828)
+
+running 4 tests
+test tests::nan_is_rejected ... ok
+test tests::unknown_tag_fails ... ok
+test tests::trailing_bytes_fail ... ok
+test tests::round_trip_scalars ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_macro-d6921535783fbb71)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_nodes_dummy-351a481763c525ba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_pymod-6b3bd031e4ee73f7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_wasm_guest-e1d13a4dcd8094cc)
+
+running 2 tests
+test tests::messages_round_trip_through_eve ... ok
+test tests::ctx_enforces_host_bounds_before_the_host_does ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/n2link_web-51b0a154eaad2132)
+
+running 81 tests
+test handlers::assistant::tests::a_fenced_model_draft_is_parsed ... ok
+test handlers::assistant::tests::model_context_removes_secret_fields_recursively ... ok
+test handlers::assistant::tests::materialization_assigns_ids_and_wires ... ok
+test handlers::assistant::tests::unknown_nodes_and_reserved_properties_are_rejected ... ok
+test handlers::assistant::tests::an_oversized_provider_response_is_rejected_before_json_parsing ... ok
+test handlers::assistant::tests::mqtt_without_a_broker_is_rejected_and_a_unique_broker_is_filled ... ok
+test handlers::auth::tests::administrator_is_the_only_local_role_with_process_configuration_access ... ok
+test handlers::auth::tests::authorize_url_carries_the_code_request ... ok
+test handlers::auth::tests::deferred_debug_editor_assets_do_not_require_a_bearer_token ... ok
+test handlers::auth::tests::an_unknown_role_is_rejected ... ok
+test handlers::auth::tests::malformed_or_unsupported_bcrypt_hashes_stop_startup ... ok
+test handlers::auth::tests::read_scope_allows_only_read_permissions ... ok
+test handlers::auth::tests::runtime_configuration_routes_require_exact_administrator_permissions ... ok
+test handlers::assistant::tests::catalog_names_ports_and_payload_types ... ok
+test handlers::comms::tests::bound_invalid_closes_immediately ... ok
+test handlers::assistant::tests::catalog_schema_lists_inject_and_mqtt_broker ... ok
+test handlers::comms::tests::a_different_token_is_not_revoked ... ok
+test handlers::comms::tests::lagged_revocation_closes_an_invalid_session ... ok
+test handlers::comms::tests::websocket_auth_does_not_log_the_token ... ok
+test handlers::auth::tests::open_install_does_not_ask_for_a_token ... ok
+test handlers::fleet::tests::an_unknown_stage_is_rejected ... ok
+test handlers::context::tests::context_routes_fail_when_the_runtime_is_down ... ok
+test handlers::comms::tests::an_expired_session_is_no_longer_valid ... ok
+test handlers::library::tests::a_parent_segment_is_rejected ... ok
+test handlers::fleet::tests::a_disabled_fleet_does_not_pretend_to_push ... ok
+test handlers::context::tests::missing_flow_node_and_store_are_errors ... ok
+test handlers::runtime_config::tests::invalid_policy_is_rejected_before_write ... ok
+test handlers::context::tests::context_http_reads_and_deletes_each_scope ... ok
+test handlers::context::tests::force_on_flow_context_holds_until_cleared ... ok
+test handlers::runtime_config::tests::patch_changes_only_the_egress_table ... ok
+test handlers::settings::tests::plugins_match_the_enabled_editor_features ... ok
+test handlers::settings::tests::settings_report_the_bound_address_and_the_libraries ... ok
+test handlers::assistant::tests::the_documented_mqtt_to_csv_pattern_prepares_successfully ... ok
+test handlers::nodes::tests::a_node_set_lists_the_types_for_that_red_id ... ok
+test handlers::flows::tests::credentials_without_a_flows_file_are_empty ... ok
+test handlers::library::tests::library_without_a_home_is_not_found ... ok
+test models::tests::editor_languages_serialize_as_locale_codes ... ok
+test handlers::runtime_config::tests::stale_save_is_rejected_without_writing ... ok
+test handlers::auth::tests::oidc_code_exchange_uses_the_role_claim ... ok
+test protection::tests::forwarded_addresses_are_used_only_for_explicit_trusted_proxies ... ok
+test handlers::history::tests::test_history_disabled_returns_404 ... ok
+test protection::tests::rate_limits_are_independent_by_principal_and_address ... ok
+test protection::tests::rate_state_refuses_unbounded_new_keys ... ok
+test protection::tests::routes_have_stable_resource_classes ... ok
+test protection::tests::authentication_runs_before_an_oversized_body_is_read ... ok
+test handlers::flows::tests::an_invalid_single_flow_does_not_change_disk_or_runtime ... ok
+test handlers::auth::tests::node_red_admin_client_logs_in_with_a_bcrypt_hash ... ok
+test protection::tests::a_saturated_class_does_not_block_another_class ... ok
+test protection::tests::unsupported_media_type_is_rejected ... ok
+test server::tests::the_configuration_editor_cannot_run_without_authentication - should panic ... ok
+test protection::tests::saturated_global_capacity_recovers_after_release ... ok
+test handlers::flows::tests::an_invalid_node_does_not_change_disk_or_runtime ... ok
+test handlers::runtime_config::tests::an_unrelated_file_change_does_not_require_an_egress_restart ... ok
+test protection::tests::excessive_headers_are_rejected ... ok
+test handlers::status::tests::status_reports_the_revision_and_empty_links ... ok
+test protection::tests::oversized_fixed_and_chunked_bodies_are_rejected ... ok
+test handlers::comms::tests::a_revoked_websocket_is_closed ... ok
+test protection::tests::plugin_packages_are_accepted_as_application_wasm_only_on_plugin_routes ... ok
+test handlers::library::tests::local_flows_and_functions_round_trip ... ok
+test handlers::library::tests::examples_flows_lists_packages_that_ship_examples ... ok
+test protection::tests::slow_chunked_bodies_and_large_responses_are_bounded ... ok
+test handlers::auth::tests::users_replace_the_shorthand_password_for_the_same_name ... ok
+test handlers::nodes::tests::html_register_types_are_in_the_json_catalog ... ok
+test protection::tests::timed_out_work_is_cancelled_and_capacity_recovers ... ok
+test protection::tests::saturated_class_recovers_after_the_permit_is_released ... ok
+test handlers::runtime_config::tests::save_apply_and_rollback_reinitialize_the_shared_policy ... ok
+test handlers::fleet::tests::promote_posts_the_target_revision ... ok
+test handlers::auth::tests::five_failures_lock_the_account ... ok
+test handlers::flows::tests::two_deploys_leave_the_engine_on_the_disk_winner ... ok
+test handlers::auth::tests::node_red_bcrypt_hashes_support_2a_2b_and_2y ... ok
+test handlers::auth::tests::viewer_cannot_deploy_and_deployer_can ... ok
+test handlers::flows::tests::two_deploys_with_the_same_revision_serialize ... ok
+test handlers::status::tests::status_drops_links_for_removed_mqtt_nodes ... ok
+test handlers::deploy::tests::a_failed_activation_keeps_the_previous_rollback ... ok
+test handlers::deploy::tests::every_failed_rollback_rename_restores_the_four_file_generation ... ok
+test handlers::deploy::tests::every_failed_deploy_rename_restores_the_four_file_generation ... ok
+test handlers::flows::tests::a_stale_rev_is_rejected_and_rollback_swaps_back ... ok
+test handlers::flows::tests::encrypted_deploy_waits_for_the_credential_transaction_lock ... ok
+test handlers::flows::tests::mqtt_broker_credentials_stay_out_of_the_flow_file ... ok
+test handlers::flows::tests::encrypted_credentials_keep_placeholder_clear_and_rollback_semantics ... ok
+test handlers::history::tests::test_history_query_and_validation ... ok
+
+test result: ok. 81 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+
+   Doc-tests n2link_core
+
+running 3 tests
+test crates/core/src/runtime/nodes/mod.rs - runtime::nodes::node_hints (line 219) ... ignored
+test crates/core/src/runtime/model/variant/mod.rs - runtime::model::variant::Variant (line 52) ... ok
+test crates/core/src/runtime/context/mod.rs - runtime::context::evaluate_key (line 705) ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.51s; merged doctests compilation took 0.49s
+   Doc-tests n2link_eve
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests n2link_macro
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests n2link_nodes_dummy
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests n2link_wasm_guest
+
+running 1 test
+test crates/wasm-guest/src/lib.rs - (line 6) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests n2link_web
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

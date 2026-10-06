@@ -1,0 +1,21 @@
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/wasm-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/wasm-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/wasm-home/n2linkd.dev.toml`
+{
+  "sha256": "81d3370624defc1d9e737b87d2c0a303e10f31b892c459118e13e0e39c39846c",
+  "id": "n2link/uppercase",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "description": "Upper-cases a string payload",
+  "bytes": 55793,
+  "outputs": 1,
+  "limits": {
+    "memory_pages": null,
+    "fuel_per_message": null,
+    "deadline_ms": null
+  },
+  "selftests": 1,
+  "status": "ready",
+  "staged_at": "2026-10-06T20:39:01Z"
+}

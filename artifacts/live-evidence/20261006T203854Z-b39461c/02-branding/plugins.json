@@ -1,0 +1,1 @@
+[{"id":"n2link-config/config-editor","name":"config-editor","types":["n2link-config"],"enabled":true,"local":true,"user":false,"module":"n2link-config","version":"0.3.0"},{"id":"n2link-flow-copilot/flow-copilot","name":"flow-copilot","types":["n2link-flow-copilot"],"enabled":true,"local":true,"user":false,"module":"n2link-flow-copilot","version":"0.3.0"}]

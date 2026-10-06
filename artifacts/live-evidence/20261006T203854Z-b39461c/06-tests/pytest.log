@@ -1,0 +1,1209 @@
+                                                                                
+- Describe: Localfilesystem...
+                                                                                
+  - Describe: #get/set...
+    [92m- ✓ It:[0m should store property
+    [92m- ✓ It:[0m should store property - creates parent properties
+    [92m- ✓ It:[0m should store local scope property
+    [92m- ✓ It:[0m should delete property
+    [92m- ✓ It:[0m should not shared context with other scope
+    [92m- ✓ It:[0m should store string
+    [92m- ✓ It:[0m should store number
+    [92m- ✓ It:[0m should store null
+    [92m- ✓ It:[0m should store boolean
+    [92m- ✓ It:[0m should store object
+    [92m- ✓ It:[0m should store array
+    [92m- ✓ It:[0m should store array of arrays
+    [92m- ✓ It:[0m should store array of objects
+    [92m- ✓ It:[0m should set/get multiple values
+    [92m- ✓ It:[0m should set/get multiple values - get unknown
+    [92m- ✓ It:[0m should set/get multiple values - single value providd
+    [92m- ✓ It:[0m should throw error if bad key included in multiple keys - get
+    [92m- ✓ It:[0m should throw error if bad key included in multiple keys - set
+    [92m- ✓ It:[0m should throw an error when getting a value with invalid key
+    [92m- ✓ It:[0m should throw an error when setting a value with invalid key
+    [93m- s It:[0m should throw an error when callback of get() is not a function
+    [93m- s It:[0m should throw an error when callback of get() is not specified
+    [93m- s It:[0m should throw an error when callback of set() is not a function
+    [93m- s It:[0m should not throw an error when callback of set() is not specified
+    [92m- ✓ It:[0m should handle empty context file
+    [92m- ✓ It:[0m should throw an error when reading corrupt context file
+                                                                                
+  - Describe: #keys...
+    [92m- ✓ It:[0m should enumerate context keys
+    [92m- ✓ It:[0m should enumerate context keys in each scopes
+    [93m- s It:[0m should throw an error when callback of keys() is not a function
+    [93m- s It:[0m should throw an error when callback of keys() is not specified
+                                                                                
+  - Describe: #delete...
+    [92m- ✓ It:[0m should delete context
+                                                                                
+  - Describe: #clean...
+    [92m- ✓ It:[0m should clean unnecessary context
+    [92m- ✓ It:[0m should not clean active context
+                                                                                
+  - Describe: #if cache is enabled...
+    [92m- ✓ It:[0m should load contexts into the cache
+    [92m- ✓ It:[0m should store property to the cache
+    [92m- ✓ It:[0m should enumerate context keys in the cache
+    [92m- ✓ It:[0m should delete context in the cache
+    [92m- ✓ It:[0m should clean unnecessary context in the cache
+                                                                                
+  - Describe: Configuration...
+    [92m- ✓ It:[0m should change a base directory
+    [92m- ✓ It:[0m should use userDir
+    [92m- ✓ It:[0m should use NODE_RED_HOME
+    [92m- ✓ It:[0m should use HOME_PATH
+    [92m- ✓ It:[0m should use HOME_PATH
+                                                                                
+- Describe: Catch node...
+  [92m- ✓ It:[0m should output a message when called
+                                                                                
+- Describe: Inject node...
+  [92m- ✓ It:[0m inject value (num)
+  [92m- ✓ It:[0m inject value (str)
+  [92m- ✓ It:[0m inject value (bool)
+  [92m- ✓ It:[0m inject value (json)
+  [92m- ✓ It:[0m inject value (bin)
+  [92m- ✓ It:[0m inject value of environment variable 
+  [92m- ✓ It:[0m inject name of node as environment variable 
+  [92m- ✓ It:[0m inject id of node as environment variable 
+  [92m- ✓ It:[0m inject path of node as environment variable 
+  [92m- ✓ It:[0m inject name of flow as environment variable 
+  [92m- ✓ It:[0m inject id of flow as environment variable 
+  [92m- ✓ It:[0m inject name of group as environment variable 
+  [92m- ✓ It:[0m inject id of group as environment variable 
+  [92m- ✓ It:[0m inject name of node as environment variable by substitution 
+  [92m- ✓ It:[0m inject id of node as environment variable by substitution 
+  [92m- ✓ It:[0m inject path of node as environment variable by substitution 
+  [92m- ✓ It:[0m inject name of flow as environment variable by substitution 
+  [92m- ✓ It:[0m inject id of flow as environment variable 
+  [92m- ✓ It:[0m inject name of group as environment variable by substitution 
+  [92m- ✓ It:[0m inject id of group as environment variable by substitution 
+  [93m- s It:[0m sets the value of flow context property
+  [92m- ✓ It:[0m should inject once with default delay property
+  [92m- ✓ It:[0m should inject once with default delay
+  [92m- ✓ It:[0m should inject once with 500 msec. delay
+  [92m- ✓ It:[0m should inject once with delay of two seconds
+  [92m- ✓ It:[0m should inject repeatedly
+  [92m- ✓ It:[0m should inject once with delay of two seconds and repeatedly
+  [92m- ✓ It:[0m should inject with cron
+  [92m- ✓ It:[0m should inject multiple properties
+  [92m- ✓ It:[0m should inject multiple properties using legacy props if needed
+  [93m- s It:[0m should report invalid JSONata expression
+                                                                                
+- Describe: Post...
+  [93m- s It:[0m should inject custom properties in posted message
+                                                                                
+- Describe: Junction node...
+  [92m- ✓ It:[0m junction node should work
+                                                                                
+- Describe: Link node...
+  [92m- ✓ It:[0m should be loaded (link in)
+  [92m- ✓ It:[0m should be loaded (link out)
+  [92m- ✓ It:[0m should be linked
+  [92m- ✓ It:[0m should be linked to multiple nodes
+  [92m- ✓ It:[0m should be linked from multiple nodes
+                                                                                
+  - Describe: Link-call node...
+    [92m- ✓ It:[0m should call static link-in node and get response
+    [92m- ✓ It:[0m should call link-in node by name and get response
+    [92m- ✓ It:[0m should allow nested link-call flows
+                                                                                
+- Describe: Ai-split node...
+  [92m- ✓[0m test_splits_overlap_zero_window
+                                                                                
+- Describe: Change node...
+  [92m- ✓ It:[0m should load node with defaults
+  [92m- ✓ It:[0m should load defaults if set to replace
+  [92m- ✓ It:[0m should load defaults if set to change
+  [92m- ✓ It:[0m should no-op if there are no rules
+                                                                                
+  - Describe: #set...
+    [92m- ✓ It:[0m sets the value of the message property
+    [92m- ✓ It:[0m sets the value of global context property
+    [92m- ✓ It:[0m sets the value of persistable global context property
+    [92m- ✓ It:[0m sets the value and type of the message property
+    [92m- ✓ It:[0m sets the value of an already set multi-level message property
+    [92m- ✓ It:[0m sets the value of an empty multi-level message property
+    [92m- ✓ It:[0m sets the value of a message property to another message property
+    [92m- ✓ It:[0m sets the value of a multi-level message property to another multi-level message property
+    [92m- ✓ It:[0m doesn't set the value of a message property when the 'to' message property does not exist
+    [92m- ✓ It:[0m overrides the value of a message property when the 'to' message property does not exist
+    [92m- ✓ It:[0m sets the message property to null when the 'to' message property equals null
+    [92m- ✓ It:[0m does not set other properties using = inside to property
+    [92m- ✓ It:[0m splits dot delimited properties into objects
+    [92m- ✓ It:[0m changes the value to flow context property
+    [92m- ✓ It:[0m changes the value to persistable flow context property
+    [92m- ✓ It:[0m changes the value to global context property
+    [92m- ✓ It:[0m changes the value to persistable global context property
+    [92m- ✓ It:[0m changes the value to a number
+    [92m- ✓ It:[0m changes the value to a boolean value
+    [92m- ✓ It:[0m changes the value to a js object
+    [92m- ✓ It:[0m changes the value to a buffer object
+    [92m- ✓ It:[0m sets the value of the message property to the current timestamp
+                                                                                
+    - Describe: Env var...
+      [92m- ✓ It:[0m sets the value using env property
+      [92m- ✓ It:[0m sets the value using env property from tab
+      [92m- ✓ It:[0m sets the value using env property from group
+      [92m- ✓ It:[0m sets the value using env property from nested group
+                                                                                
+    [92m- ✓ It:[0m sets the value of a message property using a nested property
+    [92m- ✓ It:[0m sets the value of a nested message property using a message property
+    [92m- ✓ It:[0m sets the value of a message property using a nested property in flow context
+    [92m- ✓ It:[0m sets the value of a nested flow context property using a message property
+    [92m- ✓ It:[0m changes the value using jsonata
+    [93m- s It:[0m reports invalid jsonata expression
+    [92m- ✓ It:[0m changes the value using flow context with jsonata
+    [92m- ✓ It:[0m changes the value using global context with jsonata
+    [92m- ✓ It:[0m changes the value using persistable flow context with jsonata
+    [92m- ✓ It:[0m changes the value using persistable global context with jsonata
+                                                                                
+  - Describe: #change...
+    [92m- ✓ It:[0m changes the value of the message property
+    [92m- ✓ It:[0m changes the value and doesnt change type of the message property for partial match
+    [92m- ✓ It:[0m changes the value and type of the message property if a complete match - number
+    [92m- ✓ It:[0m changes the value and type of the message property if a complete match - boolean
+    [92m- ✓ It:[0m changes the value of a multi-level message property
+    [92m- ✓ It:[0m sends unaltered message if the changed message property does not exist
+    [92m- ✓ It:[0m sends unaltered message if a changed multi-level message property does not exist
+    [92m- ✓ It:[0m changes the value of the message property based on a regex
+    [92m- ✓ It:[0m supports regex groups
+    [92m- ✓ It:[0m supports regex groups - new rule format
+    [92m- ✓ It:[0m changes the value - new rule format
+    [92m- ✓ It:[0m changes the value using msg property
+    [92m- ✓ It:[0m changes the value using flow context property
+    [92m- ✓ It:[0m changes the value using persistable flow context property
+    [92m- ✓ It:[0m changes the value using global context property
+    [92m- ✓ It:[0m changes the value using persistable global context property
+    [92m- ✓ It:[0m changes the number using global context property
+    [92m- ✓ It:[0m changes the number using persistable global context property
+    [92m- ✓ It:[0m changes the value using number - string payload
+    [92m- ✓ It:[0m changes the value using number - number payload
+    [92m- ✓ It:[0m changes the value using boolean - string payload
+    [92m- ✓ It:[0m changes the value using boolean - boolean payload
+    [92m- ✓ It:[0m changes the value of the global context
+    [92m- ✓ It:[0m changes the value of the persistable global context
+    [92m- ✓ It:[0m changes the value and doesnt change type of the flow context for partial match
+    [92m- ✓ It:[0m changes the value and doesnt change type of the persistable flow context for partial match
+    [92m- ✓ It:[0m changes the value and type of the flow context if a complete match
+    [92m- ✓ It:[0m changes the value and type of the persistable flow context if a complete match
+    [92m- ✓ It:[0m changes the value using number - number flow context
+    [92m- ✓ It:[0m changes the value using number - number persistable flow context
+    [92m- ✓ It:[0m changes the value using boolean - boolean flow context
+    [92m- ✓ It:[0m changes the value using boolean - boolean persistable flow context
+                                                                                
+    - Describe: Env var...
+      [92m- ✓ It:[0m changes the value using env property
+                                                                                
+  - Describe: #delete...
+    [92m- ✓ It:[0m deletes the value of the message property
+    [92m- ✓ It:[0m deletes the value of global context property
+    [92m- ✓ It:[0m deletes the value of persistable global context property
+    [92m- ✓ It:[0m deletes the value of a multi-level message property
+    [92m- ✓ It:[0m sends unaltered message if the deleted message property does not exist
+    [92m- ✓ It:[0m sends unaltered message if a deleted multi-level message property does not exist
+                                                                                
+  - Describe: #move...
+    [92m- ✓ It:[0m moves the value of the message property
+    [92m- ✓ It:[0m moves the value of a message property object
+    [92m- ✓ It:[0m moves the value of a message property object to itself
+    [92m- ✓ It:[0m moves the value of a message property object to a sub-property
+    [92m- ✓ It:[0m moves the value of a message sub-property object to a property
+                                                                                
+  - Describe: - multiple rules...
+    [92m- ✓ It:[0m handles multiple rules
+    [92m- ✓ It:[0m applies multiple rules in order
+    [92m- ✓ It:[0m can access two persistable flow context property
+    [92m- ✓ It:[0m can access two persistable global context property
+    [92m- ✓ It:[0m can access persistable global & flow context property
+                                                                                
+- Describe: Delay node...
+  [92m- ✓ It:[0m should be loaded
+  [92m- ✓ It:[0m should be able to set rate to hour
+  [92m- ✓ It:[0m should be able to set rate to minute
+  [92m- ✓ It:[0m delays the message in seconds
+  [92m- ✓ It:[0m delays the message in milliseconds
+  [92m- ✓ It:[0m delays the message in minutes
+  [92m- ✓ It:[0m delays the message in hours
+  [92m- ✓ It:[0m delays the message in days
+  [92m- ✓ It:[0m limits the message rate to 1 per second
+  [92m- ✓ It:[0m limits the message rate to 1 per 2 seconds
+  [92m- ✓ It:[0m limits the message rate to 2 per seconds, 2 seconds
+  [92m- ✓ It:[0m limits the message rate using msg.rate
+  [92m- ✓ It:[0m limits the message rate to 1 per second, 4 seconds, with drop
+  [92m- ✓ It:[0m limits the message rate to 1 per 2 seconds, 4 seconds, with drop
+  [92m- ✓ It:[0m limits the message rate to 2 per second, 5 seconds, with drop
+  [92m- ✓ It:[0m limits the message rate to 2 per second, 5 seconds, with drop, 2nd output
+  [92m- ✓ It:[0m limits the message rate with drop using msg.rate
+  [92m- ✓ It:[0m variable delay set by msg.delay the message in milliseconds
+  [92m- ✓ It:[0m variable delay is the default if msg.delay not specified
+  [92m- ✓ It:[0m variable delay is zero if msg.delay is zero
+  [92m- ✓ It:[0m variable delay is zero if msg.delay is negative
+  [92m- ✓ It:[0m randomly delays the message in seconds
+  [92m- ✓ It:[0m randomly delays the message in milliseconds
+  [92m- ✓ It:[0m randomly delays the message in minutes
+  [92m- ✓ It:[0m delays the message in hours
+  [92m- ✓ It:[0m delays the message in days
+  [92m- ✓ It:[0m handles delay queue
+  [92m- ✓ It:[0m handles timed queue
+  [92m- ✓ It:[0m can flush delay queue
+  [92m- ✓ It:[0m can part flush delay queue
+  [92m- ✓ It:[0m can reset delay queue
+  [92m- ✓ It:[0m can flush rate limit queue
+  [92m- ✓ It:[0m can part flush rate limit queue
+  [92m- ✓ It:[0m can part flush and reset rate limit queue
+  [92m- ✓ It:[0m can full flush and reset rate limit queue
+  [92m- ✓ It:[0m can part push to front of rate limit queue
+  [92m- ✓ It:[0m can reset rate limit queue
+  [92m- ✓ It:[0m sending a msg with reset to empty queue doesnt send anything
+  [92m- ✓ It:[0m calls done when queued message is emitted (type: delay)
+  [92m- ✓ It:[0m calls done when queued message is emitted (type: delayv)
+  [92m- ✓ It:[0m calls done when queued message is emitted (type: delay)
+  [92m- ✓ It:[0m calls done when queued message is cleared (type: delay)
+  [92m- ✓ It:[0m calls done when queued message is cleared (type: delayv)
+  [92m- ✓ It:[0m calls done when queued message is cleared (type: random)
+  [92m- ✓ It:[0m calls done when queued message is flushed (type: delay)
+  [92m- ✓ It:[0m calls done when queued message is flushed (type: delayv)
+  [92m- ✓ It:[0m calls done when queued message is flushed (type: random)
+  [92m- ✓ It:[0m calls done when rated message is emitted (drop: false)
+  [92m- ✓ It:[0m calls done when rated message is emitted (drop: true)
+  [92m- ✓ It:[0m calls done when rated message is flushed
+  [92m- ✓ It:[0m calls done when queued messages are sent (queue)
+  [92m- ✓ It:[0m calls done when queued messages are sent (timed)
+  [92m- ✓ It:[0m calls done when queue is reset (queue/timed)
+  [92m- ✓ It:[0m calls done when queue is flushed (queue/timed)
+                                                                                
+- Describe: Exec node...
+  [93m- s It:[0m should be loaded with any defaults
+                                                                                
+  - Describe: Calling exec...
+    [92m- ✓ It:[0m should exec a simple command
+    [92m- ✓ It:[0m should exec a simple command with appended value from message
+    [92m- ✓ It:[0m should exec a simple command with extra parameters
+    [92m- ✓ It:[0m should be able to return a binary buffer
+    [92m- ✓ It:[0m should be able to timeout a long running command
+    [92m- ✓ It:[0m should be able to kill a long running command
+    [92m- ✓ It:[0m should be able to kill a long running command - SIGINT
+    [92m- ✓ It:[0m should return the rc for a failing command
+    [92m- ✓ It:[0m should preserve existing properties on msg object
+    [92m- ✓ It:[0m should preserve existing properties on msg object for a failing command
+                                                                                
+  - Describe: Calling spawn...
+    [92m- ✓ It:[0m should spawn a simple command
+    [92m- ✓ It:[0m should spawn a simple command with a non string payload parameter
+    [92m- ✓ It:[0m should spawn a simple command and return binary buffer
+    [92m- ✓ It:[0m should work if passed multiple words to spawn command
+    [92m- ✓ It:[0m should return an error for a bad command
+    [92m- ✓ It:[0m should return an error for a failing command
+    [92m- ✓ It:[0m should be able to timeout a long running command
+    [92m- ✓ It:[0m should be able to kill a long running command
+    [92m- ✓ It:[0m should be able to kill a long running command - SIGINT
+    [92m- ✓ It:[0m should preserve existing properties on msg object
+    [92m- ✓ It:[0m should preserve existing properties on msg object for a failing command
+                                                                                
+- Describe: Function node...
+  [92m- ✓ It:[0m should send returned message using send()
+  [92m- ✓ It:[0m should send returned message
+  [92m- ✓ It:[0m should send returned message using send()
+  [92m- ✓ It:[0m should allow accessing node.id and node.name and node.outputCount
+  [93m- s It:[0m should clone single message sent using send()
+  [93m- s It:[0m should not clone single message sent using send(,false)
+  [92m- ✓ It:[0m should clone first message sent using send() - array 1
+  [92m- ✓ It:[0m should clone first message sent using send() - array 2
+  [92m- ✓ It:[0m should clone first message sent using send() - array 3
+  [92m- ✓ It:[0m should clone first message sent using send() - array 3
+  [92m- ✓ It:[0m should pass through _topic
+  [92m- ✓ It:[0m should send to multiple outputs
+  [92m- ✓ It:[0m should send to multiple messages
+  [93m- s It:[0m should allow input to be discarded by returning null
+  [92m- ✓ It:[0m should handle null amongst valid messages
+  [92m- ✓ It:[0m should get keys in global context
+  [93m- s It:[0m should drop and log non-object message types - string
+  [93m- s It:[0m should drop and log non-object message types - buffer
+  [93m- s It:[0m should drop and log non-object message types - array
+  [93m- s It:[0m should drop and log non-object message types - boolean
+  [93m- s It:[0m should drop and log non-object message types - number
+  [92m- ✓ It:[0m should set node context
+  [92m- ✓ It:[0m should set persistable node context (w/o callback)
+  [92m- ✓ It:[0m should set two persistable node context (w/o callback)
+  [93m- s It:[0m should set two persistable node context (single call, w/o callback)
+  [92m- ✓ It:[0m should set persistable node context (w callback)
+  [92m- ✓ It:[0m should set two persistable node context (w callback)
+  [92m- ✓ It:[0m should set default persistable node context
+  [92m- ✓ It:[0m should get node context
+  [92m- ✓ It:[0m should get persistable node context (w/o callback)
+  [92m- ✓ It:[0m should get persistable node context (w/ callback)
+  [92m- ✓ It:[0m should get keys in node context
+  [92m- ✓ It:[0m should get keys in persistable node context (w/o callback)
+  [92m- ✓ It:[0m should get keys in persistable node context (w/ callback)
+  [92m- ✓ It:[0m should get keys in default persistable node context
+  [92m- ✓ It:[0m should set flow context
+  [92m- ✓ It:[0m should set persistable flow context (w/o callback)
+  [92m- ✓ It:[0m should set two persistable flow context (w/o callback)
+  [92m- ✓ It:[0m should set persistable flow context (w/ callback)
+  [92m- ✓ It:[0m should set two persistable flow context (w/ callback)
+  [92m- ✓ It:[0m should get flow context
+  [92m- ✓ It:[0m should get persistable flow context (w/o callback)
+  [92m- ✓ It:[0m should get persistable flow context (w/ callback)
+  [92m- ✓ It:[0m should get flow context
+  [92m- ✓ It:[0m should get keys in flow context
+  [92m- ✓ It:[0m should get keys in persistable flow context (w/o callback)
+  [92m- ✓ It:[0m should get keys in persistable flow context (w/ callback)
+  [92m- ✓ It:[0m should set global context
+  [92m- ✓ It:[0m should set persistable global context (w/o callback)
+  [92m- ✓ It:[0m should set persistable global context (w/ callback)
+  [92m- ✓ It:[0m should get global context
+  [92m- ✓ It:[0m should get persistable global context (w/o callback)
+  [92m- ✓ It:[0m should get persistable global context (w/ callback)
+  [92m- ✓ It:[0m should get global context
+  [92m- ✓ It:[0m should get persistable global context (w/o callback)
+  [92m- ✓ It:[0m should get persistable global context (w/ callback)
+  [93m- s It:[0m should handle setTimeout()
+  [93m- s It:[0m should handle setInterval()
+  [93m- s It:[0m should handle clearInterval()
+  [92m- ✓ It:[0m should allow accessing node.id
+  [92m- ✓ It:[0m should allow accessing node.name
+  [92m- ✓ It:[0m should allow accessing env vars
+  [92m- ✓ It:[0m should execute initialization
+  [92m- ✓ It:[0m should wait completion of initialization
+                                                                                
+  - Describe: Externalmodules...
+    [93m- s It:[0m should fail if using OS module with functionExternalModules set to false
+    [93m- s It:[0m should fail if using OS module without it listed in libs
+    [93m- s It:[0m should require the OS module
+    [93m- s It:[0m should fail if module variable name clashes with sandbox builtin
+                                                                                
+- Describe: Range node...
+  [92m- ✓ It:[0m ranges numbers up tenfold
+  [92m- ✓ It:[0m ranges numbers down such as centimetres to metres
+  [92m- ✓ It:[0m wraps numbers down say for degree/rotation reading 1/2
+  [92m- ✓ It:[0m wraps numbers around say for degree/rotation reading 1/3
+  [92m- ✓ It:[0m wraps numbers around say for degree/rotation reading 1/4
+  [92m- ✓ It:[0m wraps numbers down say for degree/rotation reading 1/4
+  [92m- ✓ It:[0m wraps numbers around say for degree/rotation reading 0
+  [92m- ✓ It:[0m clamps numbers within a range - over max
+  [92m- ✓ It:[0m clamps numbers within a range - below min
+  [92m- ✓ It:[0m drops msg if in drop mode and input outside range
+  [92m- ✓ It:[0m just passes on msg if payload not present
+  [92m- ✓ It:[0m reports if input is not a number
+                                                                                
+- Describe: Rbe node...
+  [92m- ✓ It:[0m should only send output if payload changes - with multiple topics (rbe)
+  [92m- ✓ It:[0m should ignore multiple topics if told to (rbe)
+  [92m- ✓ It:[0m should only send output if another chosen property changes - foo (rbe)
+  [92m- ✓ It:[0m should only send output if payload changes - ignoring first value (rbei)
+  [92m- ✓ It:[0m should send output if queue is reset (rbe)
+  [92m- ✓ It:[0m should only send output if x away from original value (deadbandEq)
+  [92m- ✓ It:[0m should only send output if more than x away from original value (deadband)
+  [92m- ✓ It:[0m should only send output if more than x% away from original value (deadband)
+  [92m- ✓ It:[0m should not send output if x away or greater from original value (narrowbandEq)
+  [92m- ✓ It:[0m should not send output if more than x away from original value (narrowband)
+  [92m- ✓ It:[0m should send output if gap is 0 and input doesnt change (narrowband)
+  [92m- ✓ It:[0m should not send output if more than x away from original value (narrowband in step mode)
+                                                                                
+- Describe: State node...
+  [92m- ✓ It:[0m walks idle, run, and fault from message compares
+  [92m- ✓ It:[0m a tick does not advance when no edge matches
+  [92m- ✓ It:[0m a tick enters the next state when the context edge matches
+  [92m- ✓ It:[0m an unknown condition type is rejected at deploy
+                                                                                
+- Describe: Switch node...
+  [92m- ✓ It:[0m should be loaded with some defaults
+  [92m- ✓ It:[0m should check if payload equals given value
+  [92m- ✓ It:[0m should return nothing when the payload doesn't equal to desired string
+  [92m- ✓ It:[0m should check if payload NOT equals given value
+  [92m- ✓ It:[0m should return nothing when the payload does equal to desired string
+  [92m- ✓ It:[0m should check if payload equals given numeric value
+  [92m- ✓ It:[0m should return nothing when the payload doesn't equal to desired numeric value
+  [92m- ✓ It:[0m should check if payload NOT equals given numeric value
+  [92m- ✓ It:[0m should return nothing when the payload does equal to desired numeric value
+  [92m- ✓ It:[0m should check if payload is less than given value
+  [92m- ✓ It:[0m should return nothing when the payload is not less than desired string
+  [92m- ✓ It:[0m should check if payload less than equals given value
+  [92m- ✓ It:[0m should check if payload is greater than given value
+  [92m- ✓ It:[0m should return nothing when the payload is not greater than desired string
+  [92m- ✓ It:[0m should check if payload is greater than/equals given value
+  [92m- ✓ It:[0m should return nothing when the payload is not greater than desired string
+  [92m- ✓ It:[0m should check if payload is greater than/equals given value
+  [92m- ✓ It:[0m should match if a payload has a required property
+  [92m- ✓ It:[0m should not match if a payload does not have a required property
+  [92m- ✓ It:[0m should not match if the key is not a string
+  [92m- ✓ It:[0m should not match if the parent object does not exist - null
+  [92m- ✓ It:[0m should not match if the parent object does not exist - undefined
+  [92m- ✓ It:[0m should check if payload is between given values
+  [92m- ✓ It:[0m should check if payload is between given values in "wrong" order
+  [92m- ✓ It:[0m should check if payload is between given string values
+  [92m- ✓ It:[0m should check if payload is not between given values
+  [92m- ✓ It:[0m should check if payload contains given value
+  [92m- ✓ It:[0m should return nothing when the payload doesn't contain desired string
+  [92m- ✓ It:[0m should match regex
+  [92m- ✓ It:[0m should check if payload if of type string
+  [92m- ✓ It:[0m should check if payload if of type number
+  [92m- ✓ It:[0m should check if payload if of type number 0
+  [92m- ✓ It:[0m should check if payload if of type number NaN
+  [93m- s It:[0m should check if payload if of type number Infinity
+  [92m- ✓ It:[0m should check if payload if of type boolean true
+  [92m- ✓ It:[0m should check if payload if of type boolean false
+  [92m- ✓ It:[0m should check if payload if of type array
+  [93m- s It:[0m should check if payload if of type buffer
+  [92m- ✓ It:[0m should check if payload if of type object
+  [92m- ✓ It:[0m should check if payload if of type JSON string
+  [92m- ✓ It:[0m should check if payload if of type JSON string (and fail if not)
+  [92m- ✓ It:[0m should check if payload if of type null
+  [93m- s It:[0m should check if payload if of type undefined
+  [92m- ✓ It:[0m should handle flow context
+  [92m- ✓ It:[0m should handle persistable flow context
+  [92m- ✓ It:[0m should handle global context
+  [92m- ✓ It:[0m should handle persistable global context
+  [92m- ✓ It:[0m should use a nested message property to compare value - matches
+  [92m- ✓ It:[0m should use a nested message property to compare value - no match
+  [92m- ✓ It:[0m should use a nested message property to compare nested message property - matches
+  [92m- ✓ It:[0m should use a nested message property to compare nested message property - no match
+  [92m- ✓ It:[0m should match regex with ignore-case flag set true
+  [92m- ✓ It:[0m should not match regex with ignore-case flag unset
+  [92m- ✓ It:[0m should not match regex with ignore-case flag set false
+  [92m- ✓ It:[0m should return nothing when the payload doesn't match regex
+  [92m- ✓ It:[0m should check if input is true
+  [92m- ✓ It:[0m sends nothing when input is false and checking for true
+  [92m- ✓ It:[0m should check if input is indeed false
+  [92m- ✓ It:[0m sends nothing when input is false and checking for true
+  [92m- ✓ It:[0m should check if payload is empty (string)
+  [92m- ✓ It:[0m should check if payload is empty (array)
+  [93m- s It:[0m should check if payload is empty (buffer)
+  [92m- ✓ It:[0m should check if payload is empty (object)
+  [92m- ✓ It:[0m should check if payload is empty (non-empty string)
+  [92m- ✓ It:[0m should check if payload is empty (non-empty array)
+  [92m- ✓ It:[0m should check if payload is empty (non-empty buffer)
+  [92m- ✓ It:[0m should check if payload is empty (non-empty object)
+  [92m- ✓ It:[0m should check if payload is empty (null)
+  [92m- ✓ It:[0m should check if payload is empty (undefined)
+  [92m- ✓ It:[0m should check if payload is empty (0)
+  [92m- ✓ It:[0m should check if payload is not empty (string)
+  [92m- ✓ It:[0m should check if payload is not empty (array)
+  [92m- ✓ It:[0m should check if payload is not empty (buffer)
+  [92m- ✓ It:[0m should check if payload is not empty (object)
+  [92m- ✓ It:[0m should check if payload is not empty (non-empty string)
+  [92m- ✓ It:[0m should check if payload is not empty (non-empty array)
+  [92m- ✓ It:[0m should check if payload is not empty (non-empty buffer)
+  [92m- ✓ It:[0m should check if payload is not empty (non-empty object)
+  [92m- ✓ It:[0m should check if payload is not empty (null)
+  [92m- ✓ It:[0m should check if payload is not empty (undefined)
+  [92m- ✓ It:[0m should check if payload is not empty (0)
+  [92m- ✓ It:[0m should check input against a previous value
+  [92m- ✓ It:[0m should check input against a previous value (2nd option)
+  [92m- ✓ It:[0m should check if input is indeed null
+  [92m- ✓ It:[0m should check if input is indeed undefined
+  [92m- ✓ It:[0m should treat non-existent msg property conditional as undefined
+  [92m- ✓ It:[0m should check if input is indeed not null
+  [92m- ✓ It:[0m sends a message when the "else/otherwise" statement is selected
+  [92m- ✓ It:[0m handles more than one switch statement
+  [92m- ✓ It:[0m stops after first statement
+  [92m- ✓ It:[0m should handle JSONata expression
+  [92m- ✓ It:[0m should handle flow and global contexts with JSONata expression
+  [92m- ✓ It:[0m should handle persistable flow and global contexts with JSONata expression
+  [93m- s It:[0m should take head of message sequence (w. JSONata)
+  [92m- ✓ It:[0m should handle env var expression
+  [93m- s It:[0m should take head of message sequence (no repair)
+  [93m- s It:[0m should take head of message sequence (repair)
+  [93m- s It:[0m should take tail of message sequence (no repair)
+  [93m- s It:[0m should take slice of message sequence (no repair)
+  [92m- ✓ It:[0m should check JSONata expression is true
+  [92m- ✓ It:[0m should be able to use $I in JSONata expression
+  [92m- ✓ It:[0m should be able to use $N in JSONata expression
+  [92m- ✓ It:[0m should handle empty rule
+  [93m- s It:[0m should handle invalid jsonata expression
+  [93m- s It:[0m should not repair message sequence for each port
+  [93m- s It:[0m should repair message sequence for each port
+                                                                                
+- Describe: Template node...
+  [92m- ✓ It:[0m should modify payload using node-configured template
+  [92m- ✓ It:[0m should modify the configured property using msg.template
+  [92m- ✓ It:[0m should be able to overwrite msg.template using the template from msg.template
+  [92m- ✓ It:[0m should modify payload from msg.template
+  [92m- ✓ It:[0m env var should modify payload from env variable
+  [92m- ✓ It:[0m should modify payload from flow context
+  [92m- ✓ It:[0m should modify payload from persistable flow context
+  [92m- ✓ It:[0m should handle nested context tags - property not set
+  [92m- ✓ It:[0m should handle nested context tags - property set
+  [92m- ✓ It:[0m should modify payload from two persistable flow context
+  [92m- ✓ It:[0m should modify payload from global context
+  [92m- ✓ It:[0m should modify payload from persistable global context
+  [92m- ✓ It:[0m should modify payload from two persistable global context
+  [92m- ✓ It:[0m should modify payload from persistable flow & global context
+  [93m- s It:[0m should handle missing node context
+  [92m- ✓ It:[0m should handle escape characters in Mustache format and JSON output mode
+  [92m- ✓ It:[0m should modify payload in plain text mode
+  [92m- ✓ It:[0m should modify flow context
+  [92m- ✓ It:[0m should modify persistable flow context
+  [92m- ✓ It:[0m should modify global context
+  [92m- ✓ It:[0m should modify persistable global context
+  [92m- ✓ It:[0m should handle if the field isn't set
+  [92m- ✓ It:[0m should handle deeper objects
+  [92m- ✓ It:[0m should handle block contexts objects
+  [93m- s It:[0m should raise error if passed bad template
+                                                                                
+- Describe: Trigger node...
+  [92m- ✓ It:[0m should be loaded with correct defaults
+  [92m- ✓ It:[0m should be able to set delay in seconds
+  [92m- ✓ It:[0m should be able to set delay in minutes
+  [92m- ✓ It:[0m should be able to set delay in hours
+  [92m- ✓ It:[0m should output 1st value when triggered (num)
+  [92m- ✓ It:[0m should output 2st value when triggered (num)
+  [92m- ✓ It:[0m should output 1st value when triggered (str)
+  [92m- ✓ It:[0m should output 2st value when triggered (str)
+  [92m- ✓ It:[0m should output 1st value when triggered (bool)
+  [92m- ✓ It:[0m should output 2st value when triggered (bool)
+  [92m- ✓ It:[0m should output 1st value when triggered (json)
+  [92m- ✓ It:[0m should output 2st value when triggered (json)
+  [92m- ✓ It:[0m should output 1st value when triggered (bin)
+  [92m- ✓ It:[0m should output 2st value when triggered (bin)
+  [92m- ✓ It:[0m should output 1st value when triggered (env)
+  [92m- ✓ It:[0m should output 2st value when triggered (env)
+  [92m- ✓ It:[0m should output 1st value when triggered (date)
+  [92m- ✓ It:[0m should output 1st value when triggered (date)
+  [92m- ✓ It:[0m should output 2st value when triggered (date)
+  [92m- ✓ It:[0m should output 2st value when triggered (date)
+  [92m- ✓ It:[0m should be able to return things from flow and global context variables
+  [92m- ✓ It:[0m should ignore msg.delay if overrideDelay not set
+  [92m- ✓ It:[0m should use msg.delay if overrideDelay is set
+  [92m- ✓ It:[0m should output 1 then 0 when triggered (default)
+  [92m- ✓ It:[0m should ignore any other inputs while triggered if extend is false
+  [92m- ✓ It:[0m should handle true and false as strings and delay of 0
+  [92m- ✓ It:[0m should handle multiple topics as one if not asked to handle
+  [92m- ✓ It:[0m should handle multiple topics individually if asked to do so
+  [92m- ✓ It:[0m should handle multiple topics individually, and extend one, if asked to do so
+  [92m- ✓ It:[0m should handle multiple other properties individually if asked to do so
+  [92m- ✓ It:[0m should be able to not output anything on first trigger
+  [92m- ✓ It:[0m should be able to not output anything on second edge
+  [92m- ✓ It:[0m should be able to reset correctly having not output anything on second edge
+  [92m- ✓ It:[0m should be able to extend the delay
+  [92m- ✓ It:[0m should be able to extend the delay (but with no 2nd output)
+  [92m- ✓ It:[0m should be able to extend the delay and output the most recent payload
+  [92m- ✓ It:[0m should be able output the 2nd payload
+  [92m- ✓ It:[0m should be able output the 2nd payload and handle multiple topics
+  [92m- ✓ It:[0m should be able to apply mustache templates to payloads
+  [92m- ✓ It:[0m should be able to send 2nd message to a 2nd output
+  [92m- ✓ It:[0m should handle string null as null
+  [92m- ✓ It:[0m should handle string null as null on op2
+  [92m- ✓ It:[0m should be able to set infinite timeout, and clear timeout
+  [92m- ✓ It:[0m should be able to set infinite timeout, and clear timeout by message
+  [92m- ✓ It:[0m should be able to set infinite timeout, and clear timeout by boolean true
+  [92m- ✓ It:[0m should be able to set infinite timeout, and clear timeout by boolean false
+  [92m- ✓ It:[0m should be able to set a repeat, and clear loop by reset
+                                                                                
+  - Describe: Messaging api...
+    [92m- ✓ It:[0m should call done() when first message has been processed
+    [92m- ✓ It:[0m should call done() when it receives reset message
+                                                                                
+- Describe: Validate node...
+  [92m- ✓ It:[0m forwards a payload inside the range
+  [92m- ✓ It:[0m a value of the wrong type is a node error
+  [92m- ✓ It:[0m a stale timestamp is a node error
+  [92m- ✓ It:[0m an unknown check is rejected at deploy
+                                                                                
+- Describe: Mqtt nodes...
+  [93m- s It:[0m should be loaded and have default values (MQTT V4)
+  [93m- s It:[0m should be loaded and have default values (MQTT V5)
+  [92m- ✓ It:[0m skipping MQTT tests. Set env var "NR_MQTT_TESTS=true" to enable. Requires a v5 capable broker running on localhost:1883.
+  [93m- s It:[0m basic send and receive tests
+  [93m- s It:[0m should send JSON and receive string (auto mode)
+  [93m- s It:[0m should send JSON and receive object (auto-detect mode)
+  [93m- s It:[0m should send invalid JSON and receive string (auto mode)
+  [93m- s It:[0m should send invalid JSON and receive string (auto-detect mode)
+  [93m- s It:[0m should send JSON and receive string (utf8 mode)
+  [93m- s It:[0m should send JSON and receive Object (json mode)
+  [93m- s It:[0m should send invalid JSON and raise error (json mode)
+  [93m- s It:[0m should send String and receive Buffer (buffer mode)
+  [93m- s It:[0m should send utf8 Buffer and receive String (auto mode)
+  [93m- s It:[0m should send non utf8 Buffer and receive Buffer (auto mode)
+  [93m- s It:[0m should send/receive all v5 flags and settings
+  [93m- s It:[0m should send regular string with v5 media type "text/plain" and receive a string (auto mode)
+  [93m- s It:[0m should send JSON with v5 media type "text/plain" and receive a string (auto mode)
+  [93m- s It:[0m should send JSON with v5 media type "text/plain" and receive a string (auto-detect mode)
+  [93m- s It:[0m should send JSON with v5 media type "application/json" and receive an object (auto-detect mode)
+  [93m- s It:[0m should send invalid JSON with v5 media type "application/json" and raise an error (auto mode)
+  [93m- s It:[0m should send buffer with v5 media type "application/json" and receive an object (auto-detect mode)
+  [93m- s It:[0m should send buffer with v5 media type "text/plain" and receive a string (auto mode)
+  [93m- s It:[0m should send buffer with v5 media type "application/zip" and receive a buffer (auto mode)
+  [93m- s It:[0m should subscribe dynamically via action
+  [93m- s It:[0m should connect via "connect" action
+  [93m- s It:[0m should disconnect via "disconnect" action
+  [93m- s It:[0m should publish birth message
+  [93m- s It:[0m should safely discard bad birth topic
+  [93m- s It:[0m should publish close message
+  [93m- s It:[0m should publish will message
+  [93m- s It:[0m should publish will message with V5 properties
+                                                                                
+- Describe: Tcp request node...
+                                                                                
+  - Describe: Single message...
+    [92m- ✓ It:[0m should send & recv data
+    [92m- ✓ It:[0m should retain complete message
+    [92m- ✓ It:[0m should send & recv data when specified character received
+    [92m- ✓ It:[0m should send & recv data after fixed number of chars received
+    [92m- ✓ It:[0m should send & receive, then keep connection
+    [92m- ✓ It:[0m should send & recv data to/from server:port from msg
+                                                                                
+  - Describe: Many messages...
+    [92m- ✓ It:[0m should send & recv data
+    [92m- ✓ It:[0m should send & recv data when specified character received
+    [92m- ✓ It:[0m should send & recv data after fixed number of chars received
+    [92m- ✓ It:[0m should send & receive, then keep connection
+    [92m- ✓ It:[0m should send & receive, then keep connection, and not split return strings
+    [92m- ✓ It:[0m should send & receive, then keep connection, and split return strings
+    [92m- ✓ It:[0m should send & receive, then keep connection, and split return strings and reattach delimiter
+    [92m- ✓ It:[0m should send & recv data to/from server:port from msg
+    [92m- ✓ It:[0m should limit the queue size
+    [92m- ✓ It:[0m should only retain the latest message
+                                                                                
+- Describe: Udp out node...
+  [92m- ✓ It:[0m should send IPv4 data
+  [92m- ✓ It:[0m should send IPv4 data (base64)
+  [92m- ✓ It:[0m should send IPv4 data with dest from msg
+                                                                                
+- Describe: Csv node (legacy mode)...
+  [92m- ✓ It:[0m should be loaded with defaults
+                                                                                
+  - Describe: Csv to json...
+    [92m- ✓ It:[0m should convert a simple csv string to a javascript object
+    [92m- ✓ It:[0m should convert a simple string to a javascript object with | separator (no template)
+    [92m- ✓ It:[0m should convert a simple string to a javascript object with tab separator (with template)
+    [92m- ✓ It:[0m should convert a simple string to a javascript object with space separator (with spaced template)
+    [92m- ✓ It:[0m should remove quotes and whitespace from template
+                                                                                
+  [93m- s It:[0m should warn if provided a number or boolean
+  [92m- ✓ It:[0m should call done when input causes an error
+                                                                                
+- Describe: Csv node (rfc mode)...
+  [92m- ✓ It:[0m should be loaded with defaults
+  [93m- s It:[0m should just pass through if no payload provided
+  [92m- ✓ It:[0m should warn if provided a number or boolean
+  [92m- ✓ It:[0m should call done when message processing is completed
+  [92m- ✓ It:[0m should not call done or pass the bad msg through when input causes an error - should throw error and set status
+                                                                                
+  - Describe: Csv to json...
+    [93m- s It:[0m should convert a simple csv string to a javascript object
+    [93m- s It:[0m should convert a simple string to a javascript object with | separator (no template)
+    [93m- s It:[0m should convert a simple string to a javascript object with tab separator (with template)
+    [93m- s It:[0m should convert a simple string to a javascript object with space separator (with spaced template)
+    [93m- s It:[0m should not remove quotes and whitespace from template - should set status and send warning
+    [93m- s It:[0m should create column names if no template provided
+    [93m- s It:[0m should allow dropping of fields from the template
+    [93m- s It:[0m should allow commas and spaces in the template
+    [93m- s It:[0m should allow passing in a template as first line of CSV
+    [93m- s It:[0m should allow passing in a template as first line of CSV (not comma)
+    [93m- s It:[0m should allow passing in a template as first line of CSV (special char /)
+    [93m- s It:[0m should allow passing in a template as first line of CSV (special char \)
+    [93m- s It:[0m should leave numbers starting with 0, e and + as strings (except 0.)
+    [93m- s It:[0m should not parse numbers when told not to do so
+    [93m- s It:[0m should parse numbers when told to do so
+    [93m- s It:[0m should leave handle strings with scientific notation as numbers
+    [93m- s It:[0m should allow quotes in the input (but drop blank strings)
+    [93m- s It:[0m should allow blank strings in the input if selected
+    [93m- s It:[0m should allow missing columns (nulls) in the input if selected
+    [93m- s It:[0m should handle cr and lf in the input
+    [93m- s It:[0m should recover from an odd number of quotes in the input
+    [92m- ✓ It:[0m should handle newlines in the input data
+    [93m- s It:[0m should be able to use the first line as a template
+    [93m- s It:[0m should be able to output multiple lines as one array
+    [93m- s It:[0m should be able to create an array from multiple parts
+    [93m- s It:[0m should be able to output multiple objects as an array from an input of parts
+    [93m- s It:[0m should handle numbers in strings but not IP addresses
+    [93m- s It:[0m should preserve parts property
+    [93m- s It:[0m should be able to use the first of multiple parts as a template if parts are present
+    [93m- s It:[0m should skip several lines from start if requested
+    [93m- s It:[0m should skip several lines from start then use next line as a template
+    [93m- s It:[0m should skip several lines from start and correct parts
+    [93m- s It:[0m should be able to skip and then use the first of multiple parts as a template if parts are present
+                                                                                
+  - Describe: Json object to csv...
+    [93m- s It:[0m should convert a simple object back to a csv
+    [93m- s It:[0m should convert a simple object back to a csv with no template
+    [93m- s It:[0m should convert a simple object back to a tsv using a tab as a separator
+    [93m- s It:[0m should convert a simple object back to a tsv with headers using a tab as a separator
+    [93m- s It:[0m should handle a template with spaces in the property names
+    [93m- s It:[0m should handle a template with quotes in the property names
+    [93m- s It:[0m should convert an array of objects to a multi-line csv
+    [93m- s It:[0m should convert an array of objects to a multi-line csv and add a header
+    [93m- s It:[0m should convert an array of objects to a multi-line csv without a template
+    [93m- s It:[0m should convert an array of objects to a multi-line csv without a template and with a header
+    [93m- s It:[0m should convert a simple array back to a csv
+    [93m- s It:[0m should convert an array of arrays back to a multi-line csv
+    [93m- s It:[0m should be able to include column names as first row
+    [93m- s It:[0m should be able to include column names as first row, and missing properties
+    [93m- s It:[0m should be able to pass in column names
+    [93m- s It:[0m should be able to pass in column names - with payload as an array
+    [93m- s It:[0m should handle quotes and sub-properties
+                                                                                
+- Describe: Json node...
+  [92m- ✓ It:[0m should convert a valid json string to a javascript object
+  [92m- ✓ It:[0m should convert a buffer of a valid json string to a javascript object
+  [92m- ✓ It:[0m should convert a javascript object to a json string
+  [92m- ✓ It:[0m should convert a array to a json string
+  [92m- ✓ It:[0m should convert a boolean to a json string
+  [92m- ✓ It:[0m should convert a json string to a boolean
+  [92m- ✓ It:[0m should convert a number to a json string
+  [92m- ✓ It:[0m should convert a json string to a number
+  [93m- s It:[0m should log an error if asked to parse an invalid json string
+  [92m- ✓ It:[0m should pass straight through if no payload set
+  [92m- ✓ It:[0m should ensure the result is a json string
+  [92m- ✓ It:[0m should ensure the result is a JS Object
+  [92m- ✓ It:[0m should handle any msg property - receive existing string
+  [92m- ✓ It:[0m should handle any msg property - receive existing obj
+  [92m- ✓ It:[0m should pass an object if provided a valid JSON string and schema
+  [92m- ✓ It:[0m should pass an object if provided a valid object and schema and action is object
+  [92m- ✓ It:[0m should pass a string if provided a valid object and schema
+  [92m- ✓ It:[0m should pass a string if provided a valid JSON string and schema and action is string
+  [93m- s It:[0m should log an error if passed an invalid object and valid schema
+  [93m- s It:[0m should log an error if passed an invalid object and valid schema and action is object
+  [93m- s It:[0m should log an error if passed an invalid JSON string and valid schema
+  [93m- s It:[0m should log an error if passed an invalid JSON string and valid schema and action is string
+  [93m- s It:[0m should log an error if passed a valid object and invalid schema
+  [92m- ✓ It:[0m msg.schema property should be deleted before sending to next node (string input)
+  [92m- ✓ It:[0m msg.schema property should be deleted before sending to next node (object input)
+                                                                                
+- Describe: Xml node...
+  [92m- ✓ It:[0m should be loaded
+  [92m- ✓ It:[0m should convert a valid xml string to a javascript object
+  [92m- ✓ It:[0m should convert a valid xml string to a javascript object - alternative property
+  [92m- ✓ It:[0m should convert a valid xml string to a javascript object with options
+  [92m- ✓ It:[0m should convert a javascript object to an xml string
+  [92m- ✓ It:[0m should convert a javascript object to an xml string with options - alternative property
+  [93m- s It:[0m should log an error if asked to parse an invalid xml string
+  [93m- s It:[0m should log an error if asked to parse something thats not xml or js
+  [92m- ✓ It:[0m should just pass through if payload is missing
+                                                                                
+- Describe: Yaml node...
+  [92m- ✓ It:[0m should be loaded
+  [92m- ✓ It:[0m should convert a valid yaml string to a javascript object
+  [92m- ✓ It:[0m should convert a valid yaml string to a javascript object - using another property
+  [92m- ✓ It:[0m should convert a javascript object to a yaml string
+  [92m- ✓ It:[0m should convert a javascript object to a yaml string - using another property
+  [92m- ✓ It:[0m should convert an array to a yaml string
+  [92m- ✓ It:[0m should pass straight through if no payload set
+  [92m- ✓ It:[0m should log an error if asked to parse an invalid yaml string
+  [92m- ✓ It:[0m should log an error if asked to parse something thats not yaml or js
+                                                                                
+- Describe: Batch node...
+  [92m- ✓ It:[0m should be loaded with defaults
+                                                                                
+  - Describe: Mode: count...
+    [92m- ✓ It:[0m should create seq. with count
+    [92m- ✓ It:[0m should create seq. with count (more sent than count)
+    [92m- ✓ It:[0m should create seq. with count and terminate early if parts honoured
+    [92m- ✓ It:[0m should create seq. with count and overlap
+    [92m- ✓ It:[0m should handle too many pending messages
+    [92m- ✓ It:[0m should handle reset
+                                                                                
+  - Describe: Mode: interval...
+    [92m- ✓ It:[0m should create seq. with interval
+    [92m- ✓ It:[0m should create seq. with interval (in float)
+    [92m- ✓ It:[0m should create seq. with interval & not send empty seq
+    [92m- ✓ It:[0m should create seq. with interval & send empty seq
+    [92m- ✓ It:[0m should handle too many pending messages
+    [92m- ✓ It:[0m should handle reset
+                                                                                
+  - Describe: Mode: concat...
+    [92m- ✓ It:[0m should concat two seq. (series)
+    [92m- ✓ It:[0m should concat two seq. (mixed)
+    [92m- ✓ It:[0m should concat three seq.
+    [92m- ✓ It:[0m should concat same seq.
+    [92m- ✓ It:[0m should handle too many pending messages
+    [92m- ✓ It:[0m should handle reset
+                                                                                
+  - Describe: Messaging api...
+    [92m- ✓ It:[0m should call done() when message is sent (mode: count)
+    [92m- ✓ It:[0m should call done() when reset (mode: count)
+    [92m- ✓ It:[0m should call done() regardless of buffer overflow (mode: count)
+    [92m- ✓ It:[0m should call done() when message is sent (mode: interval)
+    [92m- ✓ It:[0m should call done() when reset (mode: interval)
+    [92m- ✓ It:[0m should call done() regardless of buffer overflow (mode: interval)
+    [92m- ✓ It:[0m should call done() when message is sent (mode: concat)
+    [92m- ✓ It:[0m should call done() when reset (mode: concat)
+    [92m- ✓ It:[0m should call done() regardless of buffer overflow (mode: concat)
+                                                                                
+- Describe: Sort node...
+  [92m- ✓ It:[0m should be loaded
+  [92m- ✓ It:[0m should sort payload (elem, not number, ascending)
+  [92m- ✓ It:[0m should sort msg prop (elem, not number, ascending)
+  [92m- ✓ It:[0m should sort message group/payload (not number, ascending)
+  [92m- ✓ It:[0m should sort message group/prop (not number, ascending)
+  [92m- ✓ It:[0m should sort payload (elem, not number, descending)
+  [92m- ✓ It:[0m should sort msg prop (elem, not number, descending)
+  [92m- ✓ It:[0m should sort message group/payload (not number, descending)
+  [92m- ✓ It:[0m should sort message group/prop (not number, descending)
+  [92m- ✓ It:[0m should sort payload (elem, number, ascending)
+  [92m- ✓ It:[0m should sort msg prop (elem, number, ascending)
+  [92m- ✓ It:[0m should sort message group/payload (number, ascending)
+  [92m- ✓ It:[0m should sort message group/prop (number, ascending)
+  [92m- ✓ It:[0m should sort payload (elem, number, descending)
+  [92m- ✓ It:[0m should sort msg prop (elem, number, descending)
+  [92m- ✓ It:[0m should sort message group/payload (number, descending)
+  [92m- ✓ It:[0m should sort message group/prop (number, descending)
+  [93m- s It:[0m should sort payload (exp, not number, ascending)
+  [93m- s It:[0m should sort message group (exp, not number, ascending)
+  [93m- s It:[0m should sort message group (exp, not number, descending)
+  [93m- s It:[0m should sort payload (exp, not number, descending)
+  [93m- s It:[0m should sort payload of objects
+  [93m- s It:[0m should sort payload by context (exp, not number, ascending)
+  [93m- s It:[0m should sort message group by context (exp, not number, ascending)
+  [93m- s It:[0m should sort payload by persistable context (exp, not number, descending)
+  [93m- s It:[0m should sort message group by persistable context (exp, not number, descending)
+  [93m- s It:[0m should handle JSONata script error
+  [92m- ✓ It:[0m should handle too many pending messages
+  [93m- s It:[0m should clear pending messages on close
+  [93m- s It:[0m should call done() when message is sent (payload)
+  [93m- s It:[0m should call done() when message is sent (sequence)
+  [93m- s It:[0m should call done() regardless of buffer overflow (same group)
+  [93m- s It:[0m should call done() regardless of buffer overflow (different group)
+                                                                                
+- Describe: Split node...
+  [92m- ✓ It:[0m should be loaded
+  [92m- ✓ It:[0m should split an array into multiple messages
+  [92m- ✓ It:[0m should split an array on a sub-property into multiple messages
+  [92m- ✓ It:[0m should split an array into multiple messages of a specified size
+  [92m- ✓ It:[0m should split an object into pieces
+  [92m- ✓ It:[0m should split an object sub property into pieces
+  [92m- ✓ It:[0m should split an object into pieces and overwrite their topics
+  [92m- ✓ It:[0m should split a string into new-lines
+  [92m- ✓ It:[0m should split a string on a specified char
+  [92m- ✓ It:[0m should split a string into lengths
+  [92m- ✓ It:[0m should split a string on a specified char in stream mode
+  [93m- s It:[0m should split a buffer into lengths
+  [93m- s It:[0m should split a buffer on another buffer (streaming)
+  [93m- s It:[0m should handle invalid spltType (not an array)
+  [93m- s It:[0m should handle invalid splt length
+  [93m- s It:[0m should handle invalid array splt length
+  [92m- ✓ It:[0m should ceil count value when msg.payload type is string
+  [93m- s It:[0m should handle spltBufferString value of undefined
+  [93m- s It:[0m should ceil count value when msg.payload type is Buffer
+  [93m- s It:[0m should set msg.parts.ch when node.spltType is str
+                                                                                
+- Describe: Join node...
+  [92m- ✓ It:[0m should be loaded
+  [92m- ✓ It:[0m should join bits of string back together automatically
+  [92m- ✓ It:[0m should join bits of string back together automatically with a buffer joiner
+  [93m- s It:[0m should join bits of buffer back together automatically
+  [92m- ✓ It:[0m should join things into an array after a count
+  [92m- ✓ It:[0m should join things into an array ignoring msg.parts.index in manual mode
+  [92m- ✓ It:[0m should join things into an array after a count with a buffer join set
+  [92m- ✓ It:[0m should join things into an array on a sub property in auto mode
+  [93m- s It:[0m should join strings into a buffer after a count
+  [92m- ✓ It:[0m should join things into an object after a count
+  [93m- s It:[0m should merge objects
+  [93m- s It:[0m should merge sub property objects
+  [93m- s It:[0m should merge full msg objects
+  [93m- s It:[0m should accumulate a merged object
+  [93m- s It:[0m should be able to reset an accumulation
+  [93m- s It:[0m should accumulate a key/value object
+  [93m- s It:[0m should join strings with a specifed character after a timeout
+  [93m- s It:[0m should allow the timeout to be restarted
+  [92m- ✓ It:[0m should join strings with a specifed character and complete when told to
+  [93m- s It:[0m should join complete message objects into an array after a count
+  [92m- ✓ It:[0m should join split things back into an array
+  [92m- ✓ It:[0m should join split things back into an object
+  [92m- ✓ It:[0m should join split things, send when told complete
+  [92m- ✓ It:[0m should manually join things into an array, send when told complete
+  [92m- ✓ It:[0m should manually join things into an object, send when told complete
+  [92m- ✓ It:[0m should join split strings back into a word
+  [93m- s It:[0m should allow chained split-split-join-join sequences
+  [92m- ✓ It:[0m should concat payload when group.type is array
+  [93m- s It:[0m should concat payload when group.type is buffer and group.joinChar is undefined
+  [92m- ✓ It:[0m should concat payload when group.type is string and group.joinChar is not string
+  [92m- ✓ It:[0m should handle msg.parts property when mode is auto and parts or id are missing
+  [92m- ✓ It:[0m should handle join an array when mode is auto and duplicate indexed parts arrive
+  [92m- ✓ It:[0m should handle join an array when using msg.parts and duplicate indexed parts arrive and being reset halfway
+  [93m- s It:[0m should reduce messages
+  [93m- s It:[0m should reduce messages - count only in last part
+  [93m- s It:[0m should reduce messages with init types (str)
+  [93m- s It:[0m should reduce messages with init types (num)
+  [93m- s It:[0m should reduce messages with init types (bool)
+  [93m- s It:[0m should reduce messages with init types (json)
+  [93m- s It:[0m should reduce messages with init types (bin)
+  [93m- s It:[0m should reduce messages with init types (JSONata)
+  [93m- s It:[0m should reduce messages with init types (env)
+  [93m- s It:[0m should reduce messages with init types (flow.name)
+  [93m- s It:[0m should reduce messages with init types (global.name)
+  [93m- s It:[0m should reduce messages using $I
+  [93m- s It:[0m should reduce messages with fixup
+  [93m- s It:[0m should reduce messages (left)
+  [93m- s It:[0m should reduce messages (right)
+  [93m- s It:[0m should reduce messages with array result
+  [93m- s It:[0m should handle too many pending messages for reduce mode
+  [93m- s It:[0m should reduce messages with flow context
+  [93m- s It:[0m should reduce messages with global context
+  [93m- s It:[0m should reduce messages with persistable flow context
+  [93m- s It:[0m should reduce messages with persistable global context
+  [93m- s It:[0m should handle invalid JSONata reduce expression - syntax error"
+  [93m- s It:[0m should handle invalid JSONata reduce expression - runtime error"
+  [93m- s It:[0m should handle invalid JSONata fixup expression - syntax err"
+  [93m- s It:[0m should handle invalid JSONata fixup expression - runtime err"
+  [92m- ✓ It:[0m should handle msg.parts even if messages are out of order in auto mode if exactly one message has count set
+                                                                                
+  - Describe: Messaging api...
+    [92m- ✓ It:[0m should call done() when message is sent (string)
+    [92m- ✓ It:[0m should call done() when message is sent (array)
+    [92m- ✓ It:[0m should call done() when message is sent (object)
+    [93m- s It:[0m should call done() when consolidated message is emitted (string, len)
+    [93m- s It:[0m should call done() when consolidated message is emitted (Buffer, len)
+    [93m- s It:[0m should call done() when consolidated message is emitted (Buffer, str)
+    [93m- s It:[0m should call done() when consolidated message is emitted (Buffer, bin)
+    [92m- ✓ It:[0m should call done() when all messages are joined
+    [92m- ✓ It:[0m should call done() when the node is reset
+    [93m- s It:[0m should call done() when timed out
+    [93m- s It:[0m should call done() when all messages are reduced
+    [93m- s It:[0m should call done() regardless of buffer overflow
+                                                                                
+- Describe: File nodes...
+                                                                                
+  - Describe: File out node...
+    [92m- ✓ It:[0m should be loaded
+    [92m- ✓ It:[0m should write to a file
+    [93m- s It:[0m should write to a file using JSONata
+                                                                                
+  - Describe: File in node...
+    [92m- ✓ It:[0m should be loaded
+    [92m- ✓ It:[0m should read in a file and output a buffer
+    [93m- s It:[0m should read in a file using JSONata and output a utf8 string
+                                                                                
+- Describe: Subflow...
+  [92m- ✓ It:[0m should define subflow
+  [92m- ✓ It:[0m should pass data to/from subflow
+  [92m- ✓ It:[0m should pass data to/from nested subflow
+  [92m- ✓ It:[0m should access env var of subflow template
+  [92m- ✓ It:[0m should access env var of subflow instance
+  [92m- ✓ It:[0m should access last env var with same name
+  [92m- ✓ It:[0m should access typed value of env var
+  [92m- ✓ It:[0m should overwrite env var of subflow template by env var of subflow instance
+  [92m- ✓ It:[0m should access env var of parent subflow template
+  [92m- ✓ It:[0m should access env var of parent subflow instance
+  [92m- ✓ It:[0m should access env var of tab
+  [92m- ✓ It:[0m should access env var of group
+  [92m- ✓ It:[0m should access env var of nested group
+  [92m- ✓ It:[0m should access NR_NODE_PATH env var within subflow instance
+                                                                                
+- Describe: Test harness contract...
+  [92m- ✓ It:[0m count mode returns exactly the requested number of messages
+  [92m- ✓ It:[0m count mode reports no arrival offsets
+  [92m- ✓ It:[0m sampling mode never waits for a count
+  [92m- ✓ It:[0m sampling mode reports arrival offsets relative to the first output
+                                                                                
+- Describe: @node-red/util/util...
+                                                                                
+  - Describe: Generateid...
+    [92m- ✓ It:[0m generates an id
+                                                                                
+  - Describe: Compareobjects...
+    [92m- ✓ It:[0m numbers
+    [92m- ✓ It:[0m strings
+    [92m- ✓ It:[0m arrays
+    [92m- ✓ It:[0m objects
+    [92m- ✓ It:[0m Buffer
+                                                                                
+  - Describe: Ensurestring...
+    [92m- ✓ It:[0m strings are preserved
+    [92m- ✓ It:[0m Buffer is converted
+    [92m- ✓ It:[0m Object is converted to JSON
+    [92m- ✓ It:[0m stringifies other things
+                                                                                
+  - Describe: Ensurebuffer...
+    [92m- ✓ It:[0m Buffers are preserved
+    [92m- ✓ It:[0m string is converted
+    [92m- ✓ It:[0m Object is converted to JSON
+    [92m- ✓ It:[0m stringifies other things
+                                                                                
+  - Describe: Clonemessage...
+    [92m- ✓ It:[0m clones a simple message
+    [92m- ✓ It:[0m does not clone http req/res properties
+    [92m- ✓ It:[0m handles undefined values without throwing an error
+                                                                                
+  - Describe: Getobjectproperty...
+    [92m- ✓ It:[0m gets a property beginning with "msg."
+                                                                                
+  - Describe: Getmessageproperty...
+    [92m- ✓ It:[0m retrieves a simple property
+    [92m- ✓ It:[0m retrieves a nested property
+    [92m- ✓ It:[0m should return undefined if property does not exist
+    [92m- ✓ It:[0m should throw error if property parent does not exist
+    [92m- ✓ It:[0m retrieves a property with array syntax
+                                                                                
+  - Describe: Setobjectproperty...
+    [92m- ✓ It:[0m set a property beginning with "msg."
+                                                                                
+  - Describe: Setmessageproperty...
+    [92m- ✓ It:[0m sets a property
+    [92m- ✓ It:[0m sets a deep level property
+    [92m- ✓ It:[0m creates missing parent properties by default
+    [92m- ✓ It:[0m does not create missing parent properties
+    [92m- ✓ It:[0m does not create missing parent properties of array
+    [92m- ✓ It:[0m does not create missing parent properties of string
+    [92m- ✓ It:[0m does not set property of existing string property
+    [92m- ✓ It:[0m does not set property of existing number property
+    [92m- ✓ It:[0m does not create missing parent properties of number
+    [92m- ✓ It:[0m does not set property of existing boolean property
+    [92m- ✓ It:[0m does not create missing parent properties of boolean
+    [92m- ✓ It:[0m deletes property if value is undefined
+    [92m- ✓ It:[0m does not create missing parent properties if value is undefined
+    [92m- ✓ It:[0m sets a property with array syntax
+    [92m- ✓ It:[0m creates missing array elements - final property
+    [92m- ✓ It:[0m creates missing array elements - mid property
+    [92m- ✓ It:[0m creates missing array elements - multi-arrays
+    [92m- ✓ It:[0m does not create missing array elements - mid property
+    [92m- ✓ It:[0m does not create missing array elements - final property
+    [92m- ✓ It:[0m deletes property inside array if value is undefined
+    [92m- ✓ It:[0m handles nested message property references
+    [92m- ✓ It:[0m handles nested message property references
+                                                                                
+  - Describe: Evaluatenodeproperty...
+    [92m- ✓ It:[0m returns string
+    [92m- ✓ It:[0m returns number
+    [92m- ✓ It:[0m returns evaluated json
+    [92m- ✓ It:[0m returns regex
+    [92m- ✓ It:[0m returns boolean
+    [92m- ✓ It:[0m returns date - default format
+    [92m- ✓ It:[0m returns date - iso format
+    [92m- ✓ It:[0m returns bin
+    [92m- ✓ It:[0m throws an error if buffer data is not array or string
+    [92m- ✓ It:[0m returns msg property
+    [92m- ✓ It:[0m throws an error if callback is not defined
+    [92m- ✓ It:[0m returns flow property
+    [92m- ✓ It:[0m returns global property
+    [93m- s It:[0m returns jsonata result
+    [92m- ✓ It:[0m returns null
+                                                                                
+    - Describe: Environment variable...
+      [92m- ✓ It:[0m returns an environment variable - NR_TEST_A
+      [92m- ✓ It:[0m returns an environment variable - ${NR_TEST_A}
+      [92m- ✓ It:[0m returns an environment variable - ${NR_TEST_A
+      [92m- ✓ It:[0m returns an environment variable - foo${NR_TEST_A}bar
+      [92m- ✓ It:[0m returns an environment variable - foo${NR_TEST_B}bar
+                                                                                
+  - Describe: Normalisepropertyexpression...
+    [92m- ✓ It:[0m pass a.b.c
+    [92m- ✓ It:[0m pass a["b"]["c"]
+    [92m- ✓ It:[0m pass a["b"].c
+    [92m- ✓ It:[0m pass a['b'].c
+    [92m- ✓ It:[0m pass a[0].c
+    [92m- ✓ It:[0m pass a.0.c
+    [92m- ✓ It:[0m pass a['a.b[0]'].c
+    [92m- ✓ It:[0m pass a[0][0][0]
+    [92m- ✓ It:[0m pass '1.2.3.4'
+    [92m- ✓ It:[0m pass 'a.b'[1]
+    [92m- ✓ It:[0m pass 'a.b'.c
+    [92m- ✓ It:[0m pass a[msg.b]
+    [92m- ✓ It:[0m pass a[msg[msg.b]]
+    [92m- ✓ It:[0m pass a[msg.b]
+    [92m- ✓ It:[0m pass a[msg.b]
+    [92m- ✓ It:[0m pass a[msg['b]"[']]
+    [92m- ✓ It:[0m pass a[msg['b][']]
+    [92m- ✓ It:[0m pass b[msg.a][2]
+    [92m- ✓ It:[0m pass b[msg.a][2] (with message)
+    [92m- ✓ It:[0m pass a.$b.c
+    [92m- ✓ It:[0m pass a["$b"].c
+    [92m- ✓ It:[0m pass a._b.c
+    [92m- ✓ It:[0m pass a["_b"].c
+    [92m- ✓ It:[0m pass a['a.b[0]'].c
+    [92m- ✓ It:[0m pass a.b.c
+    [92m- ✓ It:[0m pass a[msg.c][0]["fred"]
+    [92m- ✓ It:[0m fail a'b'.c
+    [92m- ✓ It:[0m fail a['b'.c
+    [92m- ✓ It:[0m fail a[]
+    [92m- ✓ It:[0m fail a]
+    [92m- ✓ It:[0m fail a[
+    [92m- ✓ It:[0m fail a[0d]
+    [92m- ✓ It:[0m fail a['
+    [92m- ✓ It:[0m fail a[']
+    [92m- ✓ It:[0m fail a[0']
+    [92m- ✓ It:[0m fail a.[0]
+    [92m- ✓ It:[0m fail [0]
+    [92m- ✓ It:[0m fail a[0
+    [92m- ✓ It:[0m fail a.
+    [92m- ✓ It:[0m fail .a
+    [92m- ✓ It:[0m fail a. b
+    [92m- ✓ It:[0m fail  a.b
+    [92m- ✓ It:[0m fail a[0].[1]
+    [92m- ✓ It:[0m fail a['']
+    [92m- ✓ It:[0m fail 'a.b'c
+    [92m- ✓ It:[0m fail <blank>
+    [92m- ✓ It:[0m fail a[b]
+    [92m- ✓ It:[0m fail a[msg.]
+    [92m- ✓ It:[0m fail a[msg[]
+    [92m- ✓ It:[0m fail a[msg.[]]
+    [92m- ✓ It:[0m fail a[msg['af]]
+    [92m- ✓ It:[0m fail b[msg.undefined][2] (with message)
+                                                                                
+  - Describe: Normalisenodetypename...
+    [92m- ✓ It:[0m pass blank
+    [92m- ✓ It:[0m pass ab1
+    [92m- ✓ It:[0m pass AB1
+    [92m- ✓ It:[0m pass a b 1
+    [92m- ✓ It:[0m pass a-b-1
+    [92m- ✓ It:[0m pass  ab1 
+    [92m- ✓ It:[0m pass _a_b_1_
+    [92m- ✓ It:[0m pass http request
+    [92m- ✓ It:[0m pass HttpRequest
+                                                                                
+  - Describe: Preparejsonataexpression...
+    [93m- s It:[0m prepares an expression
+    [93m- s It:[0m prepares a legacyMode expression
+                                                                                
+  - Describe: Evaluatejsonataexpression...
+    [93m- s It:[0m evaluates an expression
+    [93m- s It:[0m evaluates a legacyMode expression
+    [93m- s It:[0m accesses flow context from an expression
+    [93m- s It:[0m accesses undefined environment variable from an expression
+    [93m- s It:[0m accesses environment variable from an expression
+    [93m- s It:[0m accesses moment from an expression
+    [93m- s It:[0m accesses moment-timezone from an expression
+    [93m- s It:[0m handles non-existant flow context variable
+    [93m- s It:[0m handles non-existant global context variable
+    [93m- s It:[0m handles async flow context access
+    [93m- s It:[0m handles async global context access
+    [93m- s It:[0m handles persistable store in flow context access
+    [93m- s It:[0m handles persistable store in global context access
+    [93m- s It:[0m callbacks with error when invalid expression was specified
+                                                                                
+  - Describe: Encodeobject...
+    [92m- ✓ It:[0m encodes Error with message
+    [92m- ✓ It:[0m encodes Error without message
+    [92m- ✓ It:[0m encodes Buffer
+    [92m- ✓ It:[0m encodes function
+    [92m- ✓ It:[0m encodes boolean
+    [92m- ✓ It:[0m encodes number
+    [92m- ✓ It:[0m encodes 0
+    [92m- ✓ It:[0m encodes null
+    [92m- ✓ It:[0m encodes undefined
+    [92m- ✓ It:[0m encodes string
+    [92m- ✓ It:[0m encodes Map
+    [92m- ✓ It:[0m encodes Set
+                                                                                
+    - Describe: Encode object...
+      [92m- ✓ It:[0m object
+      [92m- ✓ It:[0m object whose name includes error
+      [92m- ✓ It:[0m object with undefined property
+      [92m- ✓ It:[0m object with no prototype builtins
+      [92m- ✓ It:[0m object with overriden hasOwnProperty
+      [92m- ✓ It:[0m object with Map property
+      [92m- ✓ It:[0m object with Set property
+      [92m- ✓ It:[0m constructor of IncomingMessage
+      [92m- ✓ It:[0m _req key in msg
+      [92m- ✓ It:[0m _res key in msg
+      [92m- ✓ It:[0m array of error
+      [92m- ✓ It:[0m long array in msg
+      [92m- ✓ It:[0m array of string
+      [92m- ✓ It:[0m array containing undefined
+      [92m- ✓ It:[0m array of function
+      [92m- ✓ It:[0m array of number
+      [92m- ✓ It:[0m array of special number
+      [92m- ✓ It:[0m constructor of Buffer in msg
+      [92m- ✓ It:[0m constructor of ServerResponse
+      [92m- ✓ It:[0m constructor of Socket in msg
+      [92m- ✓ It:[0m object which fails to serialise
+      [92m- ✓ It:[0m object which fails to serialise - different error type
+      [92m- ✓ It:[0m very large object which fails to serialise should be truncated
+      [92m- ✓ It:[0m test bad toString
+      [92m- ✓ It:[0m test bad object constructor
+
+826 passed, 217 skipped in 116.69s (0:01:56)

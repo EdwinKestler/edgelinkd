@@ -1,0 +1,17 @@
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/legacy-cred-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/legacy-cred-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/legacy-cred-home/n2linkd.dev.toml`
+{
+  "current": {
+    "format": "encrypted",
+    "decryptable": false,
+    "keyId": "sha256:06f49fb78c15bfaeffcbd5fde0b5bdd9"
+  },
+  "previous": {
+    "format": "missing",
+    "decryptable": true
+  },
+  "keySource": "environment",
+  "pendingTransactionRecovered": false
+}

@@ -1,0 +1,7 @@
+warning: using the legacy home directory /tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd; move it with: mv /tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd /tmp/tmp.s9xw1Fw0av/compat/user/.n2linkd
+warning: using the legacy config file /tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd/edgelinkd.toml; rename it to /tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd/n2linkd.toml
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd/edgelinkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd/n2linkd.dev.toml`
+Application error: the flows file does not exist: /tmp/tmp.s9xw1Fw0av/compat/user/.edgelinkd/flows.json

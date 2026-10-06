@@ -1,0 +1,16 @@
+$N2LINK_HOME=/tmp/tmp.s9xw1Fw0av/cred-home
+Loading config files:
+	- `/tmp/tmp.s9xw1Fw0av/cred-home/n2linkd.toml`
+	- `/tmp/tmp.s9xw1Fw0av/cred-home/n2linkd.dev.toml`
+{
+  "current": {
+    "format": "plaintext",
+    "decryptable": true
+  },
+  "previous": {
+    "format": "plaintext",
+    "decryptable": true
+  },
+  "keySource": "environment",
+  "pendingTransactionRecovered": false
+}

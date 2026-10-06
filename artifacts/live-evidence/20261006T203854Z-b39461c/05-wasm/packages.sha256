@@ -1,0 +1,3 @@
+059cca95aa0478710e040142a4995b3e8b9e37294e640314583fa9c7efd5d2be  target/wasm-examples/csvparse.wasm
+bcebbc539d3b523e7b05638f8477b012f0d12fb2e7025da7e8820bb9027d585a  target/wasm-examples/tofsense.wasm
+81d3370624defc1d9e737b87d2c0a303e10f31b892c459118e13e0e39c39846c  target/wasm-examples/uppercase.wasm
