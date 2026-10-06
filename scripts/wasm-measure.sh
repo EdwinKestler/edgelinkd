@@ -33,7 +33,7 @@ home() {
       printf '[runtime.wasm]\nenabled = true\nmemory_budget_kib = 65536\n' > "$dir/n2linkd.dev.toml"
       local sha
       sha=$("$WASM_BIN" -v 0 --home "$dir" plugin stage "$PLUGIN" | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha256"])')
-      "$WASM_BIN" -v 0 --home "$dir" plugin activate edgelink/uppercase --sha256 "$sha" > /dev/null
+      "$WASM_BIN" -v 0 --home "$dir" plugin activate n2link/uppercase --sha256 "$sha" > /dev/null
       ;;
   esac
   if [[ $nodes -gt 0 ]]; then
@@ -49,7 +49,7 @@ for i in range(count):
     flows.append({"id": inject, "type": "inject", "z": tab, "props": [{"p": "payload"}],
                   "payload": "x" * 1024, "payloadType": "str", "repeat": "", "crontab": "",
                   "once": True, "onceDelay": 0.1, "topic": "", "x": 100, "y": 40 * (i + 1), "wires": [[node]]})
-    flows.append({"id": node, "type": "wasm-edgelink-uppercase", "z": tab, "x": 300, "y": 40 * (i + 1), "wires": [[]]})
+    flows.append({"id": node, "type": "wasm-n2link-uppercase", "z": tab, "x": 300, "y": 40 * (i + 1), "wires": [[]]})
 json.dump(flows, open(path, "w"))
 EOF
   fi

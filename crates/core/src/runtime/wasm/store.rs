@@ -726,7 +726,7 @@ mod tests {
         }
     }
     fn temp() -> TempDir {
-        let dir = std::env::temp_dir().join(format!("edgelink-wasm-store-{}", uuid::Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("n2link-wasm-store-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&dir).unwrap();
         TempDir(dir)
     }
@@ -855,7 +855,7 @@ mod tests {
         let dir = temp();
         let store = open(&dir);
         let module = wat::parse_str(include_str!("fixtures/identity.wat")).unwrap();
-        assert!(store.stage(&module).unwrap_err().to_string().contains("no edgelink.manifest"));
+        assert!(store.stage(&module).unwrap_err().to_string().contains("no n2link.manifest"));
         let wasi = wat::parse_str(r#"(module (import "wasi_snapshot_preview1" "fd_write" (func (param i32 i32 i32 i32) (result i32))) (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0))"#).unwrap();
         let err = store.stage(&append_manifest(&wasi, SAMPLE).unwrap()).unwrap_err().to_string();
         assert!(err.contains("not granted"), "{err}");

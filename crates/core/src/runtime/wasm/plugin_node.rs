@@ -303,10 +303,10 @@ impl WasmPluginNode {
                 GuestLogLevel::Warn => log::Level::Warn,
                 GuestLogLevel::Error => log::Level::Error,
             };
-            log::log!(target: "edgelink::wasm", level, "[{} {}] {}", self.spec.id, self.id(), text);
+            log::log!(target: "n2link::wasm", level, "[{} {}] {}", self.spec.id, self.id(), text);
         }
         if state.logs_dropped > 0 && state.logs_dropped.is_power_of_two() {
-            log::warn!(target: "edgelink::wasm", "[{} {}] {} guest log lines dropped (rate limit)", self.spec.id, self.id(), state.logs_dropped);
+            log::warn!(target: "n2link::wasm", "[{} {}] {} guest log lines dropped (rate limit)", self.spec.id, self.id(), state.logs_dropped);
         }
     }
 }
@@ -444,7 +444,7 @@ impl WasmPluginNode {
         let permit = match tokio::time::timeout(self.limits.deadline, self.runtime.permits().acquire_owned()).await {
             Ok(Ok(permit)) => permit,
             _ => {
-                log::warn!(target: "edgelink::wasm", "[{} {}] el_close skipped: concurrency limit", self.spec.id, self.id());
+                log::warn!(target: "n2link::wasm", "[{} {}] el_close skipped: concurrency limit", self.spec.id, self.id());
                 return;
             }
         };
@@ -457,10 +457,10 @@ impl WasmPluginNode {
             Ok(Ok(output)) => self.write_logs(output.logs),
             Ok(Err(CallError::Guest { text, logs })) => {
                 self.write_logs(logs);
-                log::warn!(target: "edgelink::wasm", "[{} {}] {text}", self.spec.id, self.id());
+                log::warn!(target: "n2link::wasm", "[{} {}] {text}", self.spec.id, self.id());
             }
-            Ok(Err(err)) => log::warn!(target: "edgelink::wasm", "[{} {}] el_close: {err}", self.spec.id, self.id()),
-            Err(_) => log::warn!(target: "edgelink::wasm", "[{} {}] el_close: host panic", self.spec.id, self.id()),
+            Ok(Err(err)) => log::warn!(target: "n2link::wasm", "[{} {}] el_close: {err}", self.spec.id, self.id()),
+            Err(_) => log::warn!(target: "n2link::wasm", "[{} {}] el_close: host panic", self.spec.id, self.id()),
         }
     }
 }
@@ -516,7 +516,7 @@ mod tests {
 
     /// Emits `{"n": 2}` on port 1, then `{"n": 1}` on port 0.
     const TWO_PORTS: &str = r#"(module
-      (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
+      (import "n2link:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
       (memory (export "memory") 1 1)
       (data (i32.const 0) "\ee\01\09\01\00\00\00\01\00\00\00n\03\01\00\00\00\00\00\00\00")
       (data (i32.const 32) "\ee\01\09\01\00\00\00\01\00\00\00n\03\02\00\00\00\00\00\00\00")
@@ -532,7 +532,7 @@ mod tests {
 
     /// Emits a fixed EVE object `{ "_msgid": "x" }` regardless of input.
     const FORGE_MSGID: &str = r#"(module
-      (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
+      (import "n2link:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
       (memory (export "memory") 1 1)
       (data (i32.const 0) "\ee\01\09\01\00\00\00\06\00\00\00_msgid\06\01\00\00\00x")
       (func (export "el_abi_version") (result i32) i32.const 1)
@@ -771,7 +771,7 @@ mod tests {
     async fn example_plugins_install_and_run() {
         let dir = std::env::var("N2LINK_WASM_EXAMPLES")
             .expect("N2LINK_WASM_EXAMPLES must name the directory with uppercase.wasm and csvparse.wasm");
-        let home = std::env::temp_dir().join(format!("edgelink-wasm-e2e-{}", uuid::Uuid::new_v4()));
+        let home = std::env::temp_dir().join(format!("n2link-wasm-e2e-{}", uuid::Uuid::new_v4()));
         let store = super::super::store::PluginStore::open_at(
             home.join("plugins"),
             super::super::settings::WasmSettings::default(),
@@ -788,8 +788,8 @@ mod tests {
         let registry = registry_of(set.specs().cloned().collect());
         let flows = json!([
             { "id": "100", "type": "tab" },
-            { "id": "1", "z": "100", "type": "wasm-edgelink-uppercase", "wasmPlugin": "edgelink/uppercase@1", "wires": [["2"]] },
-            { "id": "2", "z": "100", "type": "wasm-edgelink-csvparse", "delimiter": ";", "header": true, "wires": [["3"]] },
+            { "id": "1", "z": "100", "type": "wasm-n2link-uppercase", "wasmPlugin": "n2link/uppercase@1", "wires": [["2"]] },
+            { "id": "2", "z": "100", "type": "wasm-n2link-csvparse", "delimiter": ";", "header": true, "wires": [["3"]] },
             { "id": "3", "z": "100", "type": "test-once" }
         ]);
         let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
@@ -822,7 +822,7 @@ mod tests {
         let registry = registry_of(set.specs().cloned().collect());
         let flows = json!([
             { "id": "100", "type": "tab" },
-            { "id": "1", "z": "100", "type": "wasm-edgelink-uppercase", "wires": [["2"]] },
+            { "id": "1", "z": "100", "type": "wasm-n2link-uppercase", "wires": [["2"]] },
             { "id": "2", "z": "100", "type": "test-once" }
         ]);
         let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();

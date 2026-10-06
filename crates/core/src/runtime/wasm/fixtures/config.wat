@@ -1,8 +1,8 @@
 ;; Stores the configuration passed to el_init and emits it for every message; el_close fails
 ;; with "bye" so tests can see that it ran.
 (module
-  (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
-  (import "edgelink:node/v1" "fail" (func $fail (param i32 i32) (result i32)))
+  (import "n2link:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32)))
+  (import "n2link:node/v1" "fail" (func $fail (param i32 i32) (result i32)))
   (memory (export "memory") 1 1)
   (global $len (mut i32) (i32.const 0))
   (data (i32.const 4000) "bye")

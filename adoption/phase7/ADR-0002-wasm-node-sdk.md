@@ -616,6 +616,14 @@ package has its own `[workspace]` and `Cargo.lock`; it is never built by the mai
   KiB idle; `VmRSS` +0.9 MiB from file-backed text. Decision: **go as an experimental opt-in
   feature, not for default builds**. Default builds carry no `wasmi` and grow 16–17 KiB.
 
+- 2026-10-06, rebrand to n2link (`adoption/rebrand/PLAN.md`, step R3): the import module is
+  `n2link:node/v1`, the manifest custom section `n2link.manifest`, the guest crate
+  `n2link-wasm-guest`, the log target `n2link::wasm`, and the example plugins `n2link/*`. No
+  alias: nothing was released under the old names. The ABI version stays 1 and nothing else in
+  the contract changes. A module importing `edgelink:node/v1`, or carrying only an
+  `edgelink.manifest` section, is rejected with a hint to rebuild it for n2link. Elsewhere in
+  this ADR, read `edgelink` in these names as `n2link`.
+
 ## Git and release state
 
 Documentation and a standalone measurement spike only. No runtime source, dependency,

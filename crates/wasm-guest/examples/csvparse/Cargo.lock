@@ -3,15 +3,15 @@
 version = 4
 
 [[package]]
-name = "edgelink-plugin-csvparse"
+name = "n2link-eve"
+version = "0.3.0"
+
+[[package]]
+name = "n2link-plugin-csvparse"
 version = "1.0.0"
 dependencies = [
  "n2link-wasm-guest",
 ]
-
-[[package]]
-name = "n2link-eve"
-version = "0.3.0"
 
 [[package]]
 name = "n2link-wasm-guest"

@@ -54,6 +54,6 @@ cargo build --release --target wasm32-unknown-unknown    # the installable packa
 python3 tools/fake_tofsense.py
 ```
 
-Install `target/wasm32-unknown-unknown/release/edgelink_plugin_tofsense.wasm` with
+Install `target/wasm32-unknown-unknown/release/n2link_plugin_tofsense.wasm` with
 `n2linkd plugin stage` / `activate`, or `POST /wasm/plugins/stage` and
 `/wasm/plugins/nooploop/tofsense/activate`, then reload the editor.

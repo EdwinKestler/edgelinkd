@@ -1,6 +1,6 @@
 # n2link-wasm-guest
 
-Guest SDK for EdgeLinkd WASM plugins (ABI `edgelink:node/v1`). Experimental; the host is the
+Guest SDK for EdgeLinkd WASM plugins (ABI `n2link:node/v1`). Experimental; the host is the
 optional `nodes_wasm` feature. Full author manual (manifest schema, ABI, encoding, versioning):
 `docs/development/wasm-plugins.md`. Operator manual: `docs/operations/wasm-plugins.md`.
 
@@ -45,7 +45,7 @@ cargo build --release --target wasm32-unknown-unknown
 n2linkd plugin stage target/wasm32-unknown-unknown/release/my_plugin.wasm   # or POST /wasm/plugins/stage
 ```
 
-The `.wasm` is the package: `manifest!` embeds `plugin.toml` as the `edgelink.manifest` custom
+The `.wasm` is the package: `manifest!` embeds `plugin.toml` as the `n2link.manifest` custom
 section, so no `n2linkd plugin pack` step and no wasm-bindgen or wasm-pack are involved.
 
 ## What a plugin gets

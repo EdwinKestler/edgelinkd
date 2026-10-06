@@ -1,10 +1,12 @@
-//! Minimal Wasm section walker: header check, section bounds, and the `edgelink.manifest`
+//! Minimal Wasm section walker: header check, section bounds, and the `n2link.manifest`
 //! custom section. Runs before Wasmi sees the bytes, so malformed framing fails with a precise
 //! message and no allocation proportional to forged lengths.
 
 use crate::N2linkError;
 
-pub(crate) const MANIFEST_SECTION: &str = "edgelink.manifest";
+pub(crate) const MANIFEST_SECTION: &str = "n2link.manifest";
+/// The section EdgeLinkd builds used before the rename; such packages get a rebuild hint.
+const LEGACY_MANIFEST_SECTION: &str = "edgelink.manifest";
 pub(crate) const MAX_MANIFEST_BYTES: usize = 16 * 1024;
 
 const MAGIC: &[u8; 4] = b"\0asm";
@@ -47,6 +49,7 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
     }
     let mut offset = 8;
     let mut manifest: Option<String> = None;
+    let mut legacy = false;
     while offset < bytes.len() {
         let id = bytes[offset];
         offset += 1;
@@ -65,6 +68,9 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
                 .ok_or_else(|| invalid(cursor, "custom section name"))?;
             let name = std::str::from_utf8(&bytes[cursor..name_end])
                 .map_err(|_| invalid(cursor, "custom section name is not UTF-8"))?;
+            if name == LEGACY_MANIFEST_SECTION {
+                legacy = true;
+            }
             if name == MANIFEST_SECTION {
                 if manifest.is_some() {
                     return Err(N2linkError::NotSupported(format!(
@@ -79,7 +85,7 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
                     )));
                 }
                 let text =
-                    std::str::from_utf8(payload).map_err(|_| invalid(name_end, "edgelink.manifest is not UTF-8"))?;
+                    std::str::from_utf8(payload).map_err(|_| invalid(name_end, "n2link.manifest is not UTF-8"))?;
                 manifest = Some(text.to_owned());
             }
         } else if id > 12 {
@@ -88,13 +94,19 @@ pub(crate) fn manifest_text(bytes: &[u8], max_module_bytes: usize) -> crate::Res
         offset = end;
     }
     manifest.ok_or_else(|| {
+        if legacy {
+            return N2linkError::NotSupported(format!(
+                "WASM package was built for EdgeLinkd (it has an {LEGACY_MANIFEST_SECTION} section); \
+                 rebuild it with n2link-wasm-guest (ABI n2link:node/v1)"
+            ));
+        }
         N2linkError::NotSupported(format!(
             "WASM package has no {MANIFEST_SECTION} custom section (use `n2linkd plugin pack`)"
         ))
     })
 }
 
-/// Append an `edgelink.manifest` custom section (what `n2linkd plugin pack` does).
+/// Append an `n2link.manifest` custom section (what `n2linkd plugin pack` does).
 pub fn append_manifest(module: &[u8], manifest: &str) -> crate::Result<Vec<u8>> {
     if manifest.len() > MAX_MANIFEST_BYTES {
         return Err(N2linkError::NotSupported(format!("manifest is more than {MAX_MANIFEST_BYTES} bytes")));
@@ -106,15 +118,19 @@ pub fn append_manifest(module: &[u8], manifest: &str) -> crate::Result<Vec<u8>> 
     if manifest_text(module, usize::MAX).is_ok() {
         return Err(N2linkError::NotSupported(format!("module already has an {MANIFEST_SECTION} section")));
     }
+    Ok(append_section(module, MANIFEST_SECTION, manifest))
+}
+
+fn append_section(module: &[u8], name: &str, text: &str) -> Vec<u8> {
     let mut payload = Vec::new();
-    write_u32(&mut payload, MANIFEST_SECTION.len() as u32);
-    payload.extend_from_slice(MANIFEST_SECTION.as_bytes());
-    payload.extend_from_slice(manifest.as_bytes());
+    write_u32(&mut payload, name.len() as u32);
+    payload.extend_from_slice(name.as_bytes());
+    payload.extend_from_slice(text.as_bytes());
     let mut out = module.to_vec();
     out.push(0);
     write_u32(&mut out, payload.len() as u32);
     out.extend_from_slice(&payload);
-    Ok(out)
+    out
 }
 
 fn write_u32(out: &mut Vec<u8>, mut value: u32) {
@@ -145,9 +161,19 @@ mod tests {
     }
 
     #[test]
+    fn an_edgelink_package_gets_a_rebuild_hint() {
+        let legacy = append_section(&module(), LEGACY_MANIFEST_SECTION, "id = 1");
+        let err = manifest_text(&legacy, 1 << 20).unwrap_err().to_string();
+        assert!(err.contains("built for EdgeLinkd"), "{err}");
+        // Re-packing adds an n2link.manifest, which is then the one read.
+        let repacked = append_manifest(&legacy, "id = 2").unwrap();
+        assert_eq!(manifest_text(&repacked, 1 << 20).unwrap(), "id = 2");
+    }
+
+    #[test]
     fn framing_errors_are_precise() {
         let err = manifest_text(&module(), 1 << 20).unwrap_err().to_string();
-        assert!(err.contains("no edgelink.manifest"), "{err}");
+        assert!(err.contains("no n2link.manifest"), "{err}");
         assert!(manifest_text(b"\0asm", 1 << 20).unwrap_err().to_string().contains("not a WebAssembly"));
         let mut truncated = append_manifest(&module(), "x").unwrap();
         truncated.pop();

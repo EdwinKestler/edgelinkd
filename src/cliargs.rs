@@ -112,7 +112,7 @@ pub enum PluginCommand {
     },
     /// Re-hash every active generation; exits non-zero on any problem
     Verify,
-    /// Embed a manifest into a module as the `edgelink.manifest` custom section
+    /// Embed a manifest into a module as the `n2link.manifest` custom section
     Pack {
         /// Compiled wasm32 module
         module: std::path::PathBuf,

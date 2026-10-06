@@ -1,5 +1,5 @@
 [plugin]
-id = "edgelink/uppercase"
+id = "n2link/uppercase"
 version = "1.0.0"
 abi = 1
 license = "Apache-2.0"

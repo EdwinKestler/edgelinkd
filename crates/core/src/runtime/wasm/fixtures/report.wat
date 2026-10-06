@@ -1,8 +1,8 @@
 ;; Logs a warning, sets a status, then fails the message.
 (module
-  (import "edgelink:node/v1" "log" (func $log (param i32 i32 i32) (result i32)))
-  (import "edgelink:node/v1" "status" (func $status (param i32 i32 i32 i32) (result i32)))
-  (import "edgelink:node/v1" "fail" (func $fail (param i32 i32) (result i32)))
+  (import "n2link:node/v1" "log" (func $log (param i32 i32 i32) (result i32)))
+  (import "n2link:node/v1" "status" (func $status (param i32 i32 i32 i32) (result i32)))
+  (import "n2link:node/v1" "fail" (func $fail (param i32 i32) (result i32)))
   (memory (export "memory") 1 1)
   (data (i32.const 0) "hello")
   (data (i32.const 16) "bad row")

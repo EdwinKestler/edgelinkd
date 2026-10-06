@@ -22,10 +22,10 @@ for example in uppercase csvparse tofsense; do
   # Host-side logic tests (the ABI exports compile only for wasm32).
   cargo test -q --manifest-path "$dir/Cargo.toml"
   (cd "$dir" && CARGO_TARGET_DIR="$ROOT/target/wasm-examples-build" cargo build -q --release --target "$TARGET")
-  wasm="$ROOT/target/wasm-examples-build/$TARGET/release/edgelink_plugin_${example}.wasm"
+  wasm="$ROOT/target/wasm-examples-build/$TARGET/release/n2link_plugin_${example}.wasm"
   cp "$wasm" "$OUT/$example.wasm"
-  if ! grep -aq "edgelink.manifest" "$OUT/$example.wasm"; then
-    echo "$example.wasm has no edgelink.manifest section" >&2
+  if ! grep -aq "n2link.manifest" "$OUT/$example.wasm"; then
+    echo "$example.wasm has no n2link.manifest section" >&2
     exit 1
   fi
   printf '%-10s %8d bytes  sha256 %s\n' "$example" "$(stat -c %s "$OUT/$example.wasm")" \

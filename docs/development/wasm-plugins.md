@@ -116,7 +116,7 @@ or, with the runtime running, `POST /wasm/plugins/stage` (`Content-Type: applica
 | `Ctx::emit(port, &msg)` | queue an output; returns `Err` before the host would fault (size, count) |
 | `Ctx::log(Level, text)`, `Ctx::status(Fill, Shape, text)` | logging (16 lines/message, 512 B each) and node status (128 B) |
 | `export_node!(Type)` | generates the ABI exports; nothing off `wasm32` |
-| `manifest!("../plugin.toml")` | embeds the manifest as the `edgelink.manifest` custom section |
+| `manifest!("../plugin.toml")` | embeds the manifest as the `n2link.manifest` custom section |
 | `ctx.record` (off `wasm32`) | outputs, logs and status recorded for unit tests |
 
 ## 3. Manifest schema 1 (`plugin.toml`)
@@ -210,7 +210,7 @@ Rules on output: every output is an object; a missing `_msgid` is copied from th
 
 ## 5. ABI v1 reference
 
-For authors not using the SDK (WAT, C, Zig, …). Import module `edgelink:node/v1`; any other import
+For authors not using the SDK (WAT, C, Zig, …). Import module `n2link:node/v1`; any other import
 fails `stage`.
 
 | Import | Signature | Effect and bounds |

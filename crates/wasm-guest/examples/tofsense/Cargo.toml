@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-plugin-tofsense"
+name = "n2link-plugin-tofsense"
 version = "1.0.0"
 edition = "2021"
 license = "Apache-2.0"

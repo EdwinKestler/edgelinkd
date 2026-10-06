@@ -40,7 +40,7 @@ compiled, disabled by configuration, or plugin not active.
 
 ## Security model
 
-- Guests may import only `edgelink:node/v1` `{emit, log, status, fail}`. No WASI, filesystem,
+- Guests may import only `n2link:node/v1` `{emit, log, status, fail}`. No WASI, filesystem,
   network, clock, randomness, environment, credentials, context or deploy access. Any other
   import, an imported memory, a start function, SIMD or threads fail `stage`.
 - Every message runs under fuel, a wall-clock deadline, a linear-memory cap and a global
@@ -123,7 +123,7 @@ digits of the digest and a reason code.
 ## Installing a plugin (offline CLI)
 
 A package is a `wasm32-unknown-unknown` module with its manifest (TOML, schema 1) embedded as
-the `edgelink.manifest` custom section. Plugins built with the Rust guest SDK
+the `n2link.manifest` custom section. Plugins built with the Rust guest SDK
 (`crates/wasm-guest`, `manifest!`) already contain it; for other modules embed it with `pack`.
 
 Stop n2linkd first: when plugins are enabled the runtime holds `<home>/plugins/.lock` and
@@ -193,7 +193,7 @@ devices, send with one plugin node and decode the reply with a second one.
 |---|---|
 | Node status | the plugin's own status; a red ring `plugin failed (3 faults within 60s)` after repeated faults |
 | `catch` node | message failures and faults, text prefixed `wasm <publisher>/<name>:` |
-| Log target `edgelink::wasm` | guest log lines (50/s per node, drops counted) and `el_close` problems |
+| Log target `n2link::wasm` | guest log lines (50/s per node, drops counted) and `el_close` problems |
 | `GET /status` → `wasm` | `state` (`disabled`, `idle`, `active`), `plugins`, `engineLive`, `permitsInUse`, `memoryReservedKib`, `memoryBudgetKib` |
 | `GET /history?category=plugin` | lifecycle events (needs `[history] enabled = true`) |
 | `GET /audit` | who staged, activated, rolled back, removed or discarded what |

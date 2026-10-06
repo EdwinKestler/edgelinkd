@@ -1,5 +1,5 @@
 [package]
-name = "edgelink-plugin-csvparse"
+name = "n2link-plugin-csvparse"
 version = "1.0.0"
 edition = "2021"
 license = "Apache-2.0"

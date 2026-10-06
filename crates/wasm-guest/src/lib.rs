@@ -1,4 +1,4 @@
-//! Guest SDK for EdgeLinkd WASM plugins (ABI `edgelink:node/v1`).
+//! Guest SDK for EdgeLinkd WASM plugins (ABI `n2link:node/v1`).
 //!
 //! A plugin is a `cdylib` built for `wasm32-unknown-unknown` that implements [`Node`] and calls
 //! [`export_node!`] and [`manifest!`]:
@@ -23,7 +23,7 @@
 //! ```
 //!
 //! `cargo build --release --target wasm32-unknown-unknown` then produces an installable package:
-//! the manifest is embedded as the `edgelink.manifest` custom section. Link with
+//! the manifest is embedded as the `n2link.manifest` custom section. Link with
 //! `-C link-arg=-zstack-size=65536` so the module starts within the default 512 KiB memory cap.
 //!
 //! On other targets the host imports do not exist: [`Ctx`] records what a plugin emits, logs and
@@ -48,7 +48,7 @@ pub const MAX_FAIL_BYTES: usize = 1024;
 
 #[cfg(target_arch = "wasm32")]
 mod imports {
-    #[link(wasm_import_module = "edgelink:node/v1")]
+    #[link(wasm_import_module = "n2link:node/v1")]
     unsafe extern "C" {
         pub fn emit(port: i32, ptr: i32, len: i32) -> i32;
         pub fn log(level: i32, ptr: i32, len: i32) -> i32;
@@ -412,12 +412,12 @@ macro_rules! export_node {
 }
 
 /// Embed a manifest file (path relative to the calling source file) as the
-/// `edgelink.manifest` custom section. Expands to nothing off `wasm32`.
+/// `n2link.manifest` custom section. Expands to nothing off `wasm32`.
 #[macro_export]
 macro_rules! manifest {
     ($path:literal) => {
         #[cfg(target_arch = "wasm32")]
-        #[link_section = "edgelink.manifest"]
+        #[link_section = "n2link.manifest"]
         #[used]
         static N2LINK_MANIFEST: [u8; include_bytes!($path).len()] = *include_bytes!($path);
     };

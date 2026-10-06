@@ -1,4 +1,4 @@
-//! Fuel-sliced Wasmi execution for ABI `edgelink:node/v1`.
+//! Fuel-sliced Wasmi execution for ABI `n2link:node/v1`.
 //!
 //! Only four host functions are linkable (`emit`, `log`, `status`, `fail`). Every call runs in
 //! fuel slices so the host can check the fuel budget, the wall-clock deadline and cancellation
@@ -16,7 +16,9 @@ use wasmi::{
 
 use crate::N2linkError;
 
-pub(crate) const ABI_MODULE: &str = "edgelink:node/v1";
+pub(crate) const ABI_MODULE: &str = "n2link:node/v1";
+/// The import module EdgeLinkd plugins used before the rename; such modules get a rebuild hint.
+const LEGACY_ABI_MODULE: &str = "edgelink:node/v1";
 use ValType::I32;
 
 /// Host functions a guest may import, with their exact signatures.
@@ -241,6 +243,13 @@ impl EngineCell {
         for import in module.imports() {
             let granted = ABI_IMPORTS.iter().find(|(name, ..)| import.module() == ABI_MODULE && import.name() == *name);
             let Some((name, params, results)) = granted else {
+                if import.module() == LEGACY_ABI_MODULE {
+                    return Err(N2linkError::NotSupported(format!(
+                        "import {}::{} is from EdgeLinkd; rebuild the plugin for ABI {ABI_MODULE}",
+                        import.module(),
+                        import.name()
+                    )));
+                }
                 return Err(N2linkError::NotSupported(format!(
                     "import {}::{} is not granted by ABI {ABI_MODULE}",
                     import.module(),
@@ -529,10 +538,18 @@ mod tests {
 
     #[test]
     fn unknown_abi_import_name_is_rejected() {
-        let wat = r#"(module (import "edgelink:node/v1" "clock" (func (result i64))) (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0))"#;
+        let wat = r#"(module (import "n2link:node/v1" "clock" (func (result i64))) (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0))"#;
         let cell = EngineCell::new().unwrap();
         let err = cell.compile(&wat::parse_str(wat).unwrap()).unwrap_err();
-        assert!(err.to_string().contains("edgelink:node/v1::clock"), "{err}");
+        assert!(err.to_string().contains("n2link:node/v1::clock"), "{err}");
+    }
+
+    #[test]
+    fn an_edgelink_import_gets_a_rebuild_hint() {
+        let wat = r#"(module (import "edgelink:node/v1" "emit" (func (param i32 i32 i32) (result i32))) (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0))"#;
+        let cell = EngineCell::new().unwrap();
+        let err = cell.compile(&wat::parse_str(wat).unwrap()).unwrap_err();
+        assert!(err.to_string().contains("from EdgeLinkd"), "{err}");
     }
 
     #[test]
@@ -569,10 +586,10 @@ mod tests {
 
     #[test]
     fn oversized_emit_and_bad_port_are_faults() {
-        let wat = r#"(module (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) (memory (export "memory") 2) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) (call $emit (i32.const 0) (i32.const 0) (i32.const 70000))))"#;
+        let wat = r#"(module (import "n2link:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) (memory (export "memory") 2) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) (call $emit (i32.const 0) (i32.const 0) (i32.const 70000))))"#;
         let err = instance(wat, 2).call(b"", &budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap_err();
         assert!(err.to_string().contains("exceeds 65536"), "{err}");
-        let wat = r#"(module (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) (call $emit (i32.const 3) (i32.const 0) (i32.const 1))))"#;
+        let wat = r#"(module (import "n2link:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) (memory (export "memory") 1) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) (func (export "el_on_input") (param i32 i32) (result i32) (call $emit (i32.const 3) (i32.const 0) (i32.const 1))))"#;
         let err = instance(wat, 1).call(b"", &budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap_err();
         assert!(err.to_string().contains("bad output port 3"), "{err}");
     }
@@ -611,13 +628,13 @@ mod tests {
         ));
         assert!(err.contains("export its linear memory"), "{err}");
         let err = compile_err(&format!(
-            r#"(import "edgelink:node/v1" "emit" (memory 1)) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) {on_input}"#
+            r#"(import "n2link:node/v1" "emit" (memory 1)) (func (export "el_abi_version") (result i32) i32.const 1) (func (export "el_alloc") (param i32) (result i32) i32.const 0) {on_input}"#
         ));
         assert!(err.contains("must be a function"), "{err}");
         let err = compile_err(&format!(
-            r#"(import "edgelink:node/v1" "emit" (func (param i32) (result i32))) {BASE} {on_input}"#
+            r#"(import "n2link:node/v1" "emit" (func (param i32) (result i32))) {BASE} {on_input}"#
         ));
-        assert!(err.contains("import edgelink:node/v1::emit has type"), "{err}");
+        assert!(err.contains("import n2link:node/v1::emit has type"), "{err}");
     }
 
     #[test]
@@ -640,7 +657,7 @@ mod tests {
             other => panic!("unexpected {other}"),
         }
         let wat = format!(
-            r#"(module (import "edgelink:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) {BASE} (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0) (func (export "el_init") (param i32 i32) (result i32) (call $emit (i32.const 0) (i32.const 0) (i32.const 1))) (func (export "el_close") (loop $l (br $l))))"#
+            r#"(module (import "n2link:node/v1" "emit" (func $emit (param i32 i32 i32) (result i32))) {BASE} (func (export "el_on_input") (param i32 i32) (result i32) i32.const 0) (func (export "el_init") (param i32 i32) (result i32) (call $emit (i32.const 0) (i32.const 0) (i32.const 1))) (func (export "el_close") (loop $l (br $l))))"#
         );
         let mut guest = instance(&wat, 1);
         let err = guest.init(b"{}", &budget(20_000_000, 1000), &AtomicBool::new(false)).unwrap_err();
