@@ -37,6 +37,8 @@ for var in $(env | grep -o -E '^(N2LINK|EDGELINK)_[A-Z_]+' | sort -u); do
 done
 
 mkdir -p "$OUT"
+# Absolute, because some steps run commands from inside temporary directories.
+OUT="$(cd "$OUT" && pwd)"
 RESULTS="$OUT/results.tsv"
 printf 'step\tcheck\tresult\tdetail\n' > "$RESULTS"
 SERVER_PID=""
@@ -306,10 +308,10 @@ if has_step tests; then
   if [ -n "${N2LINK_EVIDENCE_PYTEST:-}" ]; then
     run_logged "$D" pytest "$N2LINK_EVIDENCE_PYTEST" -m pytest ./tests -q -p no:cacheprovider
     tail -1 "$D/pytest.log" > "$D/pytest.summary"
-    if grep -q -E '^FAILED' "$D/pytest.log" && grep -E '^FAILED' "$D/pytest.log" | grep -v -q 'test_splits_overlap_zero_window'; then
-      record tests pytest FAIL "failures beyond the known ai-split input bug, see pytest.log"
+    if [ "$(cat "$D/pytest.exit")" -eq 0 ]; then
+      record tests pytest PASS "$(cat "$D/pytest.summary")"
     else
-      record tests pytest PASS "$(cat "$D/pytest.summary") (known: test_splits_overlap_zero_window)"
+      record tests pytest FAIL "$(cat "$D/pytest.summary"), see pytest.log"
     fi
   else
     record tests pytest SKIP "set N2LINK_EVIDENCE_PYTEST=/path/to/python to include it"
