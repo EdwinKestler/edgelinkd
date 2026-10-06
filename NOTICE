@@ -1,0 +1,12 @@
+n2link
+Copyright 2026 the n2link contributors
+
+n2link is derived from EdgeLinkd (https://github.com/oldrev/edgelinkd),
+Copyright (C) 2023-TODAY Li Wei and contributors, licensed under the Apache License,
+Version 2.0. The original license is in LICENSE. Files have been modified from the
+original; the git history records the changes.
+
+n2link is not affiliated with or endorsed by the EdgeLinkd authors.
+
+This product bundles the Node-RED editor and nodes (3rd-party/node-red),
+Copyright OpenJS Foundation and other contributors, Apache License 2.0.
