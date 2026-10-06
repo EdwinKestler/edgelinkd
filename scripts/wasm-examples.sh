@@ -21,7 +21,11 @@ for example in uppercase csvparse tofsense; do
   dir="$ROOT/crates/wasm-guest/examples/$example"
   # Host-side logic tests (the ABI exports compile only for wasm32).
   cargo test -q --manifest-path "$dir/Cargo.toml"
-  (cd "$dir" && CARGO_TARGET_DIR="$ROOT/target/wasm-examples-build" cargo build -q --release --target "$TARGET")
+  # A RUSTFLAGS variable (CI sets one) replaces the example's .cargo/config.toml rustflags,
+  # so the 64 KiB guest stack is passed here as well; without it the module needs 17 pages.
+  (cd "$dir" && CARGO_TARGET_DIR="$ROOT/target/wasm-examples-build" \
+    RUSTFLAGS="${RUSTFLAGS:-} -C link-arg=-zstack-size=65536" \
+    cargo build -q --release --target "$TARGET")
   wasm="$ROOT/target/wasm-examples-build/$TARGET/release/n2link_plugin_${example}.wasm"
   cp "$wasm" "$OUT/$example.wasm"
   if ! grep -aq "n2link.manifest" "$OUT/$example.wasm"; then
