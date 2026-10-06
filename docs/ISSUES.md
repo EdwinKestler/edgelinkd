@@ -86,7 +86,9 @@ See the [operator manual](operations/wasm-plugins.md) for setup and its troubles
   `output 1` with payload `any`. Every node with more than one output, or a configurable number of
   outputs, names its ports, and a registry test keeps it that way.
 - Live provider acceptance (OpenAI, Anthropic, xAI, Snowflake Cortex) is not part of the
-  automated tests; the tests use a deterministic local provider.
+  automated tests; the tests use a deterministic local provider. This includes `ai-agent`, which
+  is in the default build but has not had its live OpenAI and Anthropic run
+  (`adoption/phase6/LIVE.md`).
 
 ## Test suite
 

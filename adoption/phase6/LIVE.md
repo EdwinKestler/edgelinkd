@@ -28,3 +28,4 @@ EDGELINK_AI_LIVE=1 cargo test -p edgelink-core --features nodes_ai_agent --lib a
 ```
 
 Requires a live OpenAI **and** Anthropic run before considering `nodes_ai_agent` for app default (not in 0.3.x).
+Update 2026-10-06: the owner moved `nodes_ai_agent` into the default build before that run; `ai-agent` stays experimental until it passes.

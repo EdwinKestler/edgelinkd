@@ -9,7 +9,7 @@ Depends on: phases 0–5 (`43b3dbf`). Version remains `0.3.0`.
 | `nodes_ai` | `ai-provider`, `ai-chat` | on | Unchanged contract plus Responses `"store": false` |
 | `nodes_ai_text` | `ai-split`, `ai-structured` | on | Local, no `reqwest` |
 | `nodes_ai_embeddings` | `ai-embed` | on in binary | README experimental until live OpenAI and xAI |
-| `nodes_ai_agent` | `ai-agent` | **off** | `--features nodes_ai_agent`; two concurrent loops |
+| `nodes_ai_agent` | `ai-agent` | **off** (on since 2026-10-06, see below) | `--features nodes_ai_agent`; two concurrent loops |
 
 ## Provider matrix
 
@@ -45,3 +45,14 @@ Live procedures: `adoption/phase6/LIVE.md`. Not run in this close-out.
 
 This bundle is the Phase 6 commit. Version remains `0.3.0`. No tag or release unless
 separately approved.
+
+## Update 2026-10-06: `nodes_ai_agent` in the default build
+
+At the owner's request `nodes_ai_agent` joined the app's default features (and therefore `full`).
+The precondition in `LIVE.md` (a live OpenAI and Anthropic agent run) has not been met, so the
+README keeps `ai-agent` experimental. Nothing else changes: two concurrent loops per process,
+the memory-context requirement, and deploy-time validation. `--no-default-features` (plus the
+features you still need) builds without it. `nodes_ai_agent` now also enables `nodes_ai_text`
+(the agent uses its JSON Schema subset, `CompiledSchema`); before, an agent-only build
+did not compile. CI checks `core,nodes_ai_agent`.
+

@@ -76,6 +76,7 @@ jobs:
           cargo check -p edgelink-core --no-default-features --features core,js
           cargo check -p edgelink-core --no-default-features --features core,jsonata
           cargo check -p edgelink-core --no-default-features --features core,nodes_ai_text
+          cargo check -p edgelink-core --no-default-features --features core,nodes_ai_agent
           cargo check -p edgelink-core --features nodes_wasm
           if cargo tree -p edgelink-app -e normal -i wasmi >/dev/null 2>&1; then echo 'wasmi must not be in the default graph' >&2; exit 1; fi
 

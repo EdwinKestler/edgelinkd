@@ -408,7 +408,7 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
             - [x] `ai-split` Unicode character windows / separator pack (`nodes_ai_text`)
             - [x] `ai-structured` local JSON Schema subset (`nodes_ai_text`)
             - [ ] `ai-embed` OpenAI/xAI embeddings (`nodes_ai_embeddings`; experimental until live OpenAI and xAI runs)
-            - [ ] `ai-agent` bounded tool loop (`--features nodes_ai_agent`; opt-in, two concurrent loops)
+            - [ ] `ai-agent` bounded tool loop (`nodes_ai_agent`, in the default build; two concurrent loops; experimental until live OpenAI and Anthropic runs)
         - [x] WASM plugins (`nodes_wasm`, off by default; experimental): Wasmi sandbox, `wasm-<publisher>-<name>` types, `[runtime.wasm] enabled = false` until set; atomic install/rollback (CLI and admin API), editor nodes, Rust guest SDK (`crates/wasm-guest`). See `docs/operations/wasm-plugins.md`.
         - [x] PostgreSQL (`nodes_postgres`, included by default; disable with `--no-default-features`): `postgres-config` + `postgres` query. TLS and bound parameters are rejected.
         - [x] Redis (`nodes_redis`, included by default; disable with `--no-default-features`): `redis-config` + PING/GET/SET/DEL. TLS is rejected.
