@@ -48,3 +48,6 @@ __pycache__
 # Client-only page toolchain (Vite). The lockfile stays.
 /crates/web/client/node_modules
 /crates/web/client/dist
+.env
+*.env
+!.env.example
