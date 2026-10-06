@@ -19,6 +19,8 @@ enum JsonAction {
     Parse,
 }
 
+crate::node_hints!("json", input = "string|object|array|buffer", outs = ["converted" => "string|object|array"]);
+
 #[derive(Debug)]
 #[flow_node("json", red_name = "JSON")]
 struct JsonNode {

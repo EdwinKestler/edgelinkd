@@ -112,7 +112,8 @@ registry and the graph are put back (409 `activation_failed`). Errors carry a st
 
 After activation, reload the editor: plugin types then appear in the palette (generated from
 the manifest, every plugin string escaped), in `/nodes` as module `wasm/<publisher>/<name>`,
-and in the Copilot catalog (type, ports, output labels and config field names and kinds; never
+and in the Copilot catalog (type, named output ports with advisory payload types from
+`output_labels` / `output_payloads` / `input_payload`, and config field names and kinds; never
 the description or help). `/status` gains a `wasm` section (`state`, `plugins`, `engineLive`,
 `permitsInUse`, `memoryReservedKib`). History (category `plugin`) and the audit log record
 `plugin.staged`, `plugin.rejected`, `plugin.activated`, `plugin.rolled_back`, `plugin.removed`,

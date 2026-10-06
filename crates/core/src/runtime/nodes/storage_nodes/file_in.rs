@@ -68,7 +68,7 @@ fn default_send_error() -> bool {
     true
 }
 
-crate::node_hints!("file in", caps = ["filesystem"]);
+crate::node_hints!("file in", caps = ["filesystem"], outs = ["contents" => "string|buffer"]);
 
 #[derive(Debug)]
 #[flow_node("file in", red_name = "file")]

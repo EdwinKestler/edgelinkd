@@ -16,7 +16,7 @@ use edgelink_macro::*;
 
 const MAX_INPUT_BYTES: usize = 1_048_576;
 
-crate::node_hints!("ai-split", caps = ["ai"]);
+crate::node_hints!("ai-split", caps = ["ai"], input = "string", outs = ["chunk" => "string"]);
 
 #[flow_node("ai-split", red_name = "ai-split", inputs = 1, outputs = 1)]
 struct AiSplitNode {

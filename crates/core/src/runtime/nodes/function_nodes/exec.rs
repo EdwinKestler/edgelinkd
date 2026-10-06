@@ -165,7 +165,7 @@ impl Default for ExecNodeConfig {
     }
 }
 
-crate::node_hints!("exec", caps = ["process"]);
+crate::node_hints!("exec", caps = ["process"], input = "any", outs = ["stdout" => "string|buffer", "stderr" => "string|buffer", "return code" => "object|number"]);
 
 #[derive(Debug)]
 #[flow_node("exec", red_name = "exec", inputs = 1, outputs = 3)]

@@ -403,6 +403,7 @@ Refer [REDNODES-SPECS-DIFF.md](tests/REDNODES-SPECS-DIFF.md) to view the details
             - [x] `ai-provider` config: OpenAI, xAI (Grok), Anthropic (Claude), Snowflake Cortex
             - [x] `ai-chat` one-shot and `msg.messages` conversations. Keys stay in `flows_cred.json`
             - [x] Flow Copilot add-and-connect draft/validate/apply; review and Deploy stay manual
+            - [x] Flow Copilot catalog names output ports and advisory payload types (metadata schema 2)
             - [ ] Flow Copilot update/delete/install tools
             - [x] `ai-split` Unicode character windows / separator pack (`nodes_ai_text`)
             - [x] `ai-structured` local JSON Schema subset (`nodes_ai_text`)

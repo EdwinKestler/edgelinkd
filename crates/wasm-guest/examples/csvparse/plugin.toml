@@ -13,6 +13,8 @@ icon = "parser-csv.svg"
 inputs = 1
 outputs = 1
 output_labels = ["rows"]
+input_payload = "string"
+output_payloads = ["array"]
 help = """Parses msg.payload (a CSV string) into msg.payload rows.
 With 'First row is a header' each row is an object keyed by the header; otherwise each row is an array of strings.
 Fields may be quoted with double quotes; a doubled quote inside a quoted field is a literal quote."""

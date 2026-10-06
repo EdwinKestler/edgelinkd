@@ -81,8 +81,10 @@ See the [operator manual](operations/wasm-plugins.md) for setup and its troubles
 ## Flow Copilot
 
 - Drafts can add and connect nodes only; update, delete and install tools are not implemented.
-- Node metadata has no named ports or payload types yet, so the catalog describes ports by
-  number only.
+- Port payload types are advisory and describe a node's default configuration; they are never
+  enforced. Nodes that declare no ports (most single-output nodes) appear in the catalog as
+  `output 1` with payload `any`. Every node with more than one output, or a configurable number of
+  outputs, names its ports, and a registry test keeps it that way.
 - Live provider acceptance (OpenAI, Anthropic, xAI, Snowflake Cortex) is not part of the
   automated tests; the tests use a deterministic local provider.
 

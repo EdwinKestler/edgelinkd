@@ -13,6 +13,8 @@ use edgelink_macro::*;
 #[cfg(test)]
 mod tests;
 
+crate::node_hints!("switch", outs = ["rule {n}" => "any"]);
+
 #[flow_node("switch", red_name = "switch", inputs = 1, outputs = 1, dynamic_outputs = true)]
 #[derive(Debug)]
 struct SwitchNode {

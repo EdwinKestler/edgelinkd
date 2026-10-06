@@ -281,6 +281,15 @@ fn catalog_json(registry: &dyn Registry, flows: &[Value]) -> Value {
     for meta in registry.all().values() {
         let ports = meta.ports();
         let hints = registry.hints(meta.type_());
+        let declared: Vec<(&str, &str)> =
+            hints.map(|h| h.outputs.iter().map(|p| (p.name, p.payload)).collect()).unwrap_or_default();
+        let (input_payload, output_ports) = edgelink_core::runtime::nodes::catalog_ports_json(
+            ports.inputs,
+            ports.outputs,
+            ports.dynamic_outputs,
+            hints.map(|h| h.input),
+            &declared,
+        );
         nodes.push(json!({
             "type": meta.type_(),
             "kind": match meta.kind() {
@@ -292,6 +301,8 @@ fn catalog_json(registry: &dyn Registry, flows: &[Value]) -> Value {
             "inputs": ports.inputs,
             "outputs": ports.outputs,
             "dynamicOutputs": ports.dynamic_outputs,
+            "inputPayload": input_payload,
+            "outputPorts": output_ports,
             "configRefs": hints.map(|h| h.config_refs.iter().map(|(p, t)| json!({"property": p, "type": t})).collect::<Vec<_>>()).unwrap_or_default(),
             "secretFields": hints.map(|h| h.secret_fields).unwrap_or(&[]),
             "capabilities": hints.map(|h| h.capabilities).unwrap_or(&[]),
@@ -664,5 +675,45 @@ mod tests {
         assert_eq!(inject["inputs"], 0);
         assert_eq!(inject["kind"], "flow");
         assert_eq!(catalog["workspaceConfigNodes"][0]["id"], "0000000000000002");
+    }
+
+    #[test]
+    fn catalog_names_ports_and_payload_types() {
+        let registry = RegistryBuilder::default().build().unwrap();
+        let catalog = catalog_json(registry.as_ref(), &[]);
+        let node =
+            |name: &str| catalog["nodes"].as_array().unwrap().iter().find(|n| n["type"] == name).unwrap().clone();
+
+        let exec = node("exec");
+        assert_eq!(exec["inputPayload"], "any");
+        assert_eq!(
+            exec["outputPorts"],
+            json!([
+                {"index": 0, "name": "stdout", "payload": "string|buffer"},
+                {"index": 1, "name": "stderr", "payload": "string|buffer"},
+                {"index": 2, "name": "return code", "payload": "object|number"},
+            ])
+        );
+        assert_eq!(node("switch")["outputPorts"], json!([{"name": "rule {n}", "payload": "any", "repeats": true}]));
+        assert_eq!(node("function")["dynamicOutputs"], true);
+
+        let inject = node("inject");
+        assert_eq!(inject["inputPayload"], Value::Null);
+        assert_eq!(inject["outputPorts"], json!([{"index": 0, "name": "output 1", "payload": "any"}]));
+        assert_eq!(node("debug")["outputPorts"], json!([]));
+        assert_eq!(node("mqtt-broker")["outputPorts"], json!([]));
+
+        for entry in catalog["nodes"].as_array().unwrap() {
+            let ports = entry["outputPorts"].as_array().unwrap();
+            if entry["dynamicOutputs"] == true {
+                assert_eq!(ports.len(), 1, "{}", entry["type"]);
+            } else {
+                assert_eq!(ports.len() as u64, entry["outputs"].as_u64().unwrap(), "{}", entry["type"]);
+            }
+            for port in ports {
+                let payload = port["payload"].as_str().unwrap();
+                assert!(edgelink_core::runtime::nodes::valid_payload_type(payload), "{}: {payload}", entry["type"]);
+            }
+        }
     }
 }

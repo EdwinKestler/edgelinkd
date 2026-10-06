@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn every_registered_node_has_valid_metadata() {
         let registry = RegistryBuilder::default().build().unwrap();
-        assert_eq!(NODE_METADATA_VERSION, 1);
+        assert_eq!(NODE_METADATA_VERSION, 2);
         assert!(!registry.all().is_empty());
         for (name, meta) in registry.all() {
             let ports = meta.ports();
@@ -153,6 +153,71 @@ mod tests {
         let hints = registry.hints("mqtt in").unwrap();
         assert_eq!(hints.config_refs, &[("broker", "mqtt-broker")]);
         assert!(registry.hints("mqtt-broker").unwrap().secret_fields.contains(&"password"));
+    }
+
+    /// Declared ports must match the registered cardinality, and every node whose output index is
+    /// ambiguous (more than one output, or dynamic outputs) must name its ports.
+    #[test]
+    fn port_hints_match_registered_ports() {
+        use crate::runtime::nodes::{valid_payload_type, valid_port_name};
+        let registry = RegistryBuilder::default().build().unwrap();
+        let mut seen = std::collections::HashSet::new();
+        for hint in inventory::iter::<NodeHints> {
+            assert!(seen.insert(hint.type_), "{} submits node_hints! twice; the registry keeps one", hint.type_);
+            assert!(valid_payload_type(hint.input), "{} input payload '{}'", hint.type_, hint.input);
+            for port in hint.outputs {
+                assert!(valid_port_name(port.name), "{} port name '{}'", hint.type_, port.name);
+                assert!(
+                    valid_payload_type(port.payload),
+                    "{} port '{}' payload '{}'",
+                    hint.type_,
+                    port.name,
+                    port.payload
+                );
+            }
+            for (i, port) in hint.outputs.iter().enumerate() {
+                assert!(
+                    !hint.outputs[..i].iter().any(|p| p.name == port.name),
+                    "{} duplicate port '{}'",
+                    hint.type_,
+                    port.name
+                );
+            }
+            let Some(meta) = registry.get(hint.type_) else { continue };
+            let ports = meta.ports();
+            if ports.inputs == 0 {
+                assert_eq!(hint.input, "any", "{} declares an input payload without an input", hint.type_);
+            }
+            if hint.outputs.is_empty() {
+                continue;
+            }
+            if ports.dynamic_outputs {
+                assert_eq!(hint.outputs.len(), 1, "{} dynamic outputs declare one repeating port", hint.type_);
+                assert!(hint.outputs[0].name.contains("{n}"), "{} repeating port name needs {{n}}", hint.type_);
+            } else {
+                assert_eq!(hint.outputs.len(), usize::from(ports.outputs), "{} port count", hint.type_);
+            }
+        }
+        for (name, meta) in registry.all() {
+            let ports = meta.ports();
+            if matches!(meta.kind(), NodeKind::Flow) && (ports.outputs > 1 || ports.dynamic_outputs) {
+                let named = registry.hints(name).is_some_and(|h| !h.outputs.is_empty());
+                assert!(named, "{name} has an ambiguous output index and must name its ports");
+            }
+        }
+        let exec = registry.hints("exec").unwrap();
+        assert_eq!(exec.outputs.iter().map(|p| p.name).collect::<Vec<_>>(), ["stdout", "stderr", "return code"]);
+    }
+
+    #[test]
+    fn payload_type_vocabulary() {
+        use crate::runtime::nodes::valid_payload_type;
+        for ok in ["any", "string", "string|buffer", "object|array|null"] {
+            assert!(valid_payload_type(ok), "{ok}");
+        }
+        for bad in ["", "str", "string|", "string|string", "any|string", "String", "string | buffer"] {
+            assert!(!valid_payload_type(bad), "{bad}");
+        }
     }
 
     #[test]

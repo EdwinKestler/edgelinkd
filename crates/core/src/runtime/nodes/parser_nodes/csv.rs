@@ -191,6 +191,8 @@ struct CsvParseState {
     line_count: usize,
 }
 
+crate::node_hints!("csv", input = "string|object|array", outs = ["converted" => "string|object|array"]);
+
 #[derive(Debug)]
 #[flow_node("csv", red_name = "CSV")]
 struct CsvNode {

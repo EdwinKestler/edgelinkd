@@ -156,7 +156,9 @@ fails `stage` with the remedy.
 | `icon` | a Node-RED icon file name such as `function.svg` |
 | `inputs` | `1` (ABI 1 has no trigger for input-less nodes) |
 | `outputs` | 0–16 |
-| `output_labels` | empty or one label per output |
+| `output_labels` | empty or one label per output, ≤ 64 bytes each; the editor and Flow Copilot use them as port names |
+| `output_payloads` | empty or one advisory `msg.payload` type per output for Flow Copilot: `any`, `string`, `number`, `boolean`, `object`, `array`, `buffer`, `null`, or several joined with `\|` (`"string\|buffer"`); empty means `any` |
+| `input_payload` | optional advisory payload type the node expects, same vocabulary; absent means `any` |
 | `help` | ≤ 4 KiB, shown escaped as plain text in the editor help |
 
 ### `[[node.config]]` (≤ 32)

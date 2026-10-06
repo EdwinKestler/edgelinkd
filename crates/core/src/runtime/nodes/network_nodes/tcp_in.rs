@@ -32,6 +32,8 @@ enum DataMode {
     Single,
 }
 
+crate::node_hints!("tcp in", outs = ["data" => "buffer|string"]);
+
 #[derive(Debug)]
 #[flow_node("tcp in", red_name = "tcpin", inputs = 0, outputs = 1)]
 struct TcpInNode {

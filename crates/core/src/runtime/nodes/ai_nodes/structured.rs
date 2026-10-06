@@ -15,7 +15,7 @@ use edgelink_macro::*;
 
 use super::schema::CompiledSchema;
 
-crate::node_hints!("ai-structured", caps = ["ai"]);
+crate::node_hints!("ai-structured", caps = ["ai"], input = "string|object", outs = ["parsed" => "object"]);
 
 #[flow_node("ai-structured", red_name = "ai-structured", inputs = 1, outputs = 1)]
 struct AiStructuredNode {

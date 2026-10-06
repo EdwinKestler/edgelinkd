@@ -10,6 +10,8 @@ use edgelink_macro::*;
 #[cfg(feature = "nodes_yaml")]
 use serde_yaml_ng as yaml;
 
+crate::node_hints!("yaml", input = "string|object|array", outs = ["converted" => "string|object|array"]);
+
 /// YAML Parser Node
 ///
 /// This node is compatible with Node-RED's YAML parser node. It can:

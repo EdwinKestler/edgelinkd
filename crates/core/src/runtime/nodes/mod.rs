@@ -131,7 +131,63 @@ pub enum NodeFactory {
 }
 
 /// Copilot/schema version for [`MetaNode`] ports and [`NodeHints`].
-pub const NODE_METADATA_VERSION: u32 = 1;
+/// Version 2 added named output ports and advisory payload types.
+pub const NODE_METADATA_VERSION: u32 = 2;
+
+/// Advisory `msg.payload` types used in port metadata. A port may join several with `|`
+/// (`"string|buffer"`). `buffer` is a Node-RED Buffer, which EdgeLinkd's message JSON carries as an
+/// array of byte values. Payload types are never enforced: Node-RED messages stay dynamic.
+pub const PAYLOAD_TYPES: &[&str] = &["any", "string", "number", "boolean", "object", "array", "buffer", "null"];
+
+/// Whether `value` is one or more [`PAYLOAD_TYPES`] joined with `|`, without repeats.
+pub fn valid_payload_type(value: &str) -> bool {
+    let parts: Vec<&str> = value.split('|').collect();
+    parts.iter().all(|part| PAYLOAD_TYPES.contains(part))
+        && parts.iter().enumerate().all(|(i, part)| !parts[..i].contains(part))
+        && (parts.len() == 1 || !parts.contains(&"any"))
+}
+
+/// Whether `value` is a usable port name: 1–64 bytes, printable, no surrounding spaces.
+pub fn valid_port_name(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 64 && value.trim() == value && value.chars().all(|c| !c.is_control())
+}
+
+/// One named output port. For a node with `dynamic_outputs` the single declared port describes
+/// every output, and `{n}` in its name stands for the 1-based output number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PortHint {
+    pub name: &'static str,
+    pub payload: &'static str,
+}
+
+/// Catalog port metadata (schema 2): the advisory input payload type (`null` without an input) and
+/// one entry per output port. A dynamic-output node gets a single repeating entry whose `{n}`
+/// stands for the 1-based output number. Undeclared ports, and declared ports with an empty name,
+/// fall back to `output {n}` (and `any`).
+pub fn catalog_ports_json(
+    inputs: u8,
+    outputs: u8,
+    dynamic: bool,
+    input: Option<&str>,
+    declared: &[(&str, &str)],
+) -> (serde_json::Value, serde_json::Value) {
+    let input_payload = if inputs == 0 { serde_json::Value::Null } else { serde_json::json!(input.unwrap_or("any")) };
+    let output_ports = if dynamic {
+        let (name, payload) = declared.first().copied().unwrap_or(("output {n}", "any"));
+        serde_json::json!([{ "name": name, "payload": payload, "repeats": true }])
+    } else {
+        serde_json::Value::Array(
+            (0..usize::from(outputs))
+                .map(|index| {
+                    let (name, payload) = declared.get(index).copied().unwrap_or(("", "any"));
+                    let name = if name.is_empty() { format!("output {}", index + 1) } else { name.to_owned() };
+                    serde_json::json!({ "index": index, "name": name, "payload": payload })
+                })
+                .collect(),
+        )
+    };
+    (input_payload, output_ports)
+}
 
 /// Structural ports for Flow Copilot. `dynamic_outputs` allows 0..=15 like switch.
 #[derive(Debug, Clone, Copy)]
@@ -142,26 +198,41 @@ pub struct NodePorts {
 }
 
 /// Optional hints submitted beside a node. Secret **names** only.
+///
+/// `input` is the advisory payload type the node expects (`"any"` when undeclared). `outputs` names
+/// every output port in order; empty means undeclared, and the catalog then falls back to
+/// `output {n}` / `any`. See [`PortHint`] for nodes with `dynamic_outputs`.
 #[derive(Debug, Clone, Copy)]
 pub struct NodeHints {
     pub type_: &'static str,
     pub config_refs: &'static [(&'static str, &'static str)],
     pub secret_fields: &'static [&'static str],
     pub capabilities: &'static [&'static str],
+    pub input: &'static str,
+    pub outputs: &'static [PortHint],
 }
 
 inventory::collect!(NodeHints);
 
 /// Submit Copilot hints next to a node registration. Secret names only, never values.
+///
+/// ```ignore
+/// node_hints!("exec", caps = ["process"], input = "any",
+///     outs = ["stdout" => "string|buffer", "stderr" => "string|buffer", "return code" => "object|number"]);
+/// ```
 #[macro_export]
 macro_rules! node_hints {
-    ($type:literal $(, refs = [$($prop:literal => $refty:literal),* $(,)?])? $(, secrets = [$($sec:literal),* $(,)?])? $(, caps = [$($cap:literal),* $(,)?])?) => {
+    (@input) => { "any" };
+    (@input $input:literal) => { $input };
+    ($type:literal $(, refs = [$($prop:literal => $refty:literal),* $(,)?])? $(, secrets = [$($sec:literal),* $(,)?])? $(, caps = [$($cap:literal),* $(,)?])? $(, input = $input:literal)? $(, outs = [$($oname:literal => $opay:literal),* $(,)?])?) => {
         inventory::submit! {
             $crate::runtime::nodes::NodeHints {
                 type_: $type,
                 config_refs: &[$($(($prop, $refty)),*)?],
                 secret_fields: &[$($($sec),*)?],
                 capabilities: &[$($($cap),*)?],
+                input: $crate::node_hints!(@input $($input)?),
+                outputs: &[$($($crate::runtime::nodes::PortHint { name: $oname, payload: $opay }),*)?],
             }
         }
     };

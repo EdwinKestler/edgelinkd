@@ -38,6 +38,11 @@ Advisory: capabilities, workspace config-node list (`id`/`type`/`name` only). Dy
 Default 1-in/1-out remains for ordinary transform nodes. Named ports and advisory payload
 types are not yet populated. Switch uses `dynamic_outputs`.
 
+Update (after Phase 7): metadata schema 2 populates them. `node_hints!` takes `input = "…"` and
+`outs = ["name" => "payload", …]`; the catalog gains `inputPayload` and `outputPorts`; WASM
+manifests gain `output_payloads` and `input_payload`. `function` now uses `dynamic_outputs`.
+Payload types stay advisory.
+
 ## Git
 
 This bundle is the Phase 5 commit. Version remains `0.3.0`. No tag or release unless

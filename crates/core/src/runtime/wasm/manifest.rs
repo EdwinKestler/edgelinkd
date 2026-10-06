@@ -50,6 +50,13 @@ pub struct NodeSpec {
     pub outputs: u8,
     #[serde(default)]
     pub output_labels: Vec<String>,
+    /// Advisory `msg.payload` type per output for Flow Copilot (see
+    /// [`crate::runtime::nodes::PAYLOAD_TYPES`]); empty means `any` for every output.
+    #[serde(default)]
+    pub output_payloads: Vec<String>,
+    /// Advisory `msg.payload` type the node expects; absent means `any`.
+    #[serde(default)]
+    pub input_payload: Option<String>,
     #[serde(default)]
     pub help: String,
     /// Plugin configuration fields, validated per node and passed to `el_init` as one object.
@@ -310,6 +317,24 @@ impl Manifest {
         for label in &n.output_labels {
             plain_text("node.output_labels", label, 64)?;
         }
+        if !n.output_payloads.is_empty() && n.output_payloads.len() != n.outputs as usize {
+            return Err(bad(
+                "node.output_payloads",
+                format!("has {} types for {} outputs", n.output_payloads.len(), n.outputs),
+            ));
+        }
+        let payload_rule =
+            "must be one or more of any, string, number, boolean, object, array, buffer, null joined with '|'";
+        for payload in &n.output_payloads {
+            if !crate::runtime::nodes::valid_payload_type(payload) {
+                return Err(bad("node.output_payloads", format!("'{payload}' {payload_rule}")));
+            }
+        }
+        if let Some(payload) = &n.input_payload
+            && !crate::runtime::nodes::valid_payload_type(payload)
+        {
+            return Err(bad("node.input_payload", format!("'{payload}' {payload_rule}")));
+        }
         plain_text("node.help", &n.help, 4096)?;
         if n.config.len() > MAX_CONFIG_FIELDS {
             return Err(bad("node.config", format!("at most {MAX_CONFIG_FIELDS} fields")));
@@ -363,6 +388,8 @@ color = "#C0DEED"
 icon = "function.svg"
 inputs = 1
 outputs = 1
+output_payloads = ["string"]
+input_payload = "string|buffer"
 output_labels = ["out"]
 
 [[selftest]]
@@ -391,6 +418,8 @@ pub(crate) fn synthetic(id: &str, version: &semver::Version, outputs: u8, config
             inputs: 1,
             outputs,
             output_labels: Vec::new(),
+            output_payloads: Vec::new(),
+            input_payload: None,
             help: String::new(),
             config,
         },
@@ -409,6 +438,8 @@ mod tests {
         assert_eq!(m.version(), semver::Version::new(1, 2, 0));
         assert_eq!(m.limits.memory_pages, Some(4));
         assert_eq!(m.selftest.len(), 1);
+        assert_eq!(m.node.output_payloads, ["string"]);
+        assert_eq!(m.node.input_payload.as_deref(), Some("string|buffer"));
     }
 
     #[test]
@@ -472,6 +503,9 @@ default = "safe"
             ("icon = \"function.svg\"", "icon = \"../x.svg\"", "node.icon"),
             ("inputs = 1", "inputs = 0", "node.inputs"),
             ("output_labels = [\"out\"]", "output_labels = [\"a\", \"b\"]", "node.output_labels"),
+            ("output_payloads = [\"string\"]", "output_payloads = [\"string\", \"any\"]", "node.output_payloads"),
+            ("output_payloads = [\"string\"]", "output_payloads = [\"text\"]", "node.output_payloads"),
+            ("input_payload = \"string|buffer\"", "input_payload = \"any|string\"", "node.input_payload"),
             ("expect_outputs = [1]", "expect_outputs = [1, 0]", "expect_outputs"),
             ("memory_pages = 4", "memory_page = 4", "unknown field"),
             (

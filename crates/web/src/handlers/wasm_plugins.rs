@@ -641,6 +641,22 @@ pub fn catalog_entries(plugins: &ActivePlugins) -> Vec<Value> {
         .into_iter()
         .map(|view| {
             let node = &view.manifest.node;
+            // The manifest checks both lists are empty or one entry per output.
+            let declared: Vec<(&str, &str)> = (0..usize::from(node.outputs))
+                .map(|i| {
+                    (
+                        node.output_labels.get(i).map_or("", String::as_str),
+                        node.output_payloads.get(i).map_or("any", String::as_str),
+                    )
+                })
+                .collect();
+            let (input_payload, output_ports) = edgelink_core::runtime::nodes::catalog_ports_json(
+                node.inputs,
+                node.outputs,
+                false,
+                node.input_payload.as_deref(),
+                &declared,
+            );
             json!({
                 "type": view.type_name,
                 "kind": "flow",
@@ -649,7 +665,8 @@ pub fn catalog_entries(plugins: &ActivePlugins) -> Vec<Value> {
                 "inputs": node.inputs,
                 "outputs": node.outputs,
                 "dynamicOutputs": false,
-                "outputLabels": node.output_labels,
+                "inputPayload": input_payload,
+                "outputPorts": output_ports,
                 "config": node.config.iter().map(|f| json!({
                     "name": f.name,
                     "kind": kind_str(f.kind),
@@ -726,6 +743,26 @@ expect_outputs = [{expect}]
         assert_eq!(catalog[0]["type"], "wasm-acme-echo");
         assert!(!catalog[0].to_string().contains("alert"), "{}", catalog[0]);
         assert_eq!(node_sets(&set)[0]["module"], "wasm/acme/echo");
+    }
+
+    #[test]
+    fn catalog_entries_name_ports_and_payload_types() {
+        let unlabelled = append_manifest(&wat::parse_str(IDENTITY).unwrap(), &manifest("1.0.0", 1)).unwrap();
+        let set = ActivePlugins::from_packages(vec![unlabelled]).unwrap();
+        let entry = &catalog_entries(&set)[0];
+        assert_eq!(entry["inputPayload"], "any");
+        assert_eq!(entry["outputPorts"], json!([{"index": 0, "name": "output 1", "payload": "any"}]));
+
+        let labelled = manifest("1.0.0", 1).replace(
+            "outputs = 1\n",
+            "outputs = 1\noutput_labels = [\"echoed\"]\noutput_payloads = [\"string\"]\ninput_payload = \"string|buffer\"\n",
+        );
+        let package = append_manifest(&wat::parse_str(IDENTITY).unwrap(), &labelled).unwrap();
+        let set = ActivePlugins::from_packages(vec![package]).unwrap();
+        let entry = &catalog_entries(&set)[0];
+        assert_eq!(entry["inputPayload"], "string|buffer");
+        assert_eq!(entry["outputPorts"], json!([{"index": 0, "name": "echoed", "payload": "string"}]));
+        assert!(entry.get("outputLabels").is_none());
     }
 
     struct Home(std::path::PathBuf);

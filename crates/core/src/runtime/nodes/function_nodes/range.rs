@@ -49,6 +49,8 @@ fn default_config_property() -> String {
     "payload".to_owned()
 }
 
+crate::node_hints!("range", input = "number|string", outs = ["scaled" => "number"]);
+
 #[derive(Debug)]
 #[flow_node("range", red_name = "range")]
 struct RangeNode {

@@ -29,7 +29,7 @@ const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 const MIN_TIMEOUT_MS: u64 = 100;
 const MAX_TIMEOUT_MS: u64 = 120_000;
 
-crate::node_hints!("ai-agent", refs = ["provider" => "ai-provider"], caps = ["ai", "network"]);
+crate::node_hints!("ai-agent", refs = ["provider" => "ai-provider"], caps = ["ai", "network"], input = "string", outs = ["reply" => "string"]);
 
 #[flow_node("ai-agent", red_name = "ai-agent", inputs = 1, outputs = 1)]
 struct AiAgentNode {

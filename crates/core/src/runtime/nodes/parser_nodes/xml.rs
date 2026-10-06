@@ -33,6 +33,8 @@ impl Default for Xml2jsOptions {
     }
 }
 
+crate::node_hints!("xml", input = "string|object", outs = ["converted" => "string|object"]);
+
 #[derive(Debug)]
 #[flow_node("xml", red_name = "XML")]
 struct XmlNode {

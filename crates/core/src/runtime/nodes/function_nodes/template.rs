@@ -89,6 +89,8 @@ impl Default for TemplateNodeConfig {
     }
 }
 
+crate::node_hints!("template", outs = ["rendered" => "string|object"]);
+
 /// Template node for rendering mustache templates
 #[derive(Debug)]
 #[flow_node("template", red_name = "template")]

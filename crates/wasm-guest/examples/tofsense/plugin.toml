@@ -13,6 +13,8 @@ icon = "function.svg"
 inputs = 1
 outputs = 2
 output_labels = ["distance", "query frame"]
+input_payload = "buffer|array"
+output_payloads = ["number", "array"]
 help = """Decodes Nooploop TOFSense / TOFSense P / TOFSense PS laser ranging frames (user manual V2.5, section 8).
 
 Input:

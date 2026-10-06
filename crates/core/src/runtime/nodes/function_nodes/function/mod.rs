@@ -44,8 +44,10 @@ struct FunctionNodeConfig {
     libs: Vec<serde_json::Value>,
 }
 
+crate::node_hints!("function", outs = ["output {n}" => "any"]);
+
 #[derive(Debug)]
-#[flow_node("function", red_name = "function")]
+#[flow_node("function", red_name = "function", dynamic_outputs = true)]
 struct FunctionNode {
     base: BaseFlowNodeState,
 

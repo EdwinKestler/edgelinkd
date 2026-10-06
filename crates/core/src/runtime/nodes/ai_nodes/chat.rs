@@ -40,7 +40,7 @@ struct ChatConfig {
     timeout_ms: Option<u64>,
 }
 
-crate::node_hints!("ai-chat", refs = ["provider" => "ai-provider"], caps = ["ai", "network"]);
+crate::node_hints!("ai-chat", refs = ["provider" => "ai-provider"], caps = ["ai", "network"], input = "string|array", outs = ["reply" => "string"]);
 
 #[flow_node("ai-chat", red_name = "ai-chat", inputs = 1, outputs = 1)]
 struct AiChatNode {

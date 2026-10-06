@@ -13,6 +13,8 @@ icon = "function.svg"
 inputs = 1
 outputs = 1
 output_labels = ["upper-cased"]
+input_payload = "string"
+output_payloads = ["string"]
 help = "Replaces msg.payload (a string) with its upper-case form. Any other payload fails the message."
 
 [[selftest]]

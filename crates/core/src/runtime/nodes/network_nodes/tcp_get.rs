@@ -97,6 +97,8 @@ enum TcpClientKind {
     Queue,
 }
 
+crate::node_hints!("tcp request", input = "string|buffer", outs = ["reply" => "buffer|string"]);
+
 #[derive(Debug)]
 #[flow_node("tcp request", red_name = "tcpin")]
 #[allow(dead_code)]
