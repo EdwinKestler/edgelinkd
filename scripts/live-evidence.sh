@@ -103,7 +103,7 @@ if has_step env; then
     echo "evidence port: $PORT"
   } > "$D/env.txt"
   git log --oneline -12 > "$D/git-log.txt"
-  git status --porcelain > "$D/git-status.txt"
+  git status --porcelain -- . ":(exclude)artifacts/live-evidence" > "$D/git-status.txt"
   record env recorded PASS "env.txt, git-log.txt, git-status.txt"
   if [ -s "$D/git-status.txt" ]; then record env clean-tree FAIL "uncommitted changes, see git-status.txt"
   else record env clean-tree PASS "working tree matches $COMMIT"; fi
