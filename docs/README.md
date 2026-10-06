@@ -3,6 +3,11 @@
 The root [README](../README.md) is the installation and feature overview. These guides cover
 operations and security procedures that need more detail than the overview.
 
+## Known issues
+
+- [Known issues and workarounds](ISSUES.md): runtime, build/platform, WASM plugin, Flow Copilot
+  and test-suite issues that are known but not yet fixed.
+
 ## Operations
 
 - [Credential lifecycle](operations/credential-lifecycle.md): inspect, migrate, rotate, recover,
