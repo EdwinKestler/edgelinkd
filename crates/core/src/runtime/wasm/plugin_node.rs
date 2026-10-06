@@ -21,7 +21,7 @@ use crate::runtime::nodes::*;
 
 use super::convert::{decode_variant, encode_variant};
 use super::exec::{CallError, CallOutput, EngineCell, GuestLogLevel, GuestStatus, Instance};
-use super::host::WasmRuntime;
+use super::host::{EffectiveLimits, WasmRuntime};
 use super::plugin_set::PluginSpec;
 
 /// Node properties Node-RED's editor writes for any node. Anything else is plugin
@@ -43,6 +43,7 @@ struct NodeRuntimeState {
 pub(crate) struct WasmPluginNode {
     base: BaseFlowNodeState,
     spec: PluginSpec,
+    limits: EffectiveLimits,
     runtime: Arc<WasmRuntime>,
     state: Mutex<NodeRuntimeState>,
 }
@@ -69,8 +70,9 @@ impl WasmPluginNode {
             .and_then(|set| set.get(type_name).cloned())
             .ok_or_else(|| super::not_active_error(type_name))?;
         check_node_properties(&spec, config)?;
-        runtime.admit(&spec)?;
-        Ok(Box::new(Self { base: base_node, spec, runtime, state: Mutex::new(NodeRuntimeState::default()) }))
+        let limits = runtime.effective_limits(&spec)?;
+        runtime.admit(&spec, &limits)?;
+        Ok(Box::new(Self { base: base_node, spec, limits, runtime, state: Mutex::new(NodeRuntimeState::default()) }))
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, NodeRuntimeState> {
@@ -97,7 +99,7 @@ impl WasmPluginNode {
             );
         }
 
-        let permit = tokio::time::timeout(self.runtime.deadline(), self.runtime.permits().acquire_owned())
+        let permit = tokio::time::timeout(self.limits.deadline, self.runtime.permits().acquire_owned())
             .await
             .map_err(|_| self.error("concurrency limit ([runtime.wasm] max_concurrent)"))?
             .map_err(|_| self.error("concurrency limit closed"))?;
@@ -110,8 +112,8 @@ impl WasmPluginNode {
             (state.cell.clone().expect("engine cell"), state.instance.take())
         };
         let spec = self.spec.clone();
-        let pages = self.runtime.memory_pages();
-        let budget = self.runtime.budget();
+        let pages = self.limits.memory_pages;
+        let budget = self.runtime.budget(&self.limits);
         let cancelled = Arc::new(AtomicBool::new(false));
         let flag = cancelled.clone();
         let mut join = tokio::task::spawn_blocking(move || {

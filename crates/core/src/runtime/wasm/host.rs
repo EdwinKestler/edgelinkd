@@ -14,6 +14,14 @@ use super::settings::WasmSettings;
 /// Translated code is budgeted at this multiple of the module size (ADR-0002 §10; measured ≈ 6.6×).
 const TRANSLATED_CODE_FACTOR: u64 = 8;
 
+/// Per-plugin limits after applying manifest requests and ceilings.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct EffectiveLimits {
+    pub memory_pages: u32,
+    pub fuel: u64,
+    pub deadline: Duration,
+}
+
 #[derive(Default)]
 struct Admission {
     reserved_kib: u64,
@@ -58,20 +66,32 @@ impl WasmRuntime {
         self.cell.lock().unwrap_or_else(|e| e.into_inner()).strong_count() > 0
     }
 
-    pub(crate) fn budget(&self) -> Budget {
-        Budget {
-            fuel: self.settings.default_fuel,
-            slice: self.settings.fuel_slice,
-            deadline: Instant::now() + self.deadline(),
-        }
+    /// The limits a plugin runs with: its manifest requests, or the defaults, never above the
+    /// configured ceilings (a request above a ceiling fails the deploy instead of being clamped).
+    pub(crate) fn effective_limits(&self, spec: &PluginSpec) -> crate::Result<EffectiveLimits> {
+        let s = &self.settings;
+        let check = |name: &str, value: u64, max: u64, key: &str| -> crate::Result<u64> {
+            if value > max {
+                return Err(EdgelinkError::NotSupported(format!(
+                    "WASM plugin {} requests limits.{name} = {value}, above [runtime.wasm] {key} = {max}",
+                    spec.id
+                )));
+            }
+            Ok(value)
+        };
+        let pages = spec.limits.memory_pages.unwrap_or(s.default_memory_pages);
+        let fuel = spec.limits.fuel_per_message.unwrap_or(s.default_fuel);
+        let deadline_ms = spec.limits.deadline_ms.unwrap_or(s.default_deadline_ms);
+        Ok(EffectiveLimits {
+            memory_pages: check("memory_pages", u64::from(pages), u64::from(s.max_memory_pages), "max_memory_pages")?
+                as u32,
+            fuel: check("fuel_per_message", fuel, s.max_fuel, "max_fuel")?.max(s.fuel_slice),
+            deadline: Duration::from_millis(check("deadline_ms", deadline_ms, s.max_deadline_ms, "max_deadline_ms")?),
+        })
     }
 
-    pub(crate) fn deadline(&self) -> Duration {
-        Duration::from_millis(self.settings.default_deadline_ms)
-    }
-
-    pub(crate) fn memory_pages(&self) -> u32 {
-        self.settings.default_memory_pages
+    pub(crate) fn budget(&self, limits: &EffectiveLimits) -> Budget {
+        Budget { fuel: limits.fuel, slice: self.settings.fuel_slice, deadline: Instant::now() + limits.deadline }
     }
 
     pub(crate) fn max_input_bytes(&self) -> usize {
@@ -79,9 +99,9 @@ impl WasmRuntime {
     }
 
     /// Reserve one plugin node's footprint for the graph being built.
-    pub(crate) fn admit(&self, spec: &PluginSpec) -> crate::Result<()> {
+    pub(crate) fn admit(&self, spec: &PluginSpec, limits: &EffectiveLimits) -> crate::Result<()> {
         let mut admission = self.admission.lock().unwrap_or_else(|e| e.into_inner());
-        let mut need = u64::from(self.memory_pages()) * 64;
+        let mut need = u64::from(limits.memory_pages) * 64;
         if !admission.modules.contains(&spec.sha256) {
             need += (spec.wasm.len() as u64).div_ceil(1024) * TRANSLATED_CODE_FACTOR;
         }

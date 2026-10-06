@@ -9,17 +9,29 @@ mod exec;
 #[cfg(feature = "nodes_wasm")]
 mod host;
 #[cfg(feature = "nodes_wasm")]
+mod manifest;
+#[cfg(feature = "nodes_wasm")]
 mod plugin_node;
 #[cfg(feature = "nodes_wasm")]
 mod plugin_set;
 #[cfg(feature = "nodes_wasm")]
+mod section;
+#[cfg(feature = "nodes_wasm")]
 mod settings;
+#[cfg(feature = "nodes_wasm")]
+mod store;
 #[cfg(feature = "nodes_wasm")]
 pub(crate) use host::WasmRuntime;
 #[cfg(feature = "nodes_wasm")]
+pub use manifest::LimitRequest;
+#[cfg(feature = "nodes_wasm")]
 pub use plugin_set::ActivePlugins;
 #[cfg(feature = "nodes_wasm")]
+pub use section::append_manifest;
+#[cfg(feature = "nodes_wasm")]
 pub(crate) use settings::WasmSettings;
+#[cfg(feature = "nodes_wasm")]
+pub use store::{ActiveEntry, Listing, PackageStatus, PluginStore, PrepareFn, StageReport};
 
 use crate::runtime::engine::Engine;
 use crate::runtime::nodes::MetaNode;
@@ -48,6 +60,27 @@ pub(crate) fn unavailable_plugin_error(type_name: &str) -> EdgelinkError {
     {
         settings::disabled_plugin_error(type_name)
     }
+}
+
+/// Open the plugin store and attach its active set to `reg` when `[runtime.wasm] enabled = true`.
+/// Disabled → `(reg, None)` and nothing on disk is touched. The returned store holds the lock
+/// for as long as it lives. Generations that fail verification are logged and left out, so
+/// flows that use them fail to deploy naming the plugin.
+#[cfg(feature = "nodes_wasm")]
+pub fn attach_store(
+    reg: &crate::runtime::registry::RegistryHandle,
+    cfg: &config::Config,
+) -> crate::Result<(crate::runtime::registry::RegistryHandle, Option<PluginStore>)> {
+    if !WasmSettings::from_config(Some(cfg))?.enabled {
+        return Ok((reg.clone(), None));
+    }
+    let store = PluginStore::open(cfg)?;
+    let (plugins, problems) = store.active_plugins()?;
+    for problem in &problems {
+        log::error!("[WASM] plugin left out: {problem}");
+    }
+    log::info!("[WASM] plugin store {} open, {} plugin(s) active", store.root().display(), plugins.specs().count());
+    Ok((reg.with_wasm(plugins), Some(store)))
 }
 
 /// `wasm-<publisher>-<name>` → `<publisher>/<name>` (segments contain no dashes).

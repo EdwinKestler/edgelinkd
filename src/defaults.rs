@@ -272,6 +272,8 @@ key_env = "EDGELINK_CREDENTIAL_KEY"
 # Optional WASM plugins. Off even when the binary is built with --features nodes_wasm.
 # [runtime.wasm]
 # enabled = false
+# Plugin store under the home directory; manage it with `edgelinkd plugin` while stopped.
+# dir = "plugins"
 
 # Bounded operational history. Compiled into the default app build. Recording stays off until enabled.
 # [history]

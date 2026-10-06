@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 
 use crate::runtime::nodes::{MetaNode, NodeFactory, NodeKind};
 
+use super::manifest::{LimitRequest, Manifest, split_id};
 use super::plugin_node::WasmPluginNode;
 
 /// One active plugin generation. Built by the (future) plugin store, or directly by tests.
@@ -20,16 +21,30 @@ pub(crate) struct PluginSpec {
     pub wasm: Arc<Vec<u8>>,
     pub sha256: [u8; 32],
     pub outputs: u8,
+    /// Requests from the manifest; clamped against the settings' ceilings at deploy.
+    pub limits: LimitRequest,
 }
 
-// Constructed by tests today and by the plugin store once it exists (DESIGN.md §9).
-#[cfg_attr(not(test), allow(dead_code))]
 impl PluginSpec {
+    /// A spec for raw module bytes without a manifest (tests only).
+    #[cfg(test)]
     pub(crate) fn new(id: &str, version: semver::Version, wasm: Vec<u8>, outputs: u8) -> crate::Result<Self> {
-        let (publisher, name) = id
-            .split_once('/')
-            .filter(|(p, n)| valid_segment(p) && valid_segment(n))
-            .ok_or_else(|| crate::EdgelinkError::invalid_operation(&format!("invalid WASM plugin id '{id}'")))?;
+        Self::build(id, version, wasm, outputs, LimitRequest::default())
+    }
+
+    /// A spec for a packaged plugin: identity, outputs and limits come from its manifest.
+    pub(crate) fn from_package(wasm: Vec<u8>, manifest: &Manifest) -> crate::Result<Self> {
+        Self::build(&manifest.plugin.id, manifest.version(), wasm, manifest.node.outputs, manifest.limits)
+    }
+
+    fn build(
+        id: &str,
+        version: semver::Version,
+        wasm: Vec<u8>,
+        outputs: u8,
+        limits: LimitRequest,
+    ) -> crate::Result<Self> {
+        let (publisher, name) = split_id(id)?;
         if outputs > 16 {
             return Err(crate::EdgelinkError::invalid_operation("a WASM plugin node has at most 16 outputs"));
         }
@@ -41,17 +56,9 @@ impl PluginSpec {
             wasm: Arc::new(wasm),
             sha256,
             outputs,
+            limits,
         })
     }
-}
-
-/// `[a-z][a-z0-9]{0,31}`: no dashes, so `wasm-<publisher>-<name>` is injective.
-#[cfg_attr(not(test), allow(dead_code))]
-fn valid_segment(segment: &str) -> bool {
-    let mut chars = segment.chars();
-    matches!(chars.next(), Some('a'..='z'))
-        && segment.len() <= 32
-        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
 }
 
 #[derive(Debug)]
@@ -60,10 +67,12 @@ pub struct ActivePlugins {
 }
 
 impl ActivePlugins {
-    // Built by tests today and by the plugin store once it exists (DESIGN.md §9).
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn from_specs(specs: Vec<PluginSpec>) -> Arc<Self> {
         Arc::new(Self { specs: specs.into_iter().map(|spec| (spec.type_name.clone(), spec)).collect() })
+    }
+
+    pub(crate) fn specs(&self) -> impl Iterator<Item = &PluginSpec> {
+        self.specs.values()
     }
 
     pub(crate) fn get(&self, type_name: &str) -> Option<&PluginSpec> {

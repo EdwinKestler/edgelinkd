@@ -20,7 +20,7 @@ pub mod registry;
 pub(crate) mod scan;
 pub mod status_channel;
 pub mod subflow;
-pub(crate) mod wasm;
+pub mod wasm;
 
 #[cfg(feature = "js")]
 pub mod js;

@@ -910,6 +910,7 @@ dependencies = [
  "tokio-postgres",
  "tokio-tungstenite",
  "tokio-util",
+ "toml_edit",
  "url",
  "urlencoding",
  "uuid",

@@ -543,7 +543,7 @@ Crash recovery at startup (before any flow loads):
 | after quarantine, before activate | `quarantine/<sha>.wasm` | stays quarantined; never auto-activated |
 | after `store/` link, before pointer | unreferenced `store/<sha>.wasm` | moved back to quarantine |
 | `active.toml.tmp` written, not renamed | old `active.toml` + `.tmp` | `.tmp` deleted; old generation runs |
-| after rename, before redeploy | new pointer, process died | new generation loads; if its graph fails, startup restores `.prev` and logs it |
+| after rename, before redeploy | new pointer, process died | new generation loads; if its graph fails, startup restores `.prev` and logs it (online activation only, PR 6; offline activation runs `prepare_flows` before the pointer moves) |
 | referenced file missing or digest mismatch | pointer → bad file | that plugin is unavailable; flows using it fail loudly naming it; others run |
 
 With `enabled = false` or the feature off, the directory is neither read nor modified, so a
@@ -604,6 +604,8 @@ edgelinkd plugin activate <publisher/name> --sha256 <hex>
 edgelinkd plugin rollback <publisher/name> --sha256 <hex>
 edgelinkd plugin remove <publisher/name>
 edgelinkd plugin verify                     # re-hash store/, check active.toml, report problems
+edgelinkd plugin discard <sha256>           # delete a quarantined package (added in PR 4)
+edgelinkd plugin pack <module.wasm> <plugin.toml> -o <out.wasm>   # embed the manifest (until PR 7's SDK)
 ```
 
 The CLI works whether or not `enabled` is set, so an operator can stage and activate before
@@ -655,8 +657,8 @@ default build unchanged.
 | 0 | **G1 device run** of the existing spike on a Raspberry Pi-class board; record results in `adoption/phase7/REPORT.md`; set fuel/deadline defaults | no code | **passed 2026-10-05** (Pi 5, arm64) |
 | 1 | Reserved `wasm-` prefix in `edgelink_owned_node_type`; messages; drift test (no built-in type starts with `wasm-`); `[runtime.wasm] enabled = true` rejected without the feature | yes (≤ 1 KiB) | — |
 | 2 | `crates/eve`: codec, limits, property tests and a fuzz target; no consumer yet | no (not linked) | — |
-| 3 | `nodes_wasm` feature skeleton: settings, section walker, manifest, ABI/linker, `exec.rs` with fuel slicing and cancellation; WAT fixtures; hostile execution tests | no | G1 passed |
-| 4 | Plugin store and lifecycle, offline CLI, crash-injection tests | no | — |
+| 3 | `nodes_wasm` feature skeleton: settings, section walker, manifest, ABI/linker, `exec.rs` with fuel slicing and cancellation; WAT fixtures; hostile execution tests | no | G1 passed; **done on `phase7-design`** except `[[node.config]]` (manifests with config are refused) |
+| 4 | Plugin store and lifecycle, offline CLI, crash-injection tests | no | **done on `phase7-design`** (`store.rs` holds the lifecycle; no separate `lifecycle.rs`) |
 | 5 | Registry/engine integration, `WasmPluginNode`, admission, flow-level tests (deploy, missing plugin, redeploy cancellation) | no | — |
 | 6 | Web: routes, `EndpointClass::Plugins`, online activation under the deploy lock, editor HTML, `/nodes`, Copilot catalog, history/audit, `/status` | no | — |
 | 7 | `crates/wasm-guest`, examples, CI `wasm32` build, end-to-end install tests, docs (`docs/operations/wasm-plugins.md`, guest README), README roadmap entry marked experimental, `AGENTS.md` commands table | no | — |

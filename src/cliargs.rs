@@ -77,8 +77,51 @@ pub enum Commands {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum PluginCommand {
-    /// List staged, quarantined, and active plugins
+    /// List active generations and quarantined packages as JSON
     List,
+    /// Validate, quarantine and self-test a packed .wasm package
+    Stage {
+        /// Packed module (`edgelinkd plugin pack` output)
+        file: std::path::PathBuf,
+    },
+    /// Make a self-tested package current; the deployed flows must build with it
+    Activate {
+        /// Plugin id, `<publisher>/<name>`
+        id: String,
+        /// SHA-256 of the package, as printed by `stage`
+        #[arg(long)]
+        sha256: String,
+    },
+    /// Swap a plugin's current and previous generations
+    Rollback {
+        /// Plugin id, `<publisher>/<name>`
+        id: String,
+        /// SHA-256 of the previous generation, which becomes current
+        #[arg(long)]
+        sha256: String,
+    },
+    /// Deactivate a plugin no deployed node uses; its packages return to quarantine
+    Remove {
+        /// Plugin id, `<publisher>/<name>`
+        id: String,
+    },
+    /// Delete a quarantined package
+    Discard {
+        /// SHA-256 of the quarantined package
+        sha256: String,
+    },
+    /// Re-hash every active generation; exits non-zero on any problem
+    Verify,
+    /// Embed a manifest into a module as the `edgelink.manifest` custom section
+    Pack {
+        /// Compiled wasm32 module
+        module: std::path::PathBuf,
+        /// Manifest (TOML, schema 1)
+        manifest: std::path::PathBuf,
+        /// Output path; must not exist
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone)]

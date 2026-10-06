@@ -5,6 +5,9 @@ use crate::EdgelinkError;
 /// Keys this prototype implements.
 const KNOWN_KEYS: &[&str] = &[
     "enabled",
+    "dir",
+    "max_plugins",
+    "max_module_kib",
     "max_concurrent",
     "memory_budget_kib",
     "default_memory_pages",
@@ -20,13 +23,13 @@ const KNOWN_KEYS: &[&str] = &[
     "require_signature",
 ];
 
-/// Keys from the design that belong to the plugin store, which this prototype does not have.
-/// They fail loudly instead of being accepted and ignored.
-const STORE_KEYS: &[&str] = &["dir", "max_plugins", "max_module_kib"];
-
 #[derive(Debug, Clone)]
 pub(crate) struct WasmSettings {
     pub enabled: bool,
+    /// Plugin store directory; relative paths are under `home_dir`.
+    pub dir: String,
+    pub max_plugins: u32,
+    pub max_module_kib: u32,
     pub max_concurrent: u32,
     pub memory_budget_kib: u32,
     pub default_memory_pages: u32,
@@ -45,6 +48,9 @@ impl Default for WasmSettings {
     fn default() -> Self {
         Self {
             enabled: false,
+            dir: "plugins".to_owned(),
+            max_plugins: 16,
+            max_module_kib: 512,
             max_concurrent: 2,
             memory_budget_kib: 8192,
             default_memory_pages: 32,
@@ -74,11 +80,6 @@ impl WasmSettings {
         };
         if let Ok(table) = cfg.get_table("runtime.wasm") {
             for key in table.keys() {
-                if STORE_KEYS.contains(&key.as_str()) {
-                    return Err(EdgelinkError::NotSupported(format!(
-                        "runtime.wasm.{key}: the WASM plugin store is not implemented in this prototype"
-                    )));
-                }
                 if !KNOWN_KEYS.contains(&key.as_str()) {
                     return Err(named(&format!("runtime.wasm.{key}"), "is not a known setting"));
                 }
@@ -87,6 +88,15 @@ impl WasmSettings {
         if let Some(enabled) = enabled_flag(cfg)? {
             settings.enabled = enabled;
         }
+        if cfg.get::<config::Value>("runtime.wasm.dir").is_ok() {
+            let dir = cfg.get_string("runtime.wasm.dir").map_err(|_| named("runtime.wasm.dir", "must be a string"))?;
+            if dir.trim().is_empty() {
+                return Err(named("runtime.wasm.dir", "must not be empty"));
+            }
+            settings.dir = dir;
+        }
+        assign_u32(cfg, "runtime.wasm.max_plugins", 1, 256, &mut settings.max_plugins)?;
+        assign_u32(cfg, "runtime.wasm.max_module_kib", 1, 4096, &mut settings.max_module_kib)?;
         assign_u32(cfg, "runtime.wasm.max_concurrent", 1, 64, &mut settings.max_concurrent)?;
         assign_u32(cfg, "runtime.wasm.memory_budget_kib", 64, 1_048_576, &mut settings.memory_budget_kib)?;
         assign_u32(cfg, "runtime.wasm.default_memory_pages", 1, 1024, &mut settings.default_memory_pages)?;
@@ -168,7 +178,7 @@ mod tests {
         for (toml, needle) in [
             ("[runtime.wasm]\nenabled = \"yes\"", "must be true or false"),
             ("[runtime.wasm]\nenable = true", "not a known setting"),
-            ("[runtime.wasm]\ndir = \"plugins\"", "not implemented"),
+            ("[runtime.wasm]\ndir = \"\"", "must not be empty"),
             ("[runtime.wasm]\nmax_concurrent = 0", "out of range"),
             ("[runtime.wasm]\ndefault_fuel = \"lots\"", "must be an integer"),
             ("[runtime.wasm]\nfuel_slice = 30000000", "fuel_slice"),

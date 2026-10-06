@@ -23,6 +23,9 @@ pub struct MsgInjectionEntry {
 #[derive(Debug)]
 pub struct App {
     _registry: RegistryHandle,
+    /// Holds the plugin store lock while the runtime runs (only when `[runtime.wasm] enabled`).
+    #[cfg(feature = "nodes_wasm")]
+    _plugin_store: Option<edgelink_core::runtime::wasm::PluginStore>,
     engine: Arc<RwLock<Engine>>,
     msgs_to_inject: Mutex<Vec<MsgInjectionEntry>>,
     flows_path: String, // Store the resolved flows path
@@ -36,6 +39,8 @@ impl App {
         _flows_path: Option<String>,
     ) -> edgelink_core::Result<Self> {
         let reg = create_registry()?;
+        #[cfg(feature = "nodes_wasm")]
+        let (reg, plugin_store) = edgelink_core::runtime::wasm::attach_store(&reg, &env.config)?;
 
         let msgs_to_inject = Vec::new();
 
@@ -49,6 +54,8 @@ impl App {
 
         Ok(App {
             _registry: reg,
+            #[cfg(feature = "nodes_wasm")]
+            _plugin_store: plugin_store,
             engine: Arc::new(RwLock::new(engine)),
             msgs_to_inject: Mutex::new(msgs_to_inject),
             flows_path: flows_path.clone(),
