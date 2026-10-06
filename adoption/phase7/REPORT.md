@@ -6,7 +6,7 @@ Version remains `0.3.0`.
 This is a **partial prototype**. The Wasmi host, the plugin flow node and every per-call limit
 from DESIGN.md §6–8 are implemented and tested. The plugin store, so any way to install a
 plugin, is not: in a real deployment every `wasm-*` node reports that its plugin is not active.
-The G1 Raspberry Pi-class run has not been done.
+The G1 device gate passed on a Raspberry Pi 5 (arm64); see "G1 device run" below.
 
 ## What is implemented
 
@@ -36,13 +36,54 @@ The G1 Raspberry Pi-class run has not been done.
 
 | Item | Consequence |
 |---|---|
-| G1 Raspberry Pi-class device run | Fuel/deadline defaults are provisional; the execution code must not merge to `master` (DESIGN PR 0 gate). |
+| Device runs beyond G1 (32-bit ARM board, Pi 3/4 class, in-tree binary) | Defaults are calibrated on a Pi 5 only; armv7 remains build-only. |
 | Plugin store and lifecycle (stage, quarantine, self-test, activate, rollback, remove, crash recovery) and the CLI/API that drive it | No install path; plugins exist only in tests. |
 | Manifest schema 1 (custom section, `[[node.config]]`, limits requests, self-test vectors) | No plugin configuration; per-plugin limits use the global defaults. |
 | `el_init` / `el_close` | Not called; ABI v1 guests in this prototype export `el_abi_version`, `el_alloc`, `el_on_input`. |
 | Generated editor HTML, `/nodes` entries, Copilot catalog, history/audit events, `/status` section, `EndpointClass::Plugins` | Plugins are invisible to the editor and Copilot. |
 | `wasm32-unknown-unknown` CI job and an example Rust plugin | The guest SDK is compiled for the host only. |
 | In-tree size/RSS measurements (G2) | ADR-0002 spike numbers stand. |
+
+## G1 device run (passed)
+
+Raspberry Pi 5 Model B Rev 1.0 (BCM2712, Cortex-A76), Raspberry Pi OS 64-bit (`arm64`), kernel
+`6.18.50+rpt-rpi-2712`, 47.7 °C, `throttled=0x0`. Spike built natively on the board with
+`adoption/phase7/spike/run.sh none wasmi`. Raw lines: `spike/results/pi-arm64.jsonl`,
+`spike/results/pi-device.txt`.
+
+| ADR-0002 §11 criterion | Pi 5 result | Pass |
+|---|---:|---|
+| Wasmi idle RSS Δ ≤ 1 MiB | 1,776 → 2,128 KiB: **+352 KiB** | yes |
+| All hostile guests contained | 6/6 (`spin`, `grow`, `bigout`, `wasi`, `bindgen`, `startspin`) | yes |
+| Deadline overshoot ≤ 25 ms | `spin-deadline` 100.3 ms for a 100 ms deadline: **0.3 ms** | yes |
+| Compile `bulk.wasm` (138 KiB) ≤ 500 ms | **30.4 ms** | yes |
+
+Other Pi 5 figures, with the x86-64 host for comparison:
+
+| Measure | Pi 5 | i9-14900K host |
+|---|---:|---:|
+| Stripped binary Δ (`wasmi` − `none`) | +917,504 B (896 KiB) | +1,008,216 B |
+| RSS after compiling `upper` + `bulk` | +880 KiB | +892 KiB |
+| Per instance (one 64 KiB page touched) | 82 KiB | 83 KiB |
+| Instantiate | 59 µs | 56 µs |
+| Fuel throughput (`spin`) | 4.8·10⁵ fuel/ms | 1.36·10⁶ fuel/ms |
+| 1 KiB message, median / p95 | 95.0 µs / 95.0 µs | 9.3 µs / 11.1 µs |
+
+Consequences for the defaults (unchanged, now calibrated):
+
+- `default_fuel = 2·10⁷` ≈ 42 ms of guest work on a Pi 5, so fuel binds well before the 250 ms
+  deadline; the deadline is the backstop for slower boards.
+- `fuel_slice = 10⁶` ≈ 2 ms on a Pi 5, which is the cancellation latency on stop/redeploy.
+- With the spike's 5·10⁷ fuel budget the Pi 5 hit the 100 ms deadline first (4.8·10⁷ fuel),
+  so both limits were exercised on the device.
+
+Open observation: per-message latency is 10× the host while raw fuel throughput is only 2.8×
+slower, and the Pi 5 distribution is unusually tight (median ≈ p95). The fixed per-call cost
+(alloc, memory copy, `emit` read) dominates on the Pi; it is not a gate criterion, but it should
+be profiled before any throughput claim.
+
+Not covered by G1: a 32-bit (`armhf`/`armel`) board, older or slower boards (Pi 3/4, Zero 2),
+and the in-tree `edgelinkd` binary (G2). The armv7 build remains build-only.
 
 ## Tests
 
@@ -78,7 +119,8 @@ The G1 Raspberry Pi-class run has not been done.
 | `edgelinkd plugin list` (with `nodes_wasm`) | exits 1: `not supported: the WASM plugin store is not implemented in this prototype` |
 | `git diff --check` | passed |
 
-Not run in this close-out: `pytest ./tests -v`, ARM cross builds, size/RSS measurements, G1.
+Not run in this close-out: `pytest ./tests -v`, ARM cross builds of `edgelinkd`, in-tree size/RSS
+measurements (G2). G1 is recorded above.
 
 ## Rollback
 

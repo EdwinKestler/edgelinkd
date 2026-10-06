@@ -187,7 +187,8 @@ nor creates an engine, and every `wasm-*` type fails deploy with `NotSupported`.
 
 `WasmSettings::from_config` validates every value (ranges, `default ≤ max`, `fuel_slice ≤
 default_fuel`) and fails startup with a message naming the key, like the egress policy does.
-The fuel and deadline defaults are provisional until G1 records fuel-per-ms on the device.
+G1 (Raspberry Pi 5, arm64) measured 4.8·10⁵ fuel/ms: the default 2·10⁷ fuel is ≈ 42 ms there,
+so fuel binds before the 250 ms deadline, and one 10⁶ slice ≈ 2 ms bounds cancellation.
 
 ### 4. Package parsing and manifest validation
 
@@ -651,7 +652,7 @@ default build unchanged.
 
 | PR | Content | Ships in default build | Gate |
 |---|---|---|---|
-| 0 | **G1 device run** of the existing spike on a Raspberry Pi-class board; record results in `adoption/phase7/REPORT.md`; set fuel/deadline defaults | no code | must pass before PR 3 merges |
+| 0 | **G1 device run** of the existing spike on a Raspberry Pi-class board; record results in `adoption/phase7/REPORT.md`; set fuel/deadline defaults | no code | **passed 2026-10-05** (Pi 5, arm64) |
 | 1 | Reserved `wasm-` prefix in `edgelink_owned_node_type`; messages; drift test (no built-in type starts with `wasm-`); `[runtime.wasm] enabled = true` rejected without the feature | yes (≤ 1 KiB) | — |
 | 2 | `crates/eve`: codec, limits, property tests and a fuzz target; no consumer yet | no (not linked) | — |
 | 3 | `nodes_wasm` feature skeleton: settings, section walker, manifest, ABI/linker, `exec.rs` with fuel slicing and cancellation; WAT fixtures; hostile execution tests | no | G1 passed |

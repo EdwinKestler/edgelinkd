@@ -49,4 +49,5 @@ interpreter. Design: `adoption/phase7/ADR-0002-wasm-node-sdk.md` and
 
 Unknown keys fail startup. `dir`, `max_plugins` and `max_module_kib` belong to the plugin
 store and fail startup with `NotSupported` until it exists. Fuel and deadline defaults are
-provisional until the G1 Raspberry Pi-class measurements are recorded.
+calibrated on a Raspberry Pi 5 (≈ 4.8·10⁵ fuel/ms: the default fuel is ≈ 42 ms of guest work
+there); slower or 32-bit boards reach the 250 ms deadline sooner and are not yet measured.

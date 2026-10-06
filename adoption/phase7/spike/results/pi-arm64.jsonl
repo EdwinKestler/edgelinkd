@@ -1,0 +1,13 @@
+{"feature":"none","target":"host","stripped_bytes":266976,"build_s":11}
+{"feature":"none","idle_rss_median_kib":1776}
+{"feature":"wasmi","target":"host","stripped_bytes":1184480,"build_s":41}
+{"feature":"wasmi","idle_rss_median_kib":2128}
+{"rt":"wasmi-2.0.0","mode":"load","rss_kib":4272,"hwm_kib":4272,"n":16,"rss_before_kib":2080,"rss_after_compile_kib":2960,"per_instance_kib":82,"compile_upper_us":202,"compile_bulk_us":30445,"instantiate_us":59}
+{"rt":"wasmi-2.0.0","mode":"bench","rss_kib":2448,"hwm_kib":2448,"calls":2000,"median_ns":94996,"p95_ns":95015}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"spin","contained":true,"elapsed_ms":100.2,"error":"deadline 100 ms exceeded after 48000000 fuel"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"grow","contained":true,"elapsed_ms":1.1,"error":"trap: growth operation limited"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"bigout","contained":true,"elapsed_ms":0.1,"error":"host call failed: emit: 1048576 bytes exceeds 65536"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"wasi","contained":true,"elapsed_ms":0.0,"error":"import wasi_snapshot_preview1::fd_write is not granted"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"bindgen","contained":true,"elapsed_ms":0.0,"error":"import wbg::__wbg_alert_0123456789abcdef is not granted"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"startspin","contained":true,"elapsed_ms":0.0,"error":"compile: configuration disallows start functions but found one"}
+{"rt":"wasmi-2.0.0","mode":"hostile","guest":"spin-deadline","contained":true,"elapsed_ms":100.3,"error":"deadline 100 ms exceeded after 48000000 fuel"}

@@ -552,8 +552,8 @@ packages; if Wasmi becomes unmaintained or a 2.x advisory is unfixable, disable 
 
 ## 14. Unverified boundaries
 
-- No ARM execution: armv7 numbers are build-only sizes; aarch64 and armv7 soft-float were not
-  built here (no cross linkers installed on the host). G1 closes this.
+- ARM execution: G1 passed on a Raspberry Pi 5 (arm64), see Amendments. A 32-bit ARM board
+  (armhf/armel) and slower boards are still unmeasured; armv7 numbers are build-only.
 - Wasmi 2.0 has no third-party audit; the 2023/2024 audits cover older code.
 - Host latency figures come from a busy workstation and are indicative only; RSS and sizes
   were stable across reruns.
@@ -601,6 +601,10 @@ package has its own `[workspace]` and `Cargo.lock`; it is never built by the mai
   step 5); `[runtime.wasm] enabled` defaults to `false` even when `nodes_wasm` is compiled, and
   while off every `wasm-*` type fails deploy with `NotSupported`; float instructions are allowed
   in ABI v1 and SIMD stays rejected.
+- 2026-10-05, G1 (§11) passed on a Raspberry Pi 5 Model B (arm64): Wasmi idle Δ +352 KiB,
+  6/6 hostile guests contained, deadline overshoot 0.3 ms, `bulk.wasm` compile 30.4 ms; fuel
+  throughput 4.8·10⁵/ms. §7 defaults are kept. Evidence: `adoption/phase7/REPORT.md`,
+  `spike/results/pi-arm64.jsonl`.
 
 ## Git and release state
 
