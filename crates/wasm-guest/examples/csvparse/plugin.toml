@@ -1,0 +1,35 @@
+[plugin]
+id = "edgelink/csvparse"
+version = "1.0.0"
+abi = 1
+license = "Apache-2.0"
+description = "Parses a CSV string payload into rows"
+
+[node]
+label = "csv parse"
+category = "plugins"
+color = "#DEBD5C"
+icon = "parser-csv.svg"
+inputs = 1
+outputs = 1
+output_labels = ["rows"]
+help = """Parses msg.payload (a CSV string) into msg.payload rows.
+With 'First row is a header' each row is an object keyed by the header; otherwise each row is an array of strings.
+Fields may be quoted with double quotes; a doubled quote inside a quoted field is a literal quote."""
+
+[[node.config]]
+name = "delimiter"
+kind = "string"
+label = "Delimiter"
+max_len = 1
+default = ","
+
+[[node.config]]
+name = "header"
+kind = "boolean"
+label = "First row is a header"
+default = true
+
+[[selftest]]
+input = { payload = "a,b\n1,2" }
+expect_outputs = [1]

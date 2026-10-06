@@ -95,7 +95,8 @@ digits of the digest and a reason code.
 ## Installing a plugin (offline CLI)
 
 A package is a `wasm32-unknown-unknown` module with its manifest (TOML, schema 1) embedded as
-the `edgelink.manifest` custom section. Until the guest SDK ships, embed it with `pack`.
+the `edgelink.manifest` custom section. Plugins built with the Rust guest SDK
+(`crates/wasm-guest`, `manifest!`) already contain it; for other modules embed it with `pack`.
 
 Stop edgelinkd first: when plugins are enabled the runtime holds `<home>/plugins/.lock` and
 every command below refuses to run while it does.
@@ -137,8 +138,8 @@ directory is not opened.
 
 ## What does not exist yet
 
-- No guest SDK yet: `crates/wasm-guest` has the raw imports only; packages are WAT or
-  hand-written Rust plus `edgelinkd plugin pack`.
+- Guest SDK for Rust only (`crates/wasm-guest`, examples `uppercase` and `csvparse`); no
+  component model, no other guest languages.
 - The editor learns about new plugin types only on reload; there is no live palette push.
 - Signatures (`require_signature`) are not implemented.
 

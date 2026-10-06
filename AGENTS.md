@@ -71,11 +71,15 @@ Where scope decisions are declared:
 | Format check (CI gate) | `cargo fmt --check` |
 | Lint (CI gate) | `cargo clippy --all-features --tests --all` |
 | Spec coverage report | `python scripts/specs_diff.py 3rd-party/node-red -o tests/REDNODES-SPECS-DIFF.md` |
+| WASM plugin host tests | `cargo test -p edgelink-core --features nodes_wasm --lib` and `cargo test -p edgelink-web --features nodes_wasm --lib` |
+| WASM example plugins + end to end | `scripts/wasm-examples.sh --e2e` (needs `rustup target add wasm32-unknown-unknown`) |
+| WASM size/startup/RSS (G2) | `scripts/wasm-measure.sh <default-bin> <nodes_wasm-bin> target/wasm-examples/uppercase.wasm` |
 
 CI (`.github/workflows/CICD.yml`): `fmt-and-check` (fmt + `cargo check --workspace`) runs on
 every push; the Linux job additionally builds, runs the Rust tests and `pytest ./tests -v`;
-clippy runs for master-bound PRs; Windows/ARM jobs run on schedule/dispatch. Keep all of
-them green.
+clippy runs for master-bound PRs; `wasm-plugins` builds the guest SDK examples for
+`wasm32-unknown-unknown` and runs the plugin host and end-to-end tests; Windows/ARM jobs run on
+schedule/dispatch. Keep all of them green.
 
 The spec coverage report is an **audit of what we support, not a completion target**: 100%
 parity with the upstream Node-RED suite is explicitly not a goal (see the design philosophy

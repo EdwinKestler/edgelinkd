@@ -1,0 +1,20 @@
+[plugin]
+id = "edgelink/uppercase"
+version = "1.0.0"
+abi = 1
+license = "Apache-2.0"
+description = "Upper-cases a string payload"
+
+[node]
+label = "uppercase"
+category = "plugins"
+color = "#C0DEED"
+icon = "function.svg"
+inputs = 1
+outputs = 1
+output_labels = ["upper-cased"]
+help = "Replaces msg.payload (a string) with its upper-case form. Any other payload fails the message."
+
+[[selftest]]
+input = { payload = "abc" }
+expect_outputs = [1]

@@ -611,6 +611,11 @@ package has its own `[workspace]` and `Cargo.lock`; it is never built by the mai
   rejected at `stage` with the remedy (request `[limits] memory_pages`, or link Rust guests with
   `-zstack-size=65536`, §8); boards with spare RAM raise `memory_budget_kib`.
 
+- 2026-10-06, close-out (details in `REPORT.md`): G2 measured in-tree on the host and a
+  Raspberry Pi 5. `nodes_wasm` adds 1.41 MiB (x86-64) / 1.19 MiB (arm64); private memory +48–120
+  KiB idle; `VmRSS` +0.9 MiB from file-backed text. Decision: **go as an experimental opt-in
+  feature, not for default builds**. Default builds carry no `wasmi` and grow 16–17 KiB.
+
 ## Git and release state
 
 Documentation and a standalone measurement spike only. No runtime source, dependency,

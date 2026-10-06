@@ -661,8 +661,8 @@ default build unchanged.
 | 4 | Plugin store and lifecycle, offline CLI, crash-injection tests | no | **done on `phase7-design`** (`store.rs` holds the lifecycle; no separate `lifecycle.rs`) |
 | 5 | Registry/engine integration, `WasmPluginNode`, admission, flow-level tests (deploy, missing plugin, redeploy cancellation) | no | **done on `phase7-design`** (incl. `el_init`/`el_close`, `[[node.config]]`) |
 | 6 | Web: routes, `EndpointClass::Plugins`, online activation under the deploy lock, editor HTML, `/nodes`, Copilot catalog, history/audit, `/status` | no | **done on `phase7-design`** |
-| 7 | `crates/wasm-guest`, examples, CI `wasm32` build, end-to-end install tests, docs (`docs/operations/wasm-plugins.md`, guest README), README roadmap entry marked experimental, `AGENTS.md` commands table | no | — |
-| 8 | `adoption/phase7/REPORT.md`: tests, measurements (host + G1 device + ARM cross builds), rollback drill, unverified boundaries | no | G2 |
+| 7 | `crates/wasm-guest`, examples, CI `wasm32` build, end-to-end install tests, docs (`docs/operations/wasm-plugins.md`, guest README), README roadmap entry marked experimental, `AGENTS.md` commands table | no | **done on `phase7-design`** |
+| 8 | `adoption/phase7/REPORT.md`: tests, measurements (host + G1 device + ARM cross builds), rollback drill, unverified boundaries | no | G2: **done**, see REPORT (VmRSS row exceeded by file-backed pages; private memory within budget) |
 
 CI additions (in `.github/workflows/CICD.yml`):
 
@@ -760,6 +760,11 @@ Where the implementation differs from the text above:
 - Concurrency: one instance per node, so each node is serial; `max_concurrent` permits are
   shared by every plugin. There is no per-plugin permit pool.
 - `/wasm/*` needs the administrator role for reads as well (`wasm.read`, `wasm.write`).
+- PR 7: the end-to-end test with the Rust examples lives in `edgelink-core`
+  (`example_plugins_install_and_run`, ignored unless `EDGELINK_WASM_EXAMPLES` is set by
+  `scripts/wasm-examples.sh --e2e`), because the flow test harness (`test-once`) is there. The
+  examples are standalone crates under `crates/wasm-guest/examples/` (own `[workspace]`), built
+  with a 64 KiB stack so they start in the default 512 KiB memory cap.
 - `App::restart_engine` (used only when the web state has no engine) still builds with the
   registry from startup; a restart through that path after an online activation uses the
   startup plugin set until the process restarts.

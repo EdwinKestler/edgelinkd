@@ -1,0 +1,7 @@
+{"host":"hyperox","arch":"aarch64","default_bytes":14517768,"wasm_bytes":15763016,"plugin_bytes":55859}
+{"case":"default","plugin_nodes":0,"startup_ms_median":16,"startup_ms":[33,12,16,16,16],"rss_kib_median":11824,"rss_kib":[11808,11824,11824,11824,11808],"rss_anon_kib_median":2544,"rss_file_kib_median":9280}
+{"case":"wasm-disabled","plugin_nodes":0,"startup_ms_median":15,"startup_ms":[16,15,15,15,15],"rss_kib_median":12736,"rss_kib":[12736,12736,12736,12736,12704],"rss_anon_kib_median":2592,"rss_file_kib_median":10144}
+{"case":"wasm-enabled-idle","plugin_nodes":0,"startup_ms_median":15,"startup_ms":[13,15,15,16,15],"rss_kib_median":12848,"rss_kib":[12848,12848,12848,12864,12832],"rss_anon_kib_median":2640,"rss_file_kib_median":10208}
+{"case":"wasm-1-node","plugin_nodes":1,"startup_ms_median":15,"startup_ms":[13,15,15,15,16],"rss_kib_median":13584,"rss_kib":[13584,13584,13584,13584,13584],"rss_anon_kib_median":3184,"rss_file_kib_median":10400}
+{"case":"wasm-8-nodes","plugin_nodes":8,"startup_ms_median":16,"startup_ms":[13,16,15,16,16],"rss_kib_median":15760,"rss_kib":[15776,15888,15696,15744,15760],"rss_anon_kib_median":5360,"rss_file_kib_median":10400}
+{"case":"in-tree-uppercase-1KiB","arch":"aarch64","messages":2000,"us_per_message":137.2}

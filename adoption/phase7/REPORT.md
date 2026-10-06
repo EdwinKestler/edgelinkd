@@ -1,16 +1,27 @@
-# Phase 7 Report: Optional WASM Node SDK (partial prototype)
+# Phase 7 Report: Optional WASM Node SDK
 
 Depends on: phases 0–6 and ADR-0002 (accepted 2026-10-05). Branch `phase7-design`.
-Version remains `0.3.0`.
+Version remains `0.3.0`. Phase 7 is closed with this report.
 
-This is a **partial prototype**. The Wasmi host, the plugin flow node and every per-call limit
-from DESIGN.md §6–8 are implemented and tested, and so are PR 3 (section walker, manifest
-schema 1), PR 4 (plugin store, lifecycle, offline CLI, crash-injection tests), the PR 5
-leftovers (`el_init`/`el_close`, `[[node.config]]`, node tests) and PR 6 (admin API with online
-activation, editor/`/nodes`/Copilot entries, history/audit, `/status`). A plugin can be
-installed offline or through the API and configured in the editor. Not done: the guest SDK and
-examples (PR 7), G2 measurements and the final close-out (PR 8). The G1 device gate passed on a
-Raspberry Pi 5 (arm64); see "G1 device run" below.
+## Decision
+
+**Go, as an experimental opt-in feature; not for default builds.** The prototype satisfies the
+ADR: a Wasmi sandbox with no ambient authority, fuel/deadline/memory/concurrency limits that
+stopped every hostile guest, an atomic store with one previous generation, loud failure for
+missing plugins, and a Rust guest SDK. It was measured in-tree on the host and on a Raspberry
+Pi 5 (G1 and G2).
+
+- Default, `--no-default-features` and `full` builds contain no `wasmi` and no plugin code
+  path; idle memory is unchanged within noise. They grow by 16–17 KiB (0.1 %) for the reserved
+  `wasm-` prefix, the `edgelinkd plugin` CLI surface that answers `NotSupported`,
+  `EndpointClass::Plugins` and the history event type, above the 1 KiB target of PR 1.
+- With `--features nodes_wasm`: +1.41 MiB binary (x86-64) / +1.19 MiB (arm64), within the
+  1.5 MiB budget. Private memory (`RssAnon`) is +48–56 KiB with plugins disabled and
+  +96–120 KiB enabled with no plugin node, within the 256 KiB budget. `VmRSS` is +0.9 MiB in
+  both cases because the larger executable maps more clean, shared file pages; by the Phase 0
+  metric (`VmRSS`) that row is over budget, which is why the feature stays opt-in.
+- Default inclusion is not recommended: the measured `VmRSS` cost, ABI v1's narrow capability
+  set and a Rust-only SDK do not justify it. Revisit after a 32-bit board run and real plugins.
 
 ## What is implemented
 
@@ -48,20 +59,30 @@ Raspberry Pi 5 (arm64); see "G1 device run" below.
 | Engine plugin set | `runtime/engine.rs` | swapped on each redeploy; deploy and Copilot validation prepare with the live engine's configuration (`Engine::config`), so plugin nodes validate as they run |
 | Editor, `/nodes`, Copilot | `wasm_plugins.rs`, `nodes.rs`, `assistant.rs` | one generated `registerType` + form + help per plugin, every plugin string JSON- or HTML-escaped (`</script>`, U+2028/9); `/nodes` module `wasm/<id>`; catalog lists type, ports, output labels and config names/kinds (no description/help); drafts may use plugin types |
 | History, audit, status | `history.rs`, `wasm_plugins.rs`, `status.rs` | category `plugin`: `staged`, `rejected`, `activated`, `rolled_back`, `removed`, `discarded`, `failed` with id, version, 12-hex digest prefix and reason code (no bytes or config values); audit lines for API actions; `/status.wasm` `{state, plugins, engineLive, permitsInUse, memoryReservedKib, …}` |
-| Guest SDK | `crates/wasm-guest` | EVE/1 re-export; safe `emit_bytes`/`log`/`status`/`fail` wrappers on `wasm32` only |
+| Guest SDK | `crates/wasm-guest` | `Node` trait (`init`/`on_input`/`close`), `Msg`, `Ctx` (emit/log/status, host bounds checked before the call), `export_node!` (ABI v1 exports), `manifest!` (embeds `plugin.toml` as `edgelink.manifest`); off `wasm32`, `Ctx` records calls so plugin logic is unit-tested on the host |
+| Example plugins | `crates/wasm-guest/examples/{uppercase,csvparse}` | standalone crates for `wasm32-unknown-unknown`, 64 KiB stack; 55,859 and 62,870 bytes; `csvparse` has `delimiter`/`header` config and quoted fields |
+| CI | `.github/workflows/CICD.yml` `wasm-plugins` | examples fmt + clippy for `wasm32`, core/web `nodes_wasm` tests, `scripts/wasm-examples.sh --e2e` |
+| Measurement | `scripts/wasm-measure.sh` | Phase 0 method on prebuilt binaries (works on a device without cargo) |
 | Workspace pin | root `Cargo.toml` | `wasmi = "=2.0.0"` in `[workspace.dependencies]` |
 
-## Not done
+## Not done and known limits
 
 | Item | Consequence |
 |---|---|
-| Device runs beyond G1 (32-bit ARM board, Pi 3/4 class, in-tree binary) | Defaults are calibrated on a Pi 5 only; armv7 remains build-only. |
-| Startup restore of `active.toml.prev` when the graph fails to build with a pointer an online activation wrote just before the process died | That (narrow) crash leaves startup failing loudly; `edgelinkd plugin rollback` while stopped recovers it. |
-| History/audit for offline CLI actions | CLI output is the only record. |
+| 32-bit ARM board (armhf/armel), Pi 3/4/Zero 2 class | Measured on a Pi 5 (arm64) only; armv7 is build-only. Defaults are calibrated for the Pi 5. |
+| Startup restore of `active.toml.prev` after a crash between an online activation's pointer write and its redeploy, when the new graph then fails | Startup fails loudly; `edgelinkd plugin rollback` while stopped recovers. |
+| A redeploy that fails after its prepare passed, end to end | `revert` is unit-tested; the API undo path is code-reviewed, not exercised by a test. |
 | `App::restart_engine` after an online activation | Used only when the web state has no engine; it would build with the startup plugin set. |
-| A redeploy failure *after* a successful prepare, end to end | `revert` is unit-tested and the undo path is code-reviewed, but no test makes a redeploy fail after its prepare passed. |
-| Guest SDK (`export_node!`, `manifest!`), example plugins, `wasm32-unknown-unknown` CI job (PR 7) | Plugins are WAT or hand-written Rust plus `edgelinkd plugin pack`. |
-| In-tree size/RSS measurements (G2) | ADR-0002 spike numbers stand. |
+| History/audit for offline CLI actions | CLI output is the only record. |
+| Signatures (`require_signature`) | `true` fails startup; packages are trusted by the administrator who installs them. |
+| Capabilities beyond ABI v1 (clock, randomness, HTTP through the egress policy, credentials) | Not offered; a manifest that asks for any is refused. Granting them later must go through the egress policy and the credential service. |
+| Guest languages other than Rust, component model | Not provided. |
+
+Sandbox advisories: Wasmi is an interpreter with a strong validation and fuel model, but the
+tests show containment for the cases listed, not the absence of runtime bugs; keep `wasmi` pinned
+(`=2.0.0`) and rerun the hostile tests on every bump. Plugins share the process: a memory-safety
+bug in Wasmi would be a process-level bug. Plugin output is data in flows; downstream nodes must
+treat it as untrusted input.
 
 ## G1 device run (passed)
 
@@ -108,6 +129,52 @@ be profiled before any throughput claim.
 
 Not covered by G1: a 32-bit (`armhf`/`armel`) board, older or slower boards (Pi 3/4, Zero 2),
 and the in-tree `edgelinkd` binary (G2). The armv7 build remains build-only.
+
+## G2 in-tree measurements (passed with one noted row)
+
+`scripts/wasm-measure.sh` with the Phase 0 method: `ci` profile, copied `adoption/phase0/fixtures`,
+`run --bind`, startup = launch to first `/api/health`, RSS one second after launch, medians
+(host 15 samples, Pi 5 samples). Plugin cases add `edgelink/uppercase` (the SDK example) with an
+inject that sends one 1 KiB message to each node. Raw data: `adoption/phase7/g2/`.
+
+Binary sizes (`stat -c %s`, stripped `ci`), host x86-64; base = `79a4364` (before any Phase 7 code):
+
+| Build | Base | Now | Δ |
+|---|---:|---:|---:|
+| default | 17,004,920 | 17,021,688 | +16,768 (+0.10 %) |
+| `--no-default-features` | 14,889,528 | 14,905,944 | +16,416 |
+| `--features full` | 17,003,960 | 17,021,688 | +17,728 |
+| `--features nodes_wasm` | — | 18,504,408 | +1,482,720 vs default (1.41 MiB) |
+
+Raspberry Pi 5 (arm64, built natively, 51–58 °C, `throttled=0x0`): default 14,517,768,
+`nodes_wasm` 15,763,016 (+1,245,248, 1.19 MiB).
+
+| Case | Host startup (min/median ms) | Host VmRSS / RssAnon (KiB) | Pi 5 startup median (ms) | Pi 5 VmRSS / RssAnon (KiB) |
+|---|---:|---:|---:|---:|
+| base default (`79a4364`) | 7 / 15 | 16,044 / 3,000 | — | — |
+| default | 6 / 17 | 15,532 / 3,008 | 16 | 11,824 / 2,544 |
+| `nodes_wasm`, `enabled = false` | 6 / 13 | 16,492 / 3,064 | 15 | 12,736 / 2,592 |
+| `nodes_wasm`, enabled, no plugin node | 6 / 14 | 16,704 / 3,128 | 15 | 12,848 / 2,640 |
+| one plugin node (engine live) | 6 / 11 | 17,872 / 3,844 | 15 | 13,584 / 3,184 |
+| eight plugin nodes | 6 / 20 | 20,632 / 6,612 | 16 | 15,760 / 5,360 |
+
+The host startup distribution is bimodal (6–9 ms or 17–23 ms, from the 1 ms health-poll loop);
+minima are identical for every case. Against the DESIGN budgets:
+
+| Budget | Result |
+|---|---|
+| default/minimal/full unchanged within noise; ≤ 1 KiB from PR 1 | RSS unchanged (RssAnon +8 KiB vs base); size +16–17 KiB, **above the 1 KiB target** (no WASM code; see Decision) |
+| `nodes_wasm` binary ≤ +1.5 MiB | +1.41 MiB host, +1.19 MiB Pi 5 — pass |
+| idle RSS, feature on, `enabled = false` ≤ +256 KiB | RssAnon +56 / +48 KiB — pass; VmRSS +960 / +912 KiB — **over** (file-backed text) |
+| idle RSS, `enabled = true`, no plugin node ≤ +256 KiB | RssAnon +120 / +96 KiB — pass; VmRSS over as above |
+| one plugin node ≤ +1 MiB + instance | +1,168 / +736 KiB over enabled-idle (instance cap 512 KiB) — pass |
+| 8 plugin nodes within `memory_budget_kib` | 4,160 KiB admitted of 8,192; RssAnon +3.5 / +2.7 MiB over idle — pass |
+| startup, feature on, no plugins ≤ +5 ms | equal minima; medians within noise — pass |
+| per-message latency, 1 KiB `uppercase` | in-tree node path (encode, permit, blocking call, decode, delivery; 2,000 messages, engine start included): **68.8 µs** host, **137.2 µs** Pi 5 |
+
+The in-tree Pi/host ratio (2.0×) matches the fuel-throughput ratio; the 10× gap seen in the G1
+spike bench was specific to that harness. The end-to-end example test also passed natively on
+the Pi 5.
 
 ## Tests
 
@@ -162,6 +229,21 @@ then a fresh `PluginStore::open` sees A active and the flows prepare with it),
 
 `cargo test --features nodes_wasm --bin edgelinkd plugin` — `nodes_using_matches_only_the_plugin_type`.
 
+PR 7: `edgelink-wasm-guest` 2 unit tests (EVE round trip, host bounds enforced by `Ctx`);
+`uppercase` 1 and `csvparse` 2 host-side tests; `example_plugins_install_and_run` (ignored unless
+built) stages both Rust examples (validation + self-tests), activates them and runs
+`inject → uppercase → csvparse(delimiter ";")` to `[{"NAME":"BOLT","QTY":"4"},{"NAME":"NUT","QTY":"7"}]`
+on x86-64 and natively on the Pi 5.
+
+Hostile-test coverage against the phase prompt: unknown ABI, malformed manifest, unsupported
+capability, duplicate staging (idempotent by digest), infinite loop, cancellation, memory growth,
+oversized input/output/log/status/fail, forbidden WASI/`wbg`/unknown imports, imported memory,
+traversal ids and digests, symlinked store, crash at every store write, trap and three-strike
+failure state, global concurrency exhaustion, stop during a call, failed self-test/activation
+keeping the previous generation, restart ignoring quarantine, feature-off loud failure. Not
+covered by a fuzz target: the manifest parser and host-call decoders are covered by rule tests
+and the EVE decoder's bounded-input tests only.
+
 Online smoke run against the real binary (`edgelinkd run`, `enabled = true`): stage over HTTP →
 `ready`; activate → `editorReloadRequired`; `POST /flows` with a `wasm-acme-echo` node deploys;
 `/nodes` HTML has the generated template and help, `/nodes` JSON has module `wasm/acme/echo`;
@@ -187,17 +269,30 @@ an inactive plugin; after the flow is gone `remove` returns both generations to 
 | `cargo fmt --check` | passed |
 | `cargo clippy --all-features --tests --all -- -D warnings` | passed |
 | `cargo test --workspace --features full --no-fail-fast` | passed (no `nodes_wasm`; core 318 passed / 1 ignored, web 80 passed) |
-| `cargo test -p edgelink-core --features nodes_wasm --lib` | 322 passed, 1 ignored (55 WASM tests) |
+| `cargo test -p edgelink-core --features nodes_wasm --lib` | 323 passed, 3 ignored (56 WASM tests; the 2 example tests need built plugins) |
 | `cargo test -p edgelink-web --features nodes_wasm --lib` | 76 passed |
 | `cargo test --features nodes_wasm --bin edgelinkd` | 2 passed |
+| `scripts/wasm-examples.sh --e2e` | SDK 2, `csvparse` 2, `uppercase` 1 passed; both build for `wasm32`; end-to-end passed (host and Pi 5) |
+| Example crates: `cargo fmt --check`, `cargo clippy --target wasm32-unknown-unknown -D warnings`; `edgelink-wasm-guest` clippy for `wasm32` | passed |
 | `cargo build --features nodes_wasm`, `cargo build` | passed |
 | `cargo tree -e normal -i wasmi` (default and `--features full`) | no match: `wasmi` absent |
 | `cargo tree -p edgelink-core --no-default-features -i toml_edit` | nothing: the store adds no dependency to a minimal core |
-| Offline CLI and online API smoke runs (above), `run` with plugins disabled | passed |
+| `pytest ./tests` (default build) | 825 passed, 217 skipped, 1 failed: `test_ai_split_node.py::test_splits_overlap_zero_window` passes `[["1", {...}]]` where a message object is expected (`invalid type: sequence, expected struct Msg`); test added in Phase 6 (`af56df0`), unchanged by Phase 7 — pre-existing, not fixed here |
+| Offline CLI, online API and live editor runs; `run` with plugins disabled | passed |
+| G2 (`scripts/wasm-measure.sh`) on host and Raspberry Pi 5 | see "G2 in-tree measurements" |
 | `git diff --check` | passed |
 
-Not run in this close-out: `pytest ./tests -v`, ARM cross builds of `edgelinkd`, in-tree size/RSS
-measurements (G2). G1 is recorded above.
+Not run: a 32-bit ARM device run, and the Windows/ARM QEMU CI jobs (they run on schedule).
+
+## Rollback drill
+
+Exercised by `online_lifecycle_drill` (crates/web), the store tests and the live runs: install A →
+upgrade B → C fails its self-test (rejected) → D fails `prepare_flows` (pin `@1`) with B current
+and A previous → rollback B → A → restart (fresh store open) runs A. With plugins disabled,
+ordinary flows run and no engine is created; a flow that needs a plugin fails deploy naming it
+(`… requires WASM plugin acme/csvparse which is not active`, `… disabled by configuration`,
+`… not compiled in this build`). Packages stay in `<home>/plugins` untouched while disabled and
+are used again on re-enable.
 
 ## Rollback
 
@@ -209,5 +304,6 @@ measurements (G2). G1 is recorded above.
 
 ## Git
 
-PR 3/4 committed on `phase7-design` (`ef086bd`). PR 5 leftovers and PR 6 are uncommitted at the
-time of writing. Nothing pushed, tagged, released or merged to `master`.
+Committed on `phase7-design`: `79a4364` (design + ADR), `8eb7546` (host prototype), `56d1d05`
+(G1), `ef086bd` (store, manifest, CLI), `16f7b44` (config, admin API, editor), and the PR 7/8
+close-out commit. Nothing pushed, tagged, released or merged to `master`; version unchanged.

@@ -380,6 +380,41 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-features --tests --all
 
+  wasm-plugins:
+    name: WASM plugins (guest SDK, examples, end to end)
+    needs: fmt-and-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: x86_64-unknown-linux-gnu,wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - name: Example plugins are formatted and lint-clean
+        run: |
+          for example in crates/wasm-guest/examples/*/; do
+            cargo fmt --check --manifest-path "$example/Cargo.toml"
+            cargo clippy --manifest-path "$example/Cargo.toml" --target wasm32-unknown-unknown -- -D warnings
+          done
+          cargo clippy -p edgelink-wasm-guest --target wasm32-unknown-unknown -- -D warnings
+      - name: Plugin host tests (core and web, nodes_wasm)
+        run: |
+          cargo test -p edgelink-core --features nodes_wasm --lib
+          cargo test -p edgelink-web --features nodes_wasm --lib
+      - name: Build the example plugins and install them end to end
+        run: scripts/wasm-examples.sh --e2e
+
   nightly-build-and-release:
     name: Nightly Build & Release (Windows)
     needs: fmt-and-check

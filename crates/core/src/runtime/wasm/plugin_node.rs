@@ -764,6 +764,82 @@ mod tests {
         assert_eq!(runtime.permits().available_permits(), permits);
     }
 
+    /// End to end with the Rust example plugins built by `scripts/wasm-examples.sh --e2e`:
+    /// stage (validation + self-test), activate, then run inject → uppercase → csvparse.
+    #[tokio::test]
+    #[ignore = "needs the example plugins built for wasm32: scripts/wasm-examples.sh --e2e"]
+    async fn example_plugins_install_and_run() {
+        let dir = std::env::var("EDGELINK_WASM_EXAMPLES")
+            .expect("EDGELINK_WASM_EXAMPLES must name the directory with uppercase.wasm and csvparse.wasm");
+        let home = std::env::temp_dir().join(format!("edgelink-wasm-e2e-{}", uuid::Uuid::new_v4()));
+        let store = super::super::store::PluginStore::open_at(
+            home.join("plugins"),
+            super::super::settings::WasmSettings::default(),
+        )
+        .unwrap();
+        for name in ["uppercase", "csvparse"] {
+            let bytes = std::fs::read(format!("{dir}/{name}.wasm")).unwrap();
+            let report = store.stage(&bytes).unwrap();
+            assert_eq!(report.status, super::super::store::PackageStatus::Ready, "{report:?}");
+            store.activate(&report.id, &report.sha256, &|_| Ok(())).unwrap();
+        }
+        let (set, problems) = store.active_plugins().unwrap();
+        assert!(problems.is_empty(), "{problems:?}");
+        let registry = registry_of(set.specs().cloned().collect());
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "wasm-edgelink-uppercase", "wasmPlugin": "edgelink/uppercase@1", "wires": [["2"]] },
+            { "id": "2", "z": "100", "type": "wasm-edgelink-csvparse", "delimiter": ";", "header": true, "wires": [["3"]] },
+            { "id": "3", "z": "100", "type": "test-once" }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
+        let msgs = engine
+            .run_once_with_inject(
+                1,
+                Duration::from_secs(5),
+                inject(json!([["1", { "_msgid": MSGID, "payload": "name;qty\nbolt;4\nnut;7" }]])),
+            )
+            .await
+            .unwrap();
+        let rows = msgs[0].get("payload").cloned().unwrap();
+        let rows: Value = serde_json::to_value(&rows).unwrap();
+        assert_eq!(rows, json!([{ "NAME": "BOLT", "QTY": "4" }, { "NAME": "NUT", "QTY": "7" }]));
+        assert_eq!(msgs[0].get(MSG_ID).and_then(Variant::as_str), Some(MSGID));
+        drop(store);
+        let _ = std::fs::remove_dir_all(home);
+    }
+
+    /// G2 message cost: 2,000 messages with a 1 KiB string payload through one `uppercase`
+    /// node (EVE encode/decode, permit, blocking call, delivery), engine start/stop and the first
+    /// instantiation included. Run with `--profile ci` for representative numbers.
+    #[tokio::test]
+    #[ignore = "measurement; needs EDGELINK_WASM_EXAMPLES (scripts/wasm-examples.sh)"]
+    async fn example_plugin_message_cost() {
+        const N: usize = 2000;
+        let dir = std::env::var("EDGELINK_WASM_EXAMPLES").expect("EDGELINK_WASM_EXAMPLES");
+        let bytes = std::fs::read(format!("{dir}/uppercase.wasm")).unwrap();
+        let set = crate::runtime::wasm::ActivePlugins::from_packages(vec![bytes]).unwrap();
+        let registry = registry_of(set.specs().cloned().collect());
+        let flows = json!([
+            { "id": "100", "type": "tab" },
+            { "id": "1", "z": "100", "type": "wasm-edgelink-uppercase", "wires": [["2"]] },
+            { "id": "2", "z": "100", "type": "test-once" }
+        ]);
+        let engine = crate::runtime::engine::Engine::with_json(&registry, flows, Some(config(ENABLED))).unwrap();
+        let payload = "x".repeat(1024);
+        let msgs: Vec<Value> = (0..N).map(|_| json!(["1", { "payload": payload }])).collect();
+        let started = Instant::now();
+        let out = engine.run_once_with_inject(N, Duration::from_secs(120), inject(Value::Array(msgs))).await.unwrap();
+        let elapsed = started.elapsed();
+        assert_eq!(out.len(), N);
+        assert_eq!(out[0].get("payload").and_then(Variant::as_str).map(str::len), Some(1024));
+        println!(
+            "{{\"case\":\"in-tree-uppercase-1KiB\",\"arch\":\"{}\",\"messages\":{N},\"us_per_message\":{:.1}}}",
+            std::env::consts::ARCH,
+            elapsed.as_secs_f64() * 1e6 / N as f64
+        );
+    }
+
     #[tokio::test]
     async fn forged_msgid_is_a_fault_caught_by_catch() {
         let registry = registry("test/forge", FORGE_MSGID, 1);
