@@ -248,12 +248,16 @@ jobs:
           N2LINK_BUILD_PROFILE: ci
         run: pytest ./tests -v
 
+  # Deferred: QEMU user-mode on ubuntu-latest still needs a working host path and
+  # sysroot. Native Raspberry Pi 5 aarch64 is the ARM runtime evidence
+  # (docs/ISSUES.md). Restore `schedule || workflow_dispatch` when picking this up.
   build-and-test-on-arm-linux:
     name: Build and Test on ARM Linux
     needs: fmt-and-check
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: false
     strategy:
+      fail-fast: false
       matrix:
         target: [ aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf, armv7-unknown-linux-gnueabi]
 

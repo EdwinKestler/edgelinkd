@@ -17,7 +17,7 @@ Known limitations and workarounds: [docs/ISSUES.md](docs/ISSUES.md).
 Snapshot at 2026-10-06; rerun before tagging if `master` has moved.
 
 - Live evidence on `b39461c` (`artifacts/live-evidence/20261006T203854Z-b39461c/`): 50 checks passed, 0 failed. Pytest in that run: 826 passed, 217 skipped.
-- GitHub Actions CICD run 5 on `ab261f3` (Linux): success. The three `scripts/` commits after that SHA did not retrigger CICD. Windows and ARM jobs run only on `schedule` or `workflow_dispatch`.
+- GitHub Actions: Linux x86-64, Windows msvc, and Windows gnu tests passed on workflow_dispatch. QEMU ARM CI is deferred. Native Raspberry Pi 5 (aarch64) ran `n2link-core --all-features --lib` (390 passed, 0 failed).
 
 ### Added
 

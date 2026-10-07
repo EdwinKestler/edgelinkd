@@ -23,6 +23,17 @@ except FileNotFoundError:
     print(f"Error: {cargo_output_path} not found. Please run cargo test first.")
     sys.exit(1)
 
+def resolve_exe(exe):
+    """cross emits container paths with CARGO_TARGET_DIR=/target."""
+    candidates = [exe]
+    norm = exe.replace('\\', '/')
+    if norm.startswith('/target/'):
+        candidates.append(os.path.join('target', *norm[len('/target/'):].split('/')))
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
+
 # Host-only artifacts (proc-macro / build-script tests) land in target/ci, not
 # target/<triple>/ci. QEMU cannot run them.
 test_binaries = []
@@ -45,18 +56,25 @@ if not test_binaries:
 exit_code = 0
 
 for test_binary in test_binaries:
-    print(f"Running test binary: {test_binary}")
+    host_binary = resolve_exe(test_binary)
+    if host_binary is None:
+        print(f"Test binary not on the host: {test_binary}")
+        exit_code = 1
+        continue
+    print(f"Running test binary: {host_binary}")
     result = subprocess.run(
-        [qemu_cmd, "-L", f"/usr/{toolchain_prefix}", test_binary],
+        [qemu_cmd, "-L", f"/usr/{toolchain_prefix}", host_binary],
         capture_output=True,
         text=True,
     )
     if result.stdout:
         print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
     if result.returncode != 0:
-        print(f"Test failed: {test_binary} (exit {result.returncode})")
+        print(f"Test failed: {host_binary} (exit {result.returncode})")
         if result.stderr:
             print(result.stderr, end="" if result.stderr.endswith("\n") else "\n")
+        elif result.stdout == "":
+            print("qemu produced no output (missing interpreter or sysroot is a common cause)")
         exit_code = 1
 
 sys.exit(exit_code)

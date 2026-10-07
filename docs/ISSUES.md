@@ -54,8 +54,9 @@ feature-propagation change that has not been made.
 
 Encrypted credentials (atomic replace, permissions, advisory locks, crash recovery), resource
 measurements and the WASM plugin host have run on Linux x86-64 and on a Raspberry Pi 5 (arm64).
-Windows and ARMv7 builds pass in CI, but their runtime behaviour in those areas has not been
-executed on hardware. Report anything that behaves differently there.
+Windows msvc and gnu tests pass in GitHub Actions. QEMU ARM CI (armv7 and aarch64-on-x86) is
+deferred; restore `build-and-test-on-arm-linux` in `.github/workflows/CICD.yml` when picking
+that up. Report anything that behaves differently on those hosts.
 
 ## WASM plugins (`nodes_wasm`, experimental)
 
