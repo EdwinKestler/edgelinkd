@@ -6,7 +6,7 @@ root [README](../README.md) and the spec coverage report
 ([`tests/REDNODES-SPECS-DIFF.md`](../tests/REDNODES-SPECS-DIFF.md)), not here. Measured evidence
 and phase boundaries are under [`adoption/`](../adoption/).
 
-Report new issues on GitHub: <https://github.com/EdwinKestler/n2linkd/issues>.
+Report new issues on GitHub: <https://github.com/n2link/n2link/issues>.
 
 ## Runtime and flows
 
@@ -89,13 +89,3 @@ See the [operator manual](operations/wasm-plugins.md) for setup and its troubles
   automated tests; the tests use a deterministic local provider. This includes `ai-agent`, which
   is in the default build but has not had its live OpenAI and Anthropic run
   (`adoption/phase6/LIVE.md`).
-
-## Test suite
-
-### `test_ai_split_node.py::test_splits_overlap_zero_window` fails
-
-The test passes `[["1", {"payload": "abcdef"}]]` where the harness expects a message object, and
-fails with `invalid type: sequence, expected struct Msg` before the node runs. It is a test bug,
-not an `ai-split` bug; the other `ai-split` tests pass. Until it is fixed, run
-`pytest ./tests -v --deselect tests/nodes/function/test_ai_split_node.py::TestAiSplitNode::test_splits_overlap_zero_window`
-to keep the rest of the suite meaningful.
