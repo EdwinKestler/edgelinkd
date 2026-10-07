@@ -303,7 +303,11 @@ mod tests {
         engine.start().await.unwrap();
         let cancel = CancellationToken::new();
         engine.inject_msg(&injected[0].0, MsgHandle::new(injected[0].1.clone()), cancel).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(400)).await;
+        // Windows can take seconds to RST a just-closed port; poll instead of a 400 ms sleep.
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+        while engine.error_count() == 0 && tokio::time::Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
         assert!(engine.error_count() >= 1, "connection failure was not a node error");
         engine.stop().await.unwrap();
     }

@@ -1372,6 +1372,17 @@ mod tests {
     }
 
     #[cfg(feature = "history_sqlite")]
+    fn wait_until_history_ready(handle: &HistoryHandle) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut health = handle.health();
+        while health.state == "starting" && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
+            health = handle.health();
+        }
+        assert_eq!(health.state, "ok", "history writer did not become ready: {health:?}");
+    }
+
+    #[cfg(feature = "history_sqlite")]
     #[test]
     fn test_sqlite_history_lifecycle() {
         let temp_dir = std::env::temp_dir().join(format!("n2linkd-hist-test-{}", uuid::Uuid::new_v4()));
@@ -1391,17 +1402,8 @@ mod tests {
         };
 
         let handle = HistoryHandle::init_with_config(config, Some(temp_dir.clone())).unwrap();
-
-        // The writer thread initialises the schema in the background; a slow CI runner can take
-        // longer than a fixed sleep, so wait (bounded) for it to leave "starting".
-        let deadline = std::time::Instant::now() + Duration::from_secs(5);
-        let mut health = handle.health();
-        while health.state == "starting" && std::time::Instant::now() < deadline {
-            std::thread::sleep(Duration::from_millis(20));
-            health = handle.health();
-        }
-        assert_eq!(health.state, "ok");
-        assert_eq!(health.schema_version, 1);
+        wait_until_history_ready(&handle);
+        assert_eq!(handle.health().schema_version, 1);
 
         // Record some events
         handle.record_deploy_proposed("admin", Some("1234abcd"), "full", 10);
@@ -1445,7 +1447,7 @@ mod tests {
         };
 
         let handle = HistoryHandle::init_with_config(config, Some(temp_dir.clone())).unwrap();
-        std::thread::sleep(Duration::from_millis(50));
+        wait_until_history_ready(&handle);
 
         let mut handles = Vec::new();
         for t in 0..4 {
@@ -1496,7 +1498,7 @@ mod tests {
         };
 
         let handle = HistoryHandle::init_with_config(config, Some(temp_dir.clone())).unwrap();
-        std::thread::sleep(Duration::from_millis(50));
+        wait_until_history_ready(&handle);
 
         // Rapidly push more events than queue capacity
         for i in 0..200 {
@@ -1506,11 +1508,16 @@ mod tests {
         let health_mid = handle.health();
         assert!(health_mid.dropped_queue_full > 0, "Expected some events to be dropped due to queue saturation");
 
-        // Wait for writer to process and write gap event
-        std::thread::sleep(Duration::from_millis(700));
-
-        let res = handle.query(HistoryQuery { limit: 500, ..Default::default() }).unwrap();
-        let has_gap = res.events.iter().any(|ev| ev.category == "history" && ev.kind == "history.gap");
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut has_gap = false;
+        while Instant::now() < deadline {
+            let res = handle.query(HistoryQuery { limit: 500, ..Default::default() }).unwrap();
+            has_gap = res.events.iter().any(|ev| ev.category == "history" && ev.kind == "history.gap");
+            if has_gap {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
         assert!(has_gap, "Expected history.gap event in recorded events");
 
         handle.shutdown();
