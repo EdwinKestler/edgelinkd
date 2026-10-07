@@ -1372,13 +1372,19 @@ mod tests {
     }
 
     #[cfg(feature = "history_sqlite")]
-    fn wait_until_history_ready(handle: &HistoryHandle) {
+    fn wait_until_history_settled(handle: &HistoryHandle) -> HistoryHealth {
         let deadline = Instant::now() + Duration::from_secs(5);
         let mut health = handle.health();
         while health.state == "starting" && Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(20));
             health = handle.health();
         }
+        health
+    }
+
+    #[cfg(feature = "history_sqlite")]
+    fn wait_until_history_ready(handle: &HistoryHandle) {
+        let health = wait_until_history_settled(handle);
         assert_eq!(health.state, "ok", "history writer did not become ready: {health:?}");
     }
 
@@ -1553,9 +1559,7 @@ mod tests {
         };
 
         let handle = HistoryHandle::init_with_config(config, Some(temp_dir.clone())).unwrap();
-        std::thread::sleep(Duration::from_millis(100));
-
-        let health = handle.health();
+        let health = wait_until_history_settled(&handle);
         assert_eq!(health.state, "failed");
         assert_eq!(health.last_error.as_deref(), Some("newer_schema"));
 
@@ -1589,9 +1593,7 @@ mod tests {
         };
 
         let handle = HistoryHandle::init_with_config(config, Some(temp_dir.clone())).unwrap();
-        std::thread::sleep(Duration::from_millis(100));
-
-        let health = handle.health();
+        let health = wait_until_history_settled(&handle);
         assert_eq!(health.state, "failed");
         assert_eq!(health.last_error.as_deref(), Some("corrupt"));
 
