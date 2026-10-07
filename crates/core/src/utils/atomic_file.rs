@@ -146,6 +146,8 @@ async fn write_tmp(tmp: &Path, bytes: &[u8], private: bool) -> Result<(), String
     if private {
         opts.mode(0o600);
     }
+    #[cfg(not(unix))]
+    let _ = private;
     let mut file = opts.open(tmp).await.map_err(|err| err.to_string())?;
     file.write_all(bytes).await.map_err(|err| err.to_string())?;
     file.flush().await.map_err(|err| err.to_string())?;
@@ -190,6 +192,8 @@ async fn replace_existing(from: &Path, to: &Path, err: std::io::Error) -> Result
 
 async fn enforce_private(path: &Path, private: bool) -> Result<(), String> {
     if !private {
+        #[cfg(not(unix))]
+        let _ = path;
         return Ok(());
     }
     #[cfg(unix)]
@@ -203,6 +207,8 @@ async fn enforce_private(path: &Path, private: bool) -> Result<(), String> {
             return Err("credential file mode is not 0600".to_string());
         }
     }
+    #[cfg(not(unix))]
+    let _ = path;
     Ok(())
 }
 

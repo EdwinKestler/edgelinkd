@@ -1001,6 +1001,8 @@ async fn write_new(path: &Path, bytes: &[u8], private: bool) -> Result<(), Strin
     if private {
         options.mode(0o600);
     }
+    #[cfg(not(unix))]
+    let _ = private;
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await.map_err(|_| "output directory cannot be created")?;
     }
