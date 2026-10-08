@@ -41,6 +41,8 @@
     <symbol id="i-remote" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 16.2a6 6 0 0 0 0-8.4M5 5a10 10 0 0 0 0 14M19 19a10 10 0 0 0 0-14"/></g></symbol>
     <symbol id="i-box" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></g></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-cup" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16M8 2.5c-.8 1 .8 2 0 3.2M12 2.5c-.8 1 .8 2 0 3.2"/></g></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M14.5 6.5a4 4 0 0 0 5 5L21 13l-8 8-3-3 8-8M14.5 6.5 13 5a4 4 0 0 0-5.4 5.3L3 15l3 3 4.6-4.6"/></symbol>
   </defs>
 </svg>
 
@@ -55,6 +57,7 @@
       <a href="#quick-start">Quick start</a>
       <a href="#config">Configuration</a>
       <a href="https://github.com/n2link/n2link/tree/master/docs">Docs</a>
+      <a class="nav-support" href="#support">Support</a>
     </div>
     <div class="nav-cta">
       <a class="btn small" href="https://github.com/n2link/n2link"><svg><use href="#i-github"/></svg>GitHub</a>
@@ -404,6 +407,40 @@ enabled = <span class="k">true</span></pre></div></div>
     </div>
   </div>
 </section>
+
+<section class="support" id="support">
+  <div class="wrap support-grid">
+    <div>
+      <p class="kicker">Support n2link</p>
+      <h2>Keep the <span class="warm">steam</span> going</h2>
+      <p class="support-lead">n2link is built, debugged and maintained in personal time, and much of that work runs on paid AI tokens: Flow Copilot is tested against live models, and the code is reviewed and debugged with AI help. If n2link saves you time, a donation helps keep it moving.</p>
+      <ul class="fuel">
+        <li><span class="ico"><svg><use href="#i-cup"/></svg></span><div><b>A coffee</b><span>Keeps an evening of debugging going.</span></div></li>
+        <li><span class="ico"><svg><use href="#i-sparkles"/></svg></span><div><b>A token refill</b><span>Pays for live provider runs and AI-assisted reviews.</span></div></li>
+        <li><span class="ico"><svg><use href="#i-wrench"/></svg></span><div><b>Maintenance time</b><span>Fixes, releases, docs and answering issues.</span></div></li>
+      </ul>
+      <p class="also">Not able to donate? A <a href="https://github.com/n2link/n2link">star on GitHub</a>, a <a href="https://github.com/n2link/n2link/issues">bug report</a> or a pull request helps too.</p>
+    </div>
+    <div class="donate-card">
+      <svg class="mug" viewBox="0 0 64 64" aria-hidden="true">
+        <g class="steam"><path d="M24 20c-3-4 3-6 0-10"/><path d="M32 20c-3-4 3-6 0-10"/><path d="M40 20c-3-4 3-6 0-10"/></g>
+        <path d="M14 26h34v14a12 12 0 0 1-12 12H26a12 12 0 0 1-12-12z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M48 30h3a6 6 0 0 1 0 12h-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M12 57h40" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <h3>Buy the maintainer a coffee</h3>
+      <p>Scan with your phone, or open the link. Any amount helps.</p>
+      <a class="qr" href="https://airtm.me/edwin30cg33xl" target="_blank" rel="noopener" aria-label="Donate on Airtm">
+        <img src="media/donate-airtm-qr.png" width="184" height="184" alt="QR code for airtm.me/edwin30cg33xl">
+      </a>
+      <span class="qr-link">airtm.me/edwin30cg33xl</span>
+      <div class="donate-actions">
+        <a class="btn warm" href="https://airtm.me/edwin30cg33xl" target="_blank" rel="noopener"><svg><use href="#i-cup"/></svg>Donate on Airtm</a>
+        <button class="btn" type="button" data-copy="https://airtm.me/edwin30cg33xl"><svg><use href="#i-copy"/></svg><span>Copy link</span></button>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer>
@@ -424,6 +461,7 @@ enabled = <span class="k">true</span></pre></div></div>
           <li><a href="https://github.com/n2link/n2link/releases">Releases</a></li>
           <li><a href="https://github.com/n2link/n2link/issues">Issues</a></li>
           <li><a href="https://github.com/n2link/n2link/blob/master/docs/ISSUES.md">Known issues</a></li>
+          <li><a href="#support">Support n2link</a></li>
         </ul>
       </div>
       <div>

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Prepare the project website media in site/media/ from the raw captures in assets/.
 #
-#   scripts/site-media.sh
+#   scripts/site-media.sh              # everything
+#   scripts/site-media.sh qr           # only the donation QR (also: screenshots, video)
 #
 # Screen captures are cropped below the browser's tab and bookmarks bars (rows 0-120 of a
 # 1920x1080 capture) so only the n2link editor is published. The raw files stay out of git.
@@ -70,11 +71,38 @@ encode_video() {
   log "poster copilot-demo-poster.jpg"
 }
 
+DONATION_QR="assets/donations/airtmMe-QR.png"
+DONATION_URL="airtm.me/edwin30cg33xl"
+
+# Copy the donation QR at 2x with nearest-neighbour scaling (stays sharp), after checking that it
+# still decodes to the donation link printed on the site.
+donation_qr() {
+  [ -f "$DONATION_QR" ] || { log "missing $DONATION_QR"; exit 1; }
+  python3 -I - "$DONATION_QR" "$OUT/donate-airtm-qr.png" "$DONATION_URL" <<'PY'
+import sys
+import cv2
+import numpy as np
+from PIL import Image
+src, dst, expected = sys.argv[1:4]
+im = Image.open(src).convert("RGB")
+probe = np.array(im.resize((800, 800), Image.NEAREST))[:, :, ::-1]
+probe = cv2.copyMakeBorder(probe, 80, 80, 80, 80, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+data, _, _ = cv2.QRCodeDetector().detectAndDecode(probe)
+if data.rstrip("/").removeprefix("https://") != expected:
+    sys.exit(f"{src} decodes to {data!r}, expected {expected!r}")
+im.resize((im.width * 2, im.height * 2), Image.NEAREST).save(dst, optimize=True)
+PY
+  log "donation QR donate-airtm-qr.png -> $DONATION_URL"
+}
+
+# Steps: all (default), or any of: screenshots video qr
 main() {
-  check_inputs
+  local steps="${*:-screenshots video qr}"
   mkdir -p "$OUT"
-  crop_screenshots
-  encode_video
+  case " $steps " in *" screenshots "*|*" video "*) check_inputs ;; esac
+  case " $steps " in *" screenshots "*) crop_screenshots ;; esac
+  case " $steps " in *" video "*) encode_video ;; esac
+  case " $steps " in *" qr "*) donation_qr ;; esac
   log "done: $(ls "$OUT" | wc -l) files in $OUT"
 }
 main "$@"
