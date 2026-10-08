@@ -1856,7 +1856,7 @@ dependencies = [
 
 [[package]]
 name = "n2link-app"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1879,7 +1879,7 @@ dependencies = [
 
 [[package]]
 name = "n2link-core"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -1944,11 +1944,11 @@ dependencies = [
 
 [[package]]
 name = "n2link-eve"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 
 [[package]]
 name = "n2link-macro"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1957,7 +1957,7 @@ dependencies = [
 
 [[package]]
 name = "n2link-nodes-dummy"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "async-trait",
  "config",
@@ -1970,7 +1970,7 @@ dependencies = [
 
 [[package]]
 name = "n2link-pymod"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "config",
@@ -1987,14 +1987,14 @@ dependencies = [
 
 [[package]]
 name = "n2link-wasm-guest"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "n2link-eve",
 ]
 
 [[package]]
 name = "n2link-web"
-version = "0.3.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "anyhow",
  "axum",

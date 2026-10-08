@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0-rc.1]
+## [0.4.0-rc.1] - 2026-10-07
 
 First release under the n2link name. Derived from EdgeLinkd; see [NOTICE](NOTICE).
 Known limitations and workarounds: [docs/ISSUES.md](docs/ISSUES.md).
@@ -55,3 +55,6 @@ These aliases work through 0.4.x, warn once, and go away in the next minor:
 ### Security
 
 - An `edgelink-credentials` envelope is refused; n2link never decrypts it or returns empty credentials in its place.
+
+[Unreleased]: https://github.com/n2link/n2link/compare/v0.4.0-rc.1...HEAD
+[0.4.0-rc.1]: https://github.com/n2link/n2link/releases/tag/v0.4.0-rc.1
