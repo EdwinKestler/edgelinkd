@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>n2link · Node-RED, reimplemented in Rust</title>
+  <meta name="description" content="n2link runs Node-RED flows on a native Rust runtime with the Node-RED editor built in, an experimental AI Flow Copilot, encrypted credentials and outbound network policy.">
+  <meta name="theme-color" content="#0a1220">
+  <link rel="icon" href="brand/favicon.ico" sizes="any">
+  <link rel="icon" href="brand/n2link-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="brand/n2link-icon-256.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="n2link · Node-RED, reimplemented in Rust">
+  <meta property="og:description" content="Native Rust runtime for Node-RED flows, with the editor built in and an experimental AI Flow Copilot.">
+  <meta property="og:image" content="https://n2link.github.io/n2link/brand/n2link-banner.png">
+  <meta property="og:url" content="https://n2link.github.io/n2link/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="styles.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6M12 19h8"/></g></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></g></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 8.6 7.6 4 9l4.6 1.4L10 15l1.4-4.6L16 9l-4.6-1.4z"/><path d="M18 14l-.8 2.2L15 17l2.2.8L18 20l.8-2.2L21 17l-2.2-.8z"/></g></symbol>
+    <symbol id="i-editor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></g></symbol>
+    <symbol id="i-flows" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="7" height="5" rx="1.5"/><rect x="14.5" y="4" width="7" height="5" rx="1.5"/><rect x="14.5" y="15" width="7" height="5" rx="1.5"/><path d="M9.5 6.5h5M12 6.5v11h2.5"/></g></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></g></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4.5 6v6c0 4.4 3.2 7.9 7.5 9 4.3-1.1 7.5-4.6 7.5-9V6z"/><path d="m9 12 2 2 4-4"/></g></symbol>
+    <symbol id="i-puzzle" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M10 3.5a2 2 0 0 1 4 0V5h4a1 1 0 0 1 1 1v4h-1.5a2 2 0 0 0 0 4H19v4a1 1 0 0 1-1 1h-4v-1.5a2 2 0 0 0-4 0V19H6a1 1 0 0 1-1-1v-4h1.5a2 2 0 0 0 0-4H5V6a1 1 0 0 1 1-1h4z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-gateway" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 16.5h.01M11 16.5h.01M8 9.5a5.5 5.5 0 0 1 8 0M5.5 7a9 9 0 0 1 13 0"/></g></symbol>
+    <symbol id="i-factory" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 20V10l5 3V10l5 3V10l5 3V4h3v16z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m3 11 9-7 9 7M5 9.5V20h5v-6h4v6h5V9.5"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.3 9.2 4.5 4.5 0 0 0 7 18z"/></symbol>
+    <symbol id="i-remote" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 16.2a6 6 0 0 0 0-8.4M5 5a10 10 0 0 0 0 14M19 19a10 10 0 0 0 0-14"/></g></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></g></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13l10.5-6.5z"/></symbol>
+  </defs>
+</svg>
+
+<a class="sr-only" href="#main">Skip to content</a>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Main">
+    <a class="brand" href="#top" aria-label="n2link home"><img src="brand/n2link-logo.svg" alt="n2link" width="153" height="31"></a>
+    <span class="pill">v0.4.0-rc.1 · Rust</span>
+    <div class="nav-links" id="nav-links">
+      <a href="#copilot">Flow Copilot</a>
+      <a href="#features">Features</a>
+      <a href="#quick-start">Quick start</a>
+      <a href="#config">Configuration</a>
+      <a href="https://github.com/n2link/n2link/tree/master/docs">Docs</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn small" href="https://github.com/n2link/n2link"><svg><use href="#i-github"/></svg>GitHub</a>
+      <a class="btn small primary" href="#quick-start">Get started</a>
+    </div>
+    <button class="icon-btn menu-btn" type="button" aria-controls="nav-links" aria-expanded="false" aria-label="Open menu"><svg><use href="#i-menu"/></svg></button>
+  </nav>
+</header>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">
+        <span class="pill muted">Fork of EdgeLinkd · Apache-2.0</span>
+        <a class="pill" href="#copilot"><svg width="12" height="12"><use href="#i-sparkles"/></svg>Flow Copilot · experimental</a>
+      </div>
+      <h1>Node-RED,<br><span class="accent">reimplemented</span><br>in Rust</h1>
+      <p class="lead"><strong>n2link</strong> runs your Node-RED flows on a native Rust runtime, with the Node-RED editor built in. Keep your <code>flows.json</code>, drop the Node.js runtime, and add production controls for credentials, inbound traffic and outbound connections.</p>
+      <div class="actions">
+        <a class="btn light" href="#quick-start"><svg><use href="#i-terminal"/></svg>Get started</a>
+        <a class="btn" href="https://github.com/n2link/n2link"><svg><use href="#i-github"/></svg>View on GitHub</a>
+      </div>
+      <div class="term" data-copy-scope>
+        <div class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">bash — n2link</span>
+          <button class="icon-btn" type="button" data-copy="git clone --recursive https://github.com/n2link/n2link.git&#10;cd n2link &amp;&amp; cargo build --release&#10;./target/release/n2linkd" aria-label="Copy commands"><svg><use href="#i-copy"/></svg></button>
+        </div>
+<pre><span class="c"># clone and build (Rust 1.88+, npm for the editor build)</span>
+<span class="k">git</span> clone --recursive <span class="s">https://github.com/n2link/n2link.git</span>
+<span class="k">cd</span> n2link &amp;&amp; <span class="k">cargo</span> build --release
+<span class="c"># run: editor at http://127.0.0.1:1888</span>
+./target/release/<span class="k">n2linkd</span></pre>
+      </div>
+      <div class="fineprint" style="margin-top:14px"><span>Alpha</span><span>No Node.js at runtime</span><span>flows.json compatible</span></div>
+    </div>
+    <figure style="margin:0">
+      <div class="window">
+        <div class="window-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">127.0.0.1:1888</span></div>
+        <img src="media/copilot-cpu-flow.webp" width="1920" height="959" alt="The n2link editor with a flow drafted by Flow Copilot: an MQTT subscription adds a timestamp, then writes CSV and caches the latest value in Redis. The Copilot panel and debug messages are on the right." data-lightbox="A flow drafted by Flow Copilot from one sentence, deployed and running.">
+      </div>
+      <figcaption>The real editor, served by <code>n2linkd</code>. The lower flow was drafted by Flow Copilot from one sentence.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="strip">
+  <ul class="wrap">
+    <li>Native Rust runtime</li>
+    <li>Node-RED editor built in</li>
+    <li>flows.json compatible</li>
+    <li>MQTT · HTTP · WebSocket · TCP/UDP</li>
+    <li>Redis · PostgreSQL</li>
+    <li>Linux · Windows · ARM</li>
+  </ul>
+</div>
+
+<section class="copilot" id="copilot">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">Flow Copilot · experimental</p>
+        <h2>Describe it.<br><span class="muted">Review the draft. Deploy.</span></h2>
+      </div>
+      <p>Flow Copilot lives in the editor sidebar. You describe a flow in plain language; it drafts nodes and wires from the node catalog of <em>this</em> runtime, and nothing runs until you review the draft and press Deploy.</p>
+    </div>
+    <div class="copilot-grid">
+      <div>
+        <div class="video-frame">
+          <video controls preload="metadata" playsinline poster="media/copilot-demo-poster.jpg" aria-label="Screen recording of Flow Copilot drafting and deploying flows in n2link">
+            <source src="media/copilot-demo.mp4" type="video/mp4">
+            Your browser cannot play this video. <a href="media/copilot-demo.mp4">Download the MP4</a>.
+          </video>
+        </div>
+        <div class="video-meta"><span>Screen recording, n2link 0.4.0-rc.1 · 5:47</span><span>Trimmed at the start, otherwise unedited</span></div>
+      </div>
+      <div class="panel">
+        <p class="panel-title"><svg><use href="#i-sparkles"/></svg>What you see in the recording</p>
+        <ol class="steps">
+          <li><span class="n">1</span><div><h3>Connect a provider</h3><p>An <code>ai-provider</code> config node holds the model settings: OpenAI, Anthropic, xAI or Snowflake Cortex.</p></div></li>
+          <li><span class="n">2</span><div><h3>Describe the flow</h3><p>Pick the target flow and model in the Copilot panel and write what you want, e.g. read CPU usage with an exec node and publish it to a local MQTT topic.</p></div></li>
+          <li><span class="n">3</span><div><h3>Get a grounded draft</h3><p>The draft uses only nodes installed in this runtime, with their named ports and payload types, and is checked against node metadata.</p></div></li>
+          <li><span class="n">4</span><div><h3>Apply, review, deploy</h3><p><em>Apply to flow</em> imports the draft into the editor. You inspect it, then Deploy like any other change.</p></div></li>
+        </ol>
+      </div>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>Endpoint</b><span><code>POST /assistant/draft</code></span></div>
+      <div class="fact"><b>Limits</b><span>Own rate and concurrency budget in <code>[api_protection.copilot]</code></span></div>
+      <div class="fact"><b>Outbound</b><span>Provider calls go through the egress policy</span></div>
+    </div>
+    <p class="note"><strong>Experimental.</strong> Drafts can add and connect nodes; they don't edit or delete existing ones yet. Live provider runs are not part of the automated test suite, which uses a deterministic local provider. Details in <a href="https://github.com/n2link/n2link/blob/master/docs/ISSUES.md#flow-copilot">known issues</a>.</p>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">Screens</p>
+        <h2>The editor you already know</h2>
+      </div>
+      <p>n2link serves the Node-RED editor itself, so palettes, debug messages and deploys work the way they do in Node-RED. The n2link additions sit in the same sidebar and settings.</p>
+    </div>
+    <div class="shots">
+      <figure class="shot">
+        <button type="button" data-lightbox-src="media/copilot-cpu-flow.webp" data-caption="A Copilot-drafted flow: subscribe to cpu, add a timestamp, append CSV and cache the latest value in Redis."><img src="media/copilot-cpu-flow-960.webp" width="960" height="480" loading="lazy" alt="Flow Copilot drafted flow with MQTT, CSV and Redis nodes"></button>
+        <figcaption><b>A drafted flow, running</b><span>Subscribe, timestamp, then CSV and a Redis cache, from one prompt.</span></figcaption>
+      </figure>
+      <figure class="shot">
+        <button type="button" data-lightbox-src="media/debug-sidebar.webp" data-caption="Debug messages arrive with the timestamped payload; the palette shows parser and storage nodes, including PostgreSQL and Redis."><img src="media/debug-sidebar-960.webp" width="960" height="480" loading="lazy" alt="Debug sidebar with messages and the storage palette"></button>
+        <figcaption><b>Debug and palette</b><span>Messages as they arrive; storage nodes including PostgreSQL and Redis.</span></figcaption>
+      </figure>
+      <figure class="shot">
+        <button type="button" data-lightbox-src="media/egress-policy.webp" data-caption="User Settings, n2link pane: the outbound network policy, validated, saved and applied from the editor."><img src="media/egress-policy-960.webp" width="960" height="480" loading="lazy" alt="Outbound network policy settings in the editor"></button>
+        <figcaption><b>Outbound network policy</b><span>Read, validate, save and roll back the <code>[egress]</code> table from User Settings.</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">Why n2link</p>
+        <h2>Built for gateways, controllers and small machines</h2>
+      </div>
+      <p>The same editor and flows as Node-RED, on a single Rust binary, with the controls you need before a flow engine goes near production equipment.</p>
+    </div>
+    <div class="grid-3">
+      <article class="card">
+        <div class="top"><span class="ico"><svg><use href="#i-editor"/></svg></span><span class="tag">Web UI</span></div>
+        <h3>Editor built in</h3>
+        <p>Design, deploy and debug in the browser. Admin login supports viewer, deployer and administrator roles or OIDC. Run <code>--headless</code> in production.</p>
+      </article>
+      <article class="card">
+        <div class="top"><span class="ico"><svg><use href="#i-flows"/></svg></span><span class="tag">flows.json</span></div>
+        <h3>Drop-in flows</h3>
+        <p>Bring your existing <code>flows.json</code> and credential files. Deploys are revision-checked and one previous copy is kept for rollback.</p>
+      </article>
+      <article class="card">
+        <div class="top"><span class="ico"><svg><use href="#i-code"/></svg></span><span class="tag">QuickJS</span></div>
+        <h3>Native nodes, JS where it counts</h3>
+        <p>Only the <code>function</code> node runs JavaScript, in an embedded QuickJS interpreter. Every other node is native Rust.</p>
+      </article>
+      <article class="card">
+        <div class="top"><span class="ico"><svg><use href="#i-lock"/></svg></span><span class="tag">XChaCha20-Poly1305</span></div>
+        <h3>Encrypted credentials</h3>
+        <p>An explicit <code>credentials migrate</code> encrypts the sidecar, with a backup. Rotate, recover and export are built into the CLI.</p>
+      </article>
+      <article class="card">
+        <div class="top"><span class="ico"><svg><use href="#i-shield"/></svg></span><span class="tag">Hardened</span></div>
+        <h3>Inbound and outbound controls</h3>
+        <p>Per-endpoint request budgets, an optional bearer token for <code>http in</code>, and an outbound allowlist you roll out from observe to enforce.</p>
+      </article>
+      <article class="card">
+        <div class="top"><span class="ico"><svg><use href="#i-puzzle"/></svg></span><span class="tag exp">Experimental · opt-in</span></div>
+        <h3>WASM plugin nodes</h3>
+        <p>Third-party nodes run in a Wasmi sandbox with no file, network, clock or credential access. Installs are staged, self-tested and atomic.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="quick-start">
+  <div class="wrap qs-grid">
+    <div>
+      <p class="kicker">Quick start</p>
+      <h2>From clone to flows</h2>
+      <p class="muted" style="margin:0 0 22px">Build once from source, then it's one binary. npm is only needed at build time, to build the bundled Node-RED editor.</p>
+      <div class="term">
+        <div class="term-bar"><span class="ico" style="width:26px;height:26px;border-radius:7px"><svg style="width:14px;height:14px"><use href="#i-terminal"/></svg></span><span class="title" style="text-align:left;color:var(--text)">Build and run</span>
+          <button class="btn small light" type="button" data-copy-target="qs-code"><svg><use href="#i-copy"/></svg><span>Copy</span></button>
+        </div>
+<pre id="qs-code"><span class="c"># prerequisites: Rust 1.88+, git, Node.js with npm (build time only)</span>
+<span class="k">git</span> clone --recursive https://github.com/n2link/n2link.git
+<span class="k">cd</span> n2link
+
+<span class="c"># release build, including the Node-RED editor</span>
+<span class="k">cargo</span> build --release
+
+<span class="c"># run: opens the editor at http://127.0.0.1:1888</span>
+./target/release/n2linkd
+
+<span class="c"># production: your own flow file, no web UI</span>
+./target/release/n2linkd run ./flows.json --headless</pre>
+      </div>
+      <div class="chips">
+        <div class="chip"><div><b>Editor</b><code>127.0.0.1:1888</code></div><button class="icon-btn" type="button" data-copy="http://127.0.0.1:1888" aria-label="Copy editor address"><svg><use href="#i-copy"/></svg></button></div>
+        <div class="chip"><div><b>Data and config</b><code>~/.n2linkd</code></div><button class="icon-btn" type="button" data-copy="~/.n2linkd/n2linkd.toml" aria-label="Copy config path"><svg><use href="#i-copy"/></svg></button></div>
+        <div class="chip"><div><b>All commands</b><code>n2linkd --help</code></div><button class="icon-btn" type="button" data-copy="./target/release/n2linkd --help" aria-label="Copy help command"><svg><use href="#i-copy"/></svg></button></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <p class="panel-title">Supported targets</p>
+        <ul class="targets">
+          <li><div><code>x86_64-unknown-linux-gnu</code><small>Linux</small></div><span class="tag">x86-64</span></li>
+          <li><div><code>x86_64-pc-windows-msvc</code><small>Windows (also <code>-gnu</code>)</small></div><span class="tag">x86-64</span></li>
+          <li><div><code>aarch64-unknown-linux-gnu</code><small>64-bit ARM, e.g. Raspberry Pi 4/5</small></div><span class="tag">ARM64</span></li>
+          <li><div><code>armv7-unknown-linux-gnueabihf</code><small>32-bit ARM (also <code>gnueabi</code>)</small></div><span class="tag">ARMv7</span></li>
+        </ul>
+        <p class="muted" style="font-size:13px;margin:0 0 12px">Windows builds need <code>patch.exe</code> on <code>PATH</code> (it ships with Git) and Visual Studio for MSVC.</p>
+      </div>
+      <div class="panel" style="padding-bottom:18px">
+        <p class="panel-title">What you get</p>
+        <ul class="checks">
+          <li>The editor and runtime API on one port; change it with <code>--bind</code></li>
+          <li>Flows, credentials and settings under <code>~/.n2linkd</code></li>
+          <li>A commented <code>n2linkd.toml</code> written on first start</li>
+          <li>MQTT, HTTP, WebSocket, TCP/UDP, Redis and PostgreSQL nodes in the default build; Modbus with <code>--features nodes_modbus</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap arch-grid">
+    <div>
+      <p class="kicker">Architecture</p>
+      <h2>Rust core, JS where it counts</h2>
+      <p class="muted" style="margin:0">No Node.js runtime. QuickJS runs Function nodes, Wasmi runs plugin nodes, and everything else is native Rust.</p>
+      <table class="spec">
+        <tr><th>Runtime</th><td>Rust on Tokio</td></tr>
+        <tr><th>Function node</th><td>Embedded QuickJS</td></tr>
+        <tr><th>Editor</th><td>Node-RED editor, served by <code>n2linkd</code></td></tr>
+        <tr><th>Plugins</th><td>Wasmi sandbox, opt-in</td></tr>
+        <tr><th>History</th><td>SQLite deploy, node and Copilot history, opt-in</td></tr>
+      </table>
+    </div>
+    <div class="diagram" aria-label="Architecture diagram">
+      <span class="pill">n2linkd</span>
+      <div class="node core"><em>CORE</em><b>Rust flow engine</b><small>Tokio · flows.json</small></div>
+      <div class="row">
+        <div class="node"><b>QuickJS</b><small>function nodes</small></div>
+        <div class="node"><b>WASM</b><small>Wasmi sandbox</small></div>
+        <div class="node"><b>Web UI</b><small>editor + admin API</small></div>
+      </div>
+      <div class="row proto">
+        <div class="node">MQTT</div>
+        <div class="node">HTTP · WS</div>
+        <div class="node">TCP · UDP</div>
+        <div class="node opt">Modbus</div>
+      </div>
+      <span class="legend">dashed: optional build feature</span>
+    </div>
+  </div>
+</section>
+
+<section id="config">
+  <div class="wrap">
+    <div class="cfg-head">
+      <div><p class="kicker">Configuration</p><h2>Config highlights</h2></div>
+      <div class="tabs" role="tablist" aria-label="Configuration topics">
+        <button role="tab" id="t-web" aria-controls="p-web" aria-selected="true">Web UI</button>
+        <button role="tab" id="t-cred" aria-controls="p-cred" aria-selected="false" tabindex="-1">Credentials</button>
+        <button role="tab" id="t-in" aria-controls="p-in" aria-selected="false" tabindex="-1">Inbound</button>
+        <button role="tab" id="t-out" aria-controls="p-out" aria-selected="false" tabindex="-1">Outbound</button>
+        <button role="tab" id="t-copilot" aria-controls="p-copilot" aria-selected="false" tabindex="-1">Flow Copilot</button>
+        <button role="tab" id="t-wasm" aria-controls="p-wasm" aria-selected="false" tabindex="-1">WASM</button>
+      </div>
+    </div>
+
+    <div class="cfg" role="tabpanel" id="p-web" aria-labelledby="t-web">
+      <div class="cfg-side"><p class="kicker" style="font-size:11px">n2linkd.toml</p><p>Bind address and port for the editor and runtime API. <code>--bind</code> overrides it on the command line.</p><a href="https://github.com/n2link/n2link#configuration">Configuration guide →</a></div>
+      <div class="cfg-code"><div class="term"><div class="term-bar"><span class="title" style="text-align:left">n2linkd.toml</span><button class="icon-btn" type="button" data-copy-target="c-web" aria-label="Copy"><svg><use href="#i-copy"/></svg></button></div>
+<pre id="c-web">[ui-host]
+host = <span class="s">"0.0.0.0"</span>
+port = <span class="k">1888</span>
+
+<span class="c"># or on the command line</span>
+<span class="c"># n2linkd run --bind 0.0.0.0:1888</span></pre></div></div>
+    </div>
+    <div class="cfg" role="tabpanel" id="p-cred" aria-labelledby="t-cred" hidden>
+      <div class="cfg-side"><p class="kicker" style="font-size:11px">CLI</p><p>Existing plaintext <code>flows_cred.json</code> files keep working. Encryption is an explicit step: preview it, then migrate with a new, empty backup directory.</p><a href="https://github.com/n2link/n2link/blob/master/docs/operations/credential-lifecycle.md">Credential lifecycle →</a></div>
+      <div class="cfg-code"><div class="term"><div class="term-bar"><span class="title" style="text-align:left">shell</span><button class="icon-btn" type="button" data-copy-target="c-cred" aria-label="Copy"><svg><use href="#i-copy"/></svg></button></div>
+<pre id="c-cred">n2linkd credentials status
+n2linkd credentials migrate --dry-run
+n2linkd credentials migrate --backup-dir /offline/n2link-credential-backup
+
+<span class="c"># later</span>
+n2linkd credentials rotate --backup-key /offline/old-flows-cred.key</pre></div></div>
+    </div>
+    <div class="cfg" role="tabpanel" id="p-in" aria-labelledby="t-in" hidden>
+      <div class="cfg-side"><p class="kicker" style="font-size:11px">n2linkd.toml</p><p>Each endpoint class (editor, auth, WebSocket, health, Copilot, <code>http in</code>…) has its own body, rate, concurrency and deadline budget.</p><a href="https://github.com/n2link/n2link/blob/master/docs/security/ingress-protection.md">Inbound protection runbook →</a></div>
+      <div class="cfg-code"><div class="term"><div class="term-bar"><span class="title" style="text-align:left">n2linkd.toml</span><button class="icon-btn" type="button" data-copy-target="c-in" aria-label="Copy"><svg><use href="#i-copy"/></svg></button></div>
+<pre id="c-in">[api_protection]
+trusted_proxies = []
+<span class="c"># every `http in` listener requires this bearer token</span>
+webhook_bearer_env = <span class="s">"N2LINK_WEBHOOK_TOKEN"</span>
+
+[api_protection.webhook]
+mode = <span class="s">"enforce"</span>   <span class="c"># or "observe" while migrating</span>
+requests_per_minute = <span class="k">600</span>
+max_concurrency = <span class="k">16</span></pre></div></div>
+    </div>
+    <div class="cfg" role="tabpanel" id="p-out" aria-labelledby="t-out" hidden>
+      <div class="cfg-side"><p class="kicker" style="font-size:11px">n2linkd.toml</p><p>Start in <code>observe</code> to inventory outbound connections, then <code>enforce</code> an exact protocol and port allowlist. Cloud metadata endpoints stay denied.</p><a href="https://github.com/n2link/n2link/blob/master/docs/security/egress-policy.md">Egress policy runbook →</a></div>
+      <div class="cfg-code"><div class="term"><div class="term-bar"><span class="title" style="text-align:left">n2linkd.toml</span><button class="icon-btn" type="button" data-copy-target="c-out" aria-label="Copy"><svg><use href="#i-copy"/></svg></button></div>
+<pre id="c-out">[egress]
+mode = <span class="s">"observe"</span>  <span class="c"># then "enforce"</span>
+allow_environment_proxy = <span class="k">false</span>
+
+[[egress.allow]]
+protocols = [<span class="s">"mqtt"</span>]
+host = <span class="s">"127.0.0.1"</span>
+ports = [<span class="k">1883</span>]</pre></div></div>
+    </div>
+    <div class="cfg" role="tabpanel" id="p-copilot" aria-labelledby="t-copilot" hidden>
+      <div class="cfg-side"><p class="kicker" style="font-size:11px">n2linkd.toml</p><p>Flow Copilot is in the default build. Structural checks against node metadata are on by default; the endpoint has its own request budget.</p><a href="https://github.com/n2link/n2link/blob/master/docs/ISSUES.md#flow-copilot">Copilot known issues →</a></div>
+      <div class="cfg-code"><div class="term"><div class="term-bar"><span class="title" style="text-align:left">n2linkd.toml</span><button class="icon-btn" type="button" data-copy-target="c-copilot" aria-label="Copy"><svg><use href="#i-copy"/></svg></button></div>
+<pre id="c-copilot">[copilot]
+strict_metadata = <span class="k">true</span>
+
+[api_protection.copilot]
+mode = <span class="s">"enforce"</span>
+requests_per_minute = <span class="k">30</span>
+max_concurrency = <span class="k">2</span></pre></div></div>
+    </div>
+    <div class="cfg" role="tabpanel" id="p-wasm" aria-labelledby="t-wasm" hidden>
+      <div class="cfg-side"><p class="kicker" style="font-size:11px">build + n2linkd.toml</p><p>Opt-in twice: build with the feature, then enable it. Plugins are staged and self-tested before activation, with one-call rollback.</p><a href="https://github.com/n2link/n2link/blob/master/docs/operations/wasm-plugins.md">WASM plugin operations →</a></div>
+      <div class="cfg-code"><div class="term"><div class="term-bar"><span class="title" style="text-align:left">shell + n2linkd.toml</span><button class="icon-btn" type="button" data-copy-target="c-wasm" aria-label="Copy"><svg><use href="#i-copy"/></svg></button></div>
+<pre id="c-wasm">cargo build --release --features nodes_wasm
+n2linkd plugin stage my_plugin.wasm
+n2linkd plugin activate --sha256 &lt;hex&gt; acme/my-plugin
+
+[runtime.wasm]
+enabled = <span class="k">true</span></pre></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="use-cases">
+  <div class="wrap">
+    <div class="section-head">
+      <div><p class="kicker">Use cases</p><h2>Where n2link fits</h2></div>
+      <p>Anywhere you'd run Node-RED but would rather ship one native binary with explicit security controls.</p>
+    </div>
+    <div class="grid-3">
+      <article class="card"><div class="top"><span class="ico"><svg><use href="#i-gateway"/></svg></span></div><h3>IoT edge gateways</h3><p>Collect sensor data over MQTT or TCP and forward it upstream, with outbound connections limited to an allowlist.</p></article>
+      <article class="card"><div class="top"><span class="ico"><svg><use href="#i-factory"/></svg></span></div><h3>Industrial automation</h3><p>Run control and data flows on industrial PCs with encrypted credentials and per-endpoint request limits.</p></article>
+      <article class="card"><div class="top"><span class="ico"><svg><use href="#i-home"/></svg></span></div><h3>Home automation</h3><p>Run your existing flows on a Raspberry Pi, with the editor in the browser and no Node.js install on the device.</p></article>
+      <article class="card"><div class="top"><span class="ico"><svg><use href="#i-cloud"/></svg></span></div><h3>Cloud-to-edge migration</h3><p>Prototype in Node-RED, then deploy the same <code>flows.json</code> to n2link at the edge.</p></article>
+      <article class="card"><div class="top"><span class="ico"><svg><use href="#i-remote"/></svg></span></div><h3>Remote management</h3><p>Edit flows remotely through the web editor, behind admin roles or OIDC, with deploy and Copilot history.</p></article>
+      <article class="card"><div class="top"><span class="ico"><svg><use href="#i-box"/></svg></span></div><h3>Development to production</h3><p>Use the editor while building, then run the same binary with <code>--headless</code> in production.</p></article>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-about">
+        <a class="brand" href="#top"><img src="brand/n2link-logo.svg" alt="n2link" width="153" height="31"></a>
+        <p>A Node-RED compatible runtime in Rust, with the editor built in, for edge, industrial and small deployments. Alpha.</p>
+        <div class="actions" style="margin:0">
+          <a class="btn small light" href="https://github.com/n2link/n2link"><svg><use href="#i-github"/></svg>GitHub</a>
+          <a class="btn small" href="https://github.com/n2link/n2link/tree/master/docs">Documentation</a>
+        </div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/n2link/n2link#readme">README</a></li>
+          <li><a href="https://github.com/n2link/n2link/releases">Releases</a></li>
+          <li><a href="https://github.com/n2link/n2link/issues">Issues</a></li>
+          <li><a href="https://github.com/n2link/n2link/blob/master/docs/ISSUES.md">Known issues</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="https://github.com/n2link/n2link/blob/master/docs/operations/credential-lifecycle.md">Credentials</a></li>
+          <li><a href="https://github.com/n2link/n2link/blob/master/docs/security/egress-policy.md">Egress policy</a></li>
+          <li><a href="https://github.com/n2link/n2link/blob/master/docs/security/ingress-protection.md">Inbound protection</a></li>
+          <li><a href="https://github.com/n2link/n2link/blob/master/docs/development/wasm-plugins.md">WASM plugins</a></li>
+        </ul>
+      </div>
+      <div class="notice">
+        <p><strong>Notice.</strong> n2link is a fork of <a href="https://github.com/oldrev/edgelinkd">EdgeLinkd</a> by Li Wei and contributors, and is not affiliated with or endorsed by its authors. See <a href="https://github.com/n2link/n2link/blob/master/NOTICE">NOTICE</a>.</p>
+        <p>Not affiliated with the Node-RED project. Node-RED is a trademark of the OpenJS Foundation. Licensed under <a href="https://github.com/n2link/n2link/blob/master/LICENSE">Apache-2.0</a>.</p>
+      </div>
+    </div>
+    <div class="legal">
+      <span>© 2026 n2link contributors.</span>
+      <span class="status-dot">v0.4.0-rc.1 · alpha · Flow Copilot experimental</span>
+    </div>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+  <div class="lightbox-bar"><span id="lightbox-caption"></span><button class="icon-btn" type="button" data-close aria-label="Close"><svg><use href="#i-x"/></svg></button></div>
+  <img id="lightbox-img" src="" alt="">
+</dialog>
+</body>
+</html>
